@@ -31,27 +31,40 @@
   };
 
   // ---------------------------------------------------------------- Settings
+  // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
-    ['Money', [['household', 'people', 'p', 'Household'], ['currencies', 'globe', 'g', 'Currencies & exchange rates'], ['categories', 'tag', 'a', 'Categories & rules'], ['finance', 'sliders', 'b', 'Financial preferences']]],
-    ['Experience', [['appearance', 'palette', 'p', 'Appearance & theme'], ['ai', 'spark', 'p', 'Insights'], ['profile', 'user', 'b', 'Profile']]],
-    ['Protection', [['privacy', 'eye', 'b', 'Privacy'], ['data', 'upload', 'n', 'Data, backup & reset']]],
+    ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
+    ['Data', [['data', 'upload', 'Data, backup & reset']]],
   ];
   K.Settings = function Settings({ route }) {
     const { wide } = useApp();
     const s = route.s;
     if (s && !wide) return html`<${Section} s=${s} />`;
-    if (wide) return html`<div class="grid" style=${{ gridTemplateColumns: '320px minmax(0, 1fr)', gap: '28px', alignItems: 'start' }}><${Index} active=${s || 'appearance'} /><div class="card" style=${{ padding: '24px' }}><${Section} s=${s || 'appearance'} /></div></div>`;
+    if (wide) return html`<div class="grid" style=${{ gridTemplateColumns: '340px minmax(0, 1fr)', gap: '28px', alignItems: 'start' }}><${Index} active=${s || 'appearance'} /><div class="card" style=${{ padding: '28px' }}><${Section} s=${s || 'appearance'} /></div></div>`;
     return html`<${Index} />`;
   };
   function Index({ active }) {
-    const { data, go, settings, wide } = useApp();
-    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length + ' active', appearance: K.themeName(settings.theme) + ' · ' + (settings.mode || 'System'), ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Amounts hidden' : 'Amounts shown', categories: (data.customCats || []).length ? (data.customCats || []).length + ' yours · ' + data.rules.length + ' rules' : data.rules.length + ' rules', finance: data.prefs.utilRef + '% reference' };
-    return html`<div class="stack">
-      <header class="between" style=${{ paddingTop: wide ? 0 : '8px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Preferences</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Settings</h1><p class="muted">Make Kipu work the way you do.</p></div><${K.Avatar} s=${46} /></header>
-      ${SECTIONS.map(([g, items]) => html`<div key=${g} class="stack-s"><span class="eyebrow">${g}</span><div class="card tight list">${items.map(([k, ic, tone, l]) => html`<button key=${k} class="lrow" style=${active === k ? { background: 'var(--accbg)' } : null} onClick=${() => go({ r: 'settings', s: k }, wide)}><${Tile} icon=${ic} tone=${tone} /><span class="grow t1" style=${{ textAlign: 'left' }}>${l}</span><span class="t2">${val[k] || ''}</span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`)}</div></div>`)}
+    const { data, go, settings, setSettings, wide } = useApp();
+    const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
+    const pal = K.palette(theme, settings.effectiveDark);
+    const open = (k) => go({ r: 'settings', s: k }, wide);
+    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '' };
+    const on = (k) => active === k;
+    const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
+    const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
+    return html`<div class="stack" style=${{ gap: '22px' }}>
+      <header class="stack-s" style=${{ gap: '6px', paddingTop: wide ? 0 : '8px' }}><span class="eyebrow">Preferences</span><h1>Settings</h1></header>
+      <button class=${'card set-me' + (on('profile') ? ' on' : '')} onClick=${() => open('profile')}><${K.Face} s=${56} /><span class="grow stack-s" style=${{ gap: '3px', textAlign: 'left', minWidth: 0 }}><span style=${{ fontWeight: 700, fontSize: '17px' }}>${data.profile.name || 'Your profile'}</span><span class="small muted" style=${{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${data.profile.email || 'Everything stays on this device'}</span></span><span class="pill-link">Edit</span></button>
+      <div class="grid g2" style=${{ gap: '12px' }}>
+        <${Tile2} k="appearance" label="Appearance" sub=${theme + ' · ' + mode}><span class="row" style=${{ gap: '0' }}><span class="set-sw" style=${{ background: K.gradCss(pal.grad) }}></span><span class="set-sw" style=${{ background: mode === 'System' ? 'linear-gradient(135deg, #FFFFFF 50%, #09090B 50%)' : K.MODES[mode].base.bg, marginLeft: '-10px' }}></span></span></${Tile2}>
+        <${Tile2} k="currencies" label="Currencies" sub=${data.base + ' main · ' + data.active.length + ' active'}><${K.Flag} cur=${data.base} s=${36} /></${Tile2}>
+        <${ToggleTile} label="Hide amounts" sub=${settings.hide ? 'Amounts hidden' : 'For use in public'} icon=${settings.hide ? 'eyeoff' : 'eye'} value=${settings.hide} onChange=${(v) => setSettings({ hide: v })} />
+        <${ToggleTile} label="Insights" sub=${settings.ai.insights ? 'On' : 'Off'} icon="spark" value=${settings.ai.insights} onChange=${(v) => setSettings({ ai: Object.assign({}, settings.ai, { insights: v }) })} />
+      </div>
+      ${SECTIONS.map(([g, items]) => html`<div key=${g} class="stack-s"><span class="eyebrow">${g}</span><div class="card tight list">${items.map(([k, ic, l]) => html`<button key=${k} class=${'lrow set-row' + (on(k) ? ' on' : '')} onClick=${() => open(k)}><span class="set-ic"><${Icon} n=${ic} s=${17} /></span><span class="grow t1" style=${{ textAlign: 'left' }}>${l}</span>${val[k] && html`<span class="set-val">${val[k]}</span>`}<${Icon} n="next" s=${15} c="var(--muted)" /></button>`)}</div></div>`)}
       <span class="tiny muted" style=${{ textAlign: 'center' }}>Kipu · your data stays on this device</span></div>`;
   }
-  const SubHead = ({ title, sub }) => html`<div class="stack-s" style=${{ gap: '4px' }}><h2 style=${{ fontSize: '24px', fontWeight: 800 }}>${title}</h2>${sub && html`<p class="muted" style=${{ lineHeight: 1.45 }}>${sub}</p>`}</div>`;
+  const SubHead = ({ title, sub }) => html`<div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Settings</span><h2 class="set-title">${title}</h2>${sub && html`<p class="muted" style=${{ lineHeight: 1.5, maxWidth: '60ch' }}>${sub}</p>`}</div>`;
   function Section({ s }) {
     const C = { profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
