@@ -24,6 +24,8 @@
     const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Dark', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
     const [stack, setStack] = useState([{ r: 'home' }]);
     const [sheet, setSheet] = useState(null);
+    const [fly, setFly] = useState(null);
+    useEffect(() => { if (!fly) return; const off = () => setFly(null); const esc = (e) => e.key === 'Escape' && setFly(null); document.addEventListener('click', off); document.addEventListener('keydown', esc); return () => { document.removeEventListener('click', off); document.removeEventListener('keydown', esc); }; }, [fly]);
     const [toastMsg, setToast] = useState(null);
     const [vw, setVw] = useState(window.innerWidth);
     const sysDark = useSystemDark();
@@ -82,25 +84,18 @@
       const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       const alerts = insights.filter((i) => i.kind === 'Priority').length;
-      // Desktop shows every section; tablet keeps the icon rail
-      const full = vw >= 1100;
       const subLabel = (() => { const g = [['money', [['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']]], ['plan', [['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', [['insights', 'Insights'], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]].find((x) => x[0] === rootOf); const t = g && g[1].find((x) => x[0] === (stack[0].tab || 'overview')); return t ? t[1] : null; })();
       const rootTab = stack[0].tab || 'overview';
       const SIDE = [['home', 'home', 'Home'], ['money', 'wallet', 'Money', [['overview', 'Overview'], ['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']]], ['plan', 'plan', 'Plan', [['overview', 'Overview'], ['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', 'chart', 'Stats', [['overview', 'Statistics'], ['insights', 'Insights', insights.length || null], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]];
-      return html`<${Ctx.Provider} value=${value}><div class=${cls}><div class=${'d-shell' + (full ? ' full' : '')}>
-        ${full ? html`<aside class="side" aria-label="Primary">
-          <button class="side-brand" onClick=${() => go({ r: 'home' })}><span class="mark"></span><span class="disp" style=${{ fontSize: '20px', fontWeight: 800 }}>Kipu</span></button>
-          <nav class="side-nav">${SIDE.map(([r, ic, l, subs]) => { const on = rootOf === r; return html`<div key=${r} class="side-group">
-            <button class=${'side-item' + (on && (!subs || rootTab === subs[0][0]) ? ' on' : on ? ' open' : '')} aria-current=${on ? 'page' : null} onClick=${() => go({ r })}><${Icon} n=${ic} s=${19} />${l}</button>
-            ${subs && html`<div class="side-subs">${subs.slice(1).map(([t, tl, badge]) => html`<button key=${t} class=${'side-sub' + (on && rootTab === t ? ' on' : '')} onClick=${() => go({ r, tab: t })}><span>${tl}</span>${badge ? html`<i class="side-badge">${badge}</i>` : null}</button>`)}</div>`}</div>`; })}</nav>
-          <div class="side-foot"><button class=${'side-item' + (rootOf === 'settings' ? ' on' : '')} onClick=${() => go({ r: 'settings' })}><${Icon} n="gear" s=${19} />Settings</button>
-            <button class="side-me" onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${36} /><span class="stack-s" style=${{ gap: 0, textAlign: 'left', minWidth: 0 }}><span style=${{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${data.profile.name || 'You'}</span><span class="tiny muted">${ctx.scope === 'household' ? 'Household view' : 'Personal view'}</span></span></button></div>
-        </aside>` : html`<aside class="rail" aria-label="Primary">
+      return html`<${Ctx.Provider} value=${value}><div class=${cls}><div class="d-shell">
+        <aside class="rail" aria-label="Primary">
           <button class="rail-mark" aria-label="Kipu home" onClick=${() => go({ r: 'home' })}><span></span></button>
           <button class="rail-add" aria-label="Add" title="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${22} w=${2.4} /></button>
-          <nav class="rail-nav">${nav.slice(0, 4).map(([r, ic, l]) => html`<button key=${r} class=${'rail-btn' + (rootOf === r ? ' on' : '')} aria-label=${l} aria-current=${rootOf === r ? 'page' : null} onClick=${() => go({ r })}><${Icon} n=${ic} s=${20} /><span class="rail-tip">${l}</span></button>`)}</nav>
+          <nav class="rail-nav">${SIDE.map(([r, ic, l, subs]) => html`<div key=${r} class="rail-wrap">
+            <button class=${'rail-btn' + (rootOf === r ? ' on' : '') + (fly === r ? ' flying' : '')} aria-label=${l} aria-current=${rootOf === r ? 'page' : null} aria-expanded=${subs ? fly === r : null} aria-haspopup=${subs ? 'menu' : null} onClick=${(e) => { e.stopPropagation(); if (subs) setFly(fly === r ? null : r); else { setFly(null); go({ r }); } }}><${Icon} n=${ic} s=${20} />${fly !== r && html`<span class="rail-tip">${l}</span>`}</button>
+            ${subs && fly === r && html`<div class="fly" role="menu" aria-label=${l} onClick=${(e) => e.stopPropagation()}><span class="fly-title">${l}</span>${subs.map(([t, tl, badge]) => html`<button key=${t} role="menuitem" class=${'fly-item' + (rootOf === r && rootTab === t ? ' on' : '')} onClick=${() => { setFly(null); go(t === 'overview' ? { r } : { r, tab: t }); }}><span>${tl}</span>${badge ? html`<i class="side-badge">${badge}</i>` : null}</button>`)}</div>`}</div>`)}</nav>
           <div class="rail-foot"><button class=${'rail-btn' + (rootOf === 'settings' ? ' on' : '')} aria-label="Settings" onClick=${() => go({ r: 'settings' })}><${Icon} n="gear" s=${20} /><span class="rail-tip">Settings</span></button><button class="rail-face" aria-label="Profile" onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${40} /><span class="rail-tip">${data.profile.name || 'Profile'}</span></button></div>
-        </aside>`}
+        </aside>
         <main class="d-main">
           <div class="d-bar">
             ${stack.length > 1 ? html`<button class="circle-btn" aria-label="Back" onClick=${back}><${Icon} n="back" s=${18} w=${2.2} /></button>` : null}
