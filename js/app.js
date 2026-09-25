@@ -23,6 +23,7 @@
     const dataRef = useRef(data);
     const vaultRef = useRef(null);
     const cloudUserRef = useRef(undefined);
+    const spaceChoiceRef = useRef(false);
     const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
     if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
     useEffect(() => {
@@ -34,11 +35,23 @@
         const id = user ? user.id : null;
         if (cloudUserRef.current === id) return;
         cloudUserRef.current = id;
+        spaceChoiceRef.current = false;
         if (vaultRef.current) vaultRef.current.clear();
         vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
         const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
         setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '', target: 'personal', household: null, households: [] });
-        if (user) K.cloudHouseholds().then((households) => { if (cloudUserRef.current === id) setCloud((c) => Object.assign({}, c, { households })); }).catch((error) => { if (cloudUserRef.current === id) setCloud((c) => Object.assign({}, c, { error: error.message })); });
+        if (user) K.cloudHouseholds().then((households) => {
+          if (cloudUserRef.current !== id) return;
+          let preferred = null;
+          try { preferred = localStorage.getItem('kipu-cloud-space:' + id); } catch (e) {}
+          const household = households.find((h) => h.id === preferred) || (!preferred && households.length === 1 ? households[0] : null);
+          if (household && !spaceChoiceRef.current) {
+            if (vaultRef.current) vaultRef.current.clear();
+            vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
+            setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 });
+            setCloud((c) => Object.assign({}, c, { households, target: 'household', household }));
+          } else setCloud((c) => Object.assign({}, c, { households }));
+        }).catch((error) => { if (cloudUserRef.current === id) setCloud((c) => Object.assign({}, c, { error: error.message })); });
       });
       return () => listener.subscription.unsubscribe();
     }, []);
@@ -89,6 +102,8 @@
       if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
       if (vaultRef.current) vaultRef.current.clear();
       vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
+      spaceChoiceRef.current = true;
+      try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, household.id); } catch (e) {}
       const next = K.factory(); dataRef.current = next; setData(next);
       setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
       setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'household', household, error: '', sync: null }));
@@ -97,6 +112,8 @@
       if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
       if (vaultRef.current) vaultRef.current.clear();
       vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
+      spaceChoiceRef.current = true;
+      try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, 'personal'); } catch (e) {}
       const next = K.factory(); dataRef.current = next; setData(next);
       setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
       setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'personal', household: null, error: '', sync: null }));
@@ -121,6 +138,8 @@
         await vault.create(initial); created = true;
         if (vaultRef.current) vaultRef.current.clear();
         vaultRef.current = vault; dataRef.current = initial; setData(initial);
+        spaceChoiceRef.current = true;
+        try { localStorage.setItem('kipu-cloud-space:' + cloud.user.id, household.id); } catch (e) {}
         setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
         setCloud((c) => Object.assign({}, c, { status: 'ready', target: 'household', household, households: (c.households || []).concat([household]), sync: 'synced', error: '' }));
       } catch (e) {
