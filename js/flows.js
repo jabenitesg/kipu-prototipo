@@ -53,6 +53,8 @@
     const category = cat || guessed || 'other';
     const v = numv(amt);
     const curs = curOptions(data).concat(src.cur && !data.active.includes(src.cur) ? [src.cur] : []);
+    const blocked = v && from ? K.canPost(data, { type: 'expense', amt: v, cur, from }) : null;
+    const noRate = !K.hasRateFor(data, cur);
     const save = () => {
       const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from, date, note, trip: trip || null, autoTrip: false, shared, source: preset.source || (item && item.source) || 'manual' };
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
@@ -73,7 +75,8 @@
       ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
       <${K.DateInput} label="Date" value=${date} onChange=${setDate} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" />
       ${(D.trips.length > 0 || data.household.enabled) && html`<div class="card tight list">${D.trips.length > 0 && html`<div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div>`}${data.household.enabled && html`<${ToggleRow} title="Share with Household" on=${shared} onChange=${setShared} icon="people" tone="p" />`}</div>`}
-      <button class="btn pri block" disabled=${!v || !from} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
+      ${(blocked || (noRate && v > 0)) && html`<${K.RateNote} cur=${blocked || cur} blocked=${!!blocked} />`}
+      <button class="btn pri block" disabled=${!v || !from || !!blocked} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
   };
 
   const IncomeSheet = ({ onClose, item }) => {
@@ -182,7 +185,7 @@
     // Which sign is spending: cards list charges as positive; banks as negative
     const negIsSpend = sign === 'auto' ? !isCard : sign === 'neg';
     const classify = (r) => { const spend = negIsSpend ? r.amt < 0 : r.amt > 0; return { type: spend ? 'expense' : isCard ? 'transfer' : 'income', amt: Math.abs(r.amt) }; };
-    const rows = (st.rows || []).map((r) => Object.assign({}, r, classify(r), { dup: !!K.findDuplicate(data, { date: r.date, amt: Math.abs(r.amt) }, where), cat: K.guessCat(data, r.desc) }));
+    const rows = (st.rows || []).map((r) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !!K.findDuplicate(data, { date: r.date, amt: Math.abs(r.amt) }, where), cat: K.guessCat(data, r.desc), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
     const doImport = () => {
       let d = data;
@@ -200,7 +203,7 @@
       ${st.step === 'review' && html`
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
         <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', isCard ? 'Positive (card)' : 'Negative (bank)'], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
-        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.type === 'expense' ? K.CATS[r.cat].name : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
+        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.bill ? 'Pays ' + r.bill.name : r.type === 'expense' ? K.CATS[r.cat].name : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
   };
 

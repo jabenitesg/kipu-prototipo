@@ -145,3 +145,52 @@ test('Safe to Spend excludes recorded bill, card and loan payments', () => {
   assert.equal(K.derive(d, ctx).plan.safe, 650);
   assert.equal(K.derive(d, ctx).plan.hasIncome, false);
 });
+
+test('a currency without a rate is never converted 1:1 and joins totals once the rate arrives', () => {
+  let d = K.factory();
+  d.accounts = [account('cad', 'CAD', 1000), account('ars', 'ARS', 50000)];
+  delete d.fx.usd.ARS;
+  assert.equal(K.rate(d, 'ARS', 'CAD'), null);
+  assert.equal(K.toBase(d, 100, 'ARS'), null);
+  assert.deepEqual(K.missingRates(d), ['ARS']);
+  assert.equal(K.derive(d, ctx).netWorth, 1000); // the ARS account is left out, not counted as 50,000 CAD
+  assert.equal(K.canPost(d, { type: 'expense', amt: 10, cur: 'ARS', from: 'acct:cad' }), 'ARS');
+  assert.throws(() => K.addTxn(d, { type: 'expense', amt: 10, cur: 'ARS', from: 'acct:cad' }), /NO_RATE/);
+  d = K.addTxn(d, { type: 'expense', amt: 2000, cur: 'ARS', from: 'acct:ars' }); // same currency needs no rate
+  assert.equal(d.accounts[1].bal, 48000);
+  assert.equal(d.txns[0].base, null);
+  d.fx.usd.ARS = 1000; d.fx.usd.CAD = 1.35;
+  d = K.fillPendingRates(d);
+  assert.equal(d.txns[0].base, 2.7);
+  assert.equal(d.txns[0].rateLater, true);
+  assert.deepEqual(K.missingRates(d), []);
+});
+
+test('an imported or typed rent payment pays the bill instead of being reserved again', () => {
+  let d = K.factory();
+  const T = K.today();
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 2000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 20)), to: 'acct:cad' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: T.getDate(), cat: 'housing', pay: 'acct:cad', since: K.iso(K.addDays(T, -40)) }];
+  const before = K.derive(d, ctx).plan.safe;
+  d = K.addTxn(d, { type: 'expense', merchant: 'RENT PAYMENT - MAPLE PROPERTIES', amt: 1500, cur: 'CAD', from: 'acct:cad', date: K.iso(T), source: 'statement' });
+  assert.equal(d.txns[0].recurring, 'rent');
+  assert.equal(K.derive(d, ctx).plan.safe, before); // cash went down 1,500 and the bill is no longer due
+  const other = K.addTxn(K.factory(), { type: 'expense', merchant: 'Coffee', amt: 5, cur: 'CAD' });
+  assert.equal(other.txns[0].recurring, undefined);
+});
+
+test('edits made on two devices at once are merged, balances included', () => {
+  let base = K.factory();
+  base.accounts = [account('cad', 'CAD', 1000)];
+  base.bills = [{ id: 'b1', name: 'Phone', amt: 50, cur: 'CAD', day: 5 }];
+  const phone = K.addTxn(base, { type: 'expense', merchant: 'Groceries', amt: 100, cur: 'CAD', from: 'acct:cad' });
+  let laptop = K.addTxn(base, { type: 'expense', merchant: 'Gas', amt: 60, cur: 'CAD', from: 'acct:cad' });
+  laptop = Object.assign({}, laptop, { bills: [{ id: 'b1', name: 'Phone plan', amt: 50, cur: 'CAD', day: 5 }] });
+  const merged = K.mergeData(base, phone, laptop);
+  assert.equal(merged.txns.length, 2);
+  assert.equal(merged.accounts[0].bal, 840); // 1000 − 100 − 60
+  assert.equal(merged.bills[0].name, 'Phone plan');
+  const deleted = K.removeTxn(phone, phone.txns[0].id);
+  assert.equal(K.mergeData(phone, deleted, phone).txns.length, 0); // a delete on one side sticks when the other didn't touch it
+});

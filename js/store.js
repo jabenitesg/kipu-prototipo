@@ -73,6 +73,51 @@
   };
 
   // ---------------------------------------------------------------- factory state
+
+  // ---------------------------------------------------------------- merging edits made on two devices
+  // base = what both started from, local = this device, remote = the other device. Lists merge by id;
+  // balances merge by adding both sides' changes, because each side's transactions moved them.
+  const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const DELTA = { accounts: ['bal'], cards: ['bal', 'bal2', 'stmtBal', 'stmtBal2'], loans: ['bal'], goals: ['saved'] };
+  const mergeObj = (b, l, r) => {
+    b = b || {}; l = l || {}; r = r || {};
+    const out = {};
+    new Set(Object.keys(l).concat(Object.keys(r))).forEach((k) => { const v = sameJSON(l[k], b[k]) ? r[k] : l[k]; if (v !== undefined) out[k] = v; });
+    return out;
+  };
+  const mergeList = (b, l, r, delta) => {
+    const byId = (a) => new Map((a || []).map((x) => [x.id, x]));
+    const B = byId(b), L = byId(l), Rm = byId(r);
+    const order = (r || []).map((x) => x.id).concat((l || []).map((x) => x.id).filter((id) => !Rm.has(id)));
+    const out = [];
+    order.forEach((id) => {
+      const bi = B.get(id), li = L.get(id), ri = Rm.get(id);
+      if (!li) { if (!(bi && sameJSON(ri, bi))) out.push(ri); return; }
+      if (!ri) { if (!(bi && sameJSON(li, bi))) out.push(li); return; }
+      if (sameJSON(li, bi) || !bi) { out.push(sameJSON(li, bi) ? ri : mergeObj({}, li, ri)); return; }
+      if (sameJSON(ri, bi)) { out.push(li); return; }
+      const m = mergeObj(bi, li, ri);
+      (delta || []).forEach((f) => { if (typeof bi[f] === 'number' || typeof li[f] === 'number' || typeof ri[f] === 'number') m[f] = r2((bi[f] || 0) + ((li[f] || 0) - (bi[f] || 0)) + ((ri[f] || 0) - (bi[f] || 0))); });
+      out.push(m);
+    });
+    return out;
+  };
+  const isIdList = (a) => Array.isArray(a) && a.every((x) => x && typeof x === 'object' && 'id' in x);
+  K.mergeData = (base, local, remote) => {
+    if (!base) return local;
+    if (sameJSON(local, base)) return remote;
+    if (sameJSON(remote, base)) return local;
+    const out = {};
+    new Set(Object.keys(local).concat(Object.keys(remote))).forEach((k) => {
+      const b = base[k], l = local[k], r = remote[k];
+      if (isIdList(l || []) && isIdList(r || []) && (Array.isArray(l) || Array.isArray(r))) out[k] = mergeList(b || [], l || [], r || [], DELTA[k]);
+      else if (Array.isArray(l) || Array.isArray(r)) out[k] = sameJSON(l, b) ? r : sameJSON(r, b) ? l : [...new Set([].concat(r || [], l || []))];
+      else if (l && r && typeof l === 'object' && typeof r === 'object') out[k] = mergeObj(b, l, r);
+      else out[k] = sameJSON(l, b) ? r : l;
+    });
+    return out;
+  };
+
   K.factory = () => ({
     v: VERSION, createdAt: iso(today()), onboarded: false, demo: false,
     profile: { name: '', email: '', photo: '' },
@@ -94,8 +139,14 @@
 
   // ---------------------------------------------------------------- currency
   // Every stored transaction keeps its original amount and currency plus the base-currency amount at the rate used then.
-  K.rate = (data, from, to) => { to = to || data.base; const u = data.fx.usd; if (!u[from] || !u[to]) return 1; return u[to] / u[from]; };
-  K.toBase = (data, amt, cur) => r2(amt * K.rate(data, cur, data.base));
+  // A missing rate is null, never 1: amounts without a rate stay out of totals until the rate arrives
+  K.rate = (data, from, to) => { to = to || data.base; from = from || data.base; if (from === to) return 1; const u = data.fx.usd; if (!u[from] || !u[to]) return null; return u[to] / u[from]; };
+  K.toBase = (data, amt, cur) => { const k = K.rate(data, cur, data.base); return k == null || amt == null ? null : r2(amt * k); };
+  K.hasRateFor = (data, cur) => K.rate(data, cur, data.base) != null;
+  // Currencies in use that have no rate yet
+  K.missingRates = (data) => { const s = new Set(); const add = (c) => { if (c && !K.hasRateFor(data, c)) s.add(c); }; data.accounts.forEach((a) => add(a.cur)); data.cards.forEach((c) => { add(c.cur); add(c.cur2); }); data.loans.forEach((l) => add(l.cur)); data.bills.forEach((b) => add(b.cur)); data.income.forEach((i) => add(i.cur)); data.txns.forEach((t) => { if (t.base == null) add(t.cur); }); return [...s]; };
+  // When a rate arrives, transactions saved without one join the totals at that rate
+  K.fillPendingRates = (data) => { let changed = false; const txns = data.txns.map((t) => { if (t.base != null) return t; const k = K.rate(data, t.cur, data.base); if (k == null) return t; changed = true; return Object.assign({}, t, { base: r2(t.amt * k), rate: k, rateLater: true }); }); return changed ? Object.assign({}, data, { txns }) : data; };
   K.sym = (cur) => (K.CURRENCIES[cur] || [cur + ' '])[0];
   K.refreshFx = async (data) => {
     const r = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -113,7 +164,8 @@
   // Each transaction keeps its original amount and currency; only its main-currency value is restated.
   K.changeBase = (d, nb) => {
     const ob = d.base; if (nb === ob) return d;
-    const k = K.rate(d, ob, nb), c = (v) => (v == null ? v : r2(v * k));
+    const k = K.rate(d, ob, nb); if (k == null) throw new Error('NO_RATE:' + nb);
+    const c = (v) => (v == null ? v : r2(v * k));
     const snaps = {}; Object.keys(d.snapshots || {}).forEach((m) => { const x = d.snapshots[m]; snaps[m] = Object.assign({}, x, { nw: c(x.nw), debt: c(x.debt), loans: c(x.loans), cards: c(x.cards) }); });
     const budget = {}; Object.keys(d.budget || {}).forEach((cat) => (budget[cat] = c(d.budget[cat])));
     return Object.assign({}, d, {
@@ -188,22 +240,27 @@
     if (kind === 'card') return Object.assign({}, d, { cards: upd(d.cards, id, (c) => Object.assign({}, c, { bal: r2(c.bal - delta) })) });
     return d;
   };
-  const postingAmount = (d, t, where, baseAmount) => {
+  // Each posting is in the account's or card's own currency. Without a rate, only same-currency postings are possible.
+  const postingAmount = (d, t, where, sign) => {
     const [kind, id] = (where || '').split(':');
     const item = kind === 'acct' ? d.accounts.find((a) => a.id === id) : kind === 'card' ? d.cards.find((c) => c.id === id) : null;
     if (!item) return 0;
     const currency = item.cur || d.base;
-    if (currency === t.cur && t.amt != null) return r2(Math.sign(baseAmount) * t.amt);
-    return r2(baseAmount / K.rate(d, currency, d.base));
+    if (currency === t.cur && t.amt != null) return r2(sign * t.amt);
+    const k = K.rate(d, currency, d.base);
+    if (t.base == null || k == null) throw new Error('NO_RATE:' + (t.base == null ? t.cur : currency));
+    return r2((sign * t.base) / k);
   };
   const postingsFor = (d, t) => {
     const out = [];
-    const post = (where, amount) => { if (where && (where.startsWith('acct:') || where.startsWith('card:'))) out.push({ where, amount: postingAmount(d, t, where, amount) }); };
-    if (t.type === 'expense') post(t.from, -t.base);
-    if (t.type === 'income') post(t.from, t.base);
-    if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -t.base); post(t.to, t.base); }
+    const post = (where, sign) => { if (where && (where.startsWith('acct:') || where.startsWith('card:'))) out.push({ where, amount: postingAmount(d, t, where, sign) }); };
+    if (t.type === 'expense') post(t.from, -1);
+    if (t.type === 'income') post(t.from, 1);
+    if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -1); post(t.to, 1); }
     return out;
   };
+  // Forms ask first so nothing is saved with an invented conversion
+  K.canPost = (d, t) => { try { postingsFor(d, Object.assign({ cur: d.base }, t, { base: t.base != null ? t.base : K.toBase(d, t.amt, t.cur || d.base) })); return null; } catch (e) { return String(e.message).startsWith('NO_RATE:') ? e.message.slice(8) : e.message; } };
   const effects = (d, t, sign) => {
     const s = sign || 1;
     const postings = t.postings || postingsFor(d, t);
@@ -212,11 +269,33 @@
     if (t.type === 'debt' && t.loan) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(l.bal - (t.principal || 0) * s), next: s > 0 ? (t.loanNextAfter || l.next) : (l.next === t.loanNextAfter ? t.loanNextBefore : l.next) })) });
     return d;
   };
+  // An expense that looks like a bill (similar name, amount within 3% or $1, within a week of its due date) pays that bill
+  const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  K.matchBill = (d, t) => {
+    if (!t || t.type !== 'expense' || t.base == null) return null;
+    const m = norm(t.merchant), when = parse(t.date || iso(today()));
+    if (!m) return null;
+    const words = m.split(' ').filter((w) => w.length >= 4);
+    const hits = (d.bills || []).filter((b) => {
+      const n = norm(b.name); if (!n) return false;
+      const named = m.includes(n) || n.includes(m) || words.some((w) => n.split(' ').includes(w));
+      if (!named) return false;
+      const amt = K.toBase(d, b.amt, b.cur || d.base); if (amt == null) return false;
+      if (Math.abs(amt - t.base) > Math.max(1, amt * 0.03)) return false;
+      const due = b.kind === 'Annual' ? new Date(when.getFullYear(), (b.month || 1) - 1, b.day || 1) : new Date(when.getFullYear(), when.getMonth(), b.day || 1);
+      const near = [addMonths(due, -1), due, addMonths(due, 1)].some((x) => Math.abs(days(x, when)) <= 7);
+      if (!near) return false;
+      const month = monthKey(when);
+      return !d.txns.some((x) => x.recurring === b.id && x.date && x.date.slice(0, 7) === month);
+    });
+    return hits.length === 1 ? hits[0] : null;
+  };
   K.addTxn = (d, t) => {
     const cur = t.cur || d.base;
     const base = t.base != null ? t.base : K.toBase(d, t.amt, cur);
     t = Object.assign({ id: uid('t'), date: iso(today()), cur, base, rate: K.rate(d, cur, d.base), source: 'manual', shared: false }, t, { base });
     t.postings = postingsFor(d, t);
+    if (t.type === 'expense' && !t.recurring && t.billMatch !== 'off') { const b = K.matchBill(d, t); if (b) { t.recurring = b.id; t.billMatch = 'auto'; } }
     if (t.type === 'expense' && !t.trip) { const trip = K.activeTrip(d, parse(t.date)); if (trip && t.autoTrip !== false && cur !== d.base) t.trip = trip.id; }
     d = effects(d, t, 1);
     return K.snapshot(Object.assign({}, d, { txns: d.txns.concat([t]) }));
@@ -239,6 +318,7 @@
     if (old && ['accounts', 'cards'].includes(coll) && (old.cur || d.base) !== (item.cur || d.base)) {
       const where = (coll === 'cards' ? 'card:' : 'acct:') + item.id;
       const ratio = K.rate(d, old.cur || d.base, item.cur || d.base);
+      if (ratio == null) throw new Error('NO_RATE:' + (K.hasRateFor(d, old.cur || d.base) ? item.cur : old.cur));
       next.txns = d.txns.map((t) => t.postings ? Object.assign({}, t, { postings: t.postings.map((p) => p.where === where ? Object.assign({}, p, { amount: r2(p.amount * ratio) }) : p) }) : t);
     }
     return K.snapshot(next);
@@ -389,7 +469,7 @@
     const paidThisMonth = new Set(txAll.filter((t) => t.recurring && inMonth(t, T.getFullYear(), T.getMonth())).map((t) => t.recurring));
     const unpaid = bills.filter((b) => billDates(b).some((d) => d <= T && (!b.since || iso(d) >= b.since)) && !paidThisMonth.has(b.id));
 
-    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
+    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), noRate: K.missingRates(data), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
   };
 
   // ---------------------------------------------------------------- forecast (plain arithmetic)

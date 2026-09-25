@@ -117,7 +117,7 @@
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${kpis}</header>
-        <${Setup} />
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div style=${{ gridArea: 'hero' }}><${SafeHero} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -125,18 +125,19 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
   const MONEY_TABS = [['overview', 'Overview'], ['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']];
   K.Money = function Money({ route }) {
-    const { go, wide } = useApp();
+    const { go, wide, D } = useApp();
     const tab = route.tab || 'overview';
     const Body = { overview: MoneyOverview, accounts: Accounts, cards: Cards, loans: Loans, activity: Activity }[tab];
     return html`<div class="stack">
       <div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>
       <${Tabs} tabs=${MONEY_TABS} value=${tab} onChange=${(t) => go({ r: 'money', tab: t }, true)} />
+      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}
       <${Body} /></div>`;
   };
 
@@ -296,6 +297,8 @@
       <div class="card stack-s" style=${{ alignItems: 'center', textAlign: 'center', padding: '24px 18px' }}><${Tile} icon=${c ? c.icon : t.type === 'income' ? 'income' : 'transfer'} tone=${c ? c.tone : 'n'} /><span class="t1" style=${{ marginTop: '6px' }}>${t.merchant || typeLabel}</span><span class="disp num" style=${{ fontSize: '34px', fontWeight: 800, color: t.type === 'income' ? 'var(--pos)' : null }}>${t.type === 'income' ? '+' : ''}${foreign ? fmt.native(t.amt, t.cur, { dec: 2 }) : fmt(t.base, { dec: 2 })}</span>${foreign && html`<span class="small muted num">${fmt(t.base, { dec: 2 })}${t.estimate ? ' estimated' : ''}</span>`}<span class="pill neu">${typeLabel}</span></div>
       ${foreign && html`<div class="card stack-s"><div class="between"><span style=${{ fontWeight: 600 }}>Stored conversion</span><span class="pill pos"><${Icon} n="lock" s=${12} w=${2.2} />Locked</span></div><span class="small muted num" style=${{ lineHeight: 1.5 }}>1 ${t.cur} = ${K.sym(data.base)}${(t.rate || 0).toFixed(4)} on ${K.fmtDate(t.date)}. Today’s rate would make it ${fmt(liveNow, { dec: 2 })}, but past amounts don’t change.</span></div>`}
       ${t.type === 'expense' && html`<div class="stack-s"><span class="eyebrow">Category</span><div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (t.cat === k ? ' on' : '')} onClick=${() => { commit(K.editTxn(data, t.id, { cat: k })); toast('Category updated'); }}>${K.CATS[k].name}</button>`)}</div><button class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((r) => r.merchant.toLowerCase() !== (t.merchant || '').toLowerCase()).concat([{ id: K.uid('r'), merchant: t.merchant, cat: t.cat }]) })); toast('New ' + t.merchant + ' purchases will use ' + K.CATS[t.cat].name); }}>Always use this category for ${t.merchant}</button></div>`}
+      ${t.type === 'expense' && data.bills.length > 0 && html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="between"><span style=${{ fontWeight: 600 }}>Bill payment</span>${t.recurring && html`<span class="pill pos"><${Icon} n="check" s=${12} w=${2.4} />${t.billMatch === 'auto' ? 'Matched' : 'Linked'}</span>`}</div><span class="small muted" style=${{ lineHeight: 1.45 }}>${t.recurring ? 'This pays ' + ((data.bills.find((b) => b.id === t.recurring) || {}).name || 'a bill') + ', so Safe to Spend doesn’t count that bill again this month.' : 'If this pays one of your bills, link it so Safe to Spend doesn’t count the bill twice.'}</span>
+        <select class="input" aria-label="Bill this pays" value=${t.recurring || ''} onChange=${(e) => { commit(K.editTxn(data, t.id, { recurring: e.target.value || null, billMatch: e.target.value ? 'manual' : 'off' })); toast(e.target.value ? 'Linked to bill' : 'Unlinked'); }}><option value="">Not a bill</option>${data.bills.map((b) => html`<option key=${b.id} value=${b.id}>${b.name}</option>`)}</select></div>`}
       <${Facts} rows=${[['Date', K.fmtDate(t.date, true)], t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from)], t.to && ['To', K.whereName(data, t.to)], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.recurring && ['Recurring', 'Yes · in Bills & recurring'], t.note && ['Note', t.note]]} />
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip ? html`<button class="btn sec" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>` : html`<span></span>`}</div>
       <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />

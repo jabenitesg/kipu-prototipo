@@ -307,6 +307,15 @@
   const PageHead = ({ eyebrow, title, sub, right }) => html`<header class="between" style=${{ alignItems: 'flex-end', paddingTop: '4px' }}><div class="stack-s" style=${{ gap: '6px' }}>${eyebrow && html`<span class="eyebrow">${eyebrow}</span>`}<h1 style=${{ fontSize: '30px', lineHeight: '36px', fontWeight: 800 }}>${title}</h1>${sub && html`<p class="muted" style=${{ fontSize: '15px', lineHeight: 1.45 }}>${sub}</p>`}</div>${right}</header>`;
   K.PageHead = PageHead;
 
+  // Shown when a currency has no exchange rate yet: never convert 1 to 1
+  K.RateNote = function RateNote({ cur, blocked, list }) {
+    const { updateRates } = useApp();
+    const [busy, setBusy] = useState(false);
+    const curs = list || [cur];
+    const text = blocked ? 'Kipu needs the exchange rate for ' + curs.join(', ') + ' to move money between these currencies.' : list ? 'Totals leave out amounts in ' + curs.join(', ') + ' until Kipu has an exchange rate.' : 'No exchange rate for ' + cur + ' yet. It’s saved in ' + cur + ' and joins your totals once the rate arrives.';
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45 }}>${text}</span>${updateRates && html`<button class="btn sec sm" disabled=${busy} onClick=${async () => { setBusy(true); await updateRates(); setBusy(false); }}>${busy ? 'Updating…' : 'Update rates'}</button>`}</div>`;
+  };
+
   // ---------------------------------------------------------------- make or edit a category
   const CAT_ICONS = ['tag', 'basket', 'cup', 'bag', 'car', 'home', 'heart', 'plane', 'book', 'ticket', 'bolt', 'people', 'gift', 'paw', 'music', 'tool', 'target', 'spark'];
   const CAT_TONES = [['p', 'Theme'], ['b', 'Blue'], ['g', 'Green'], ['a', 'Amber'], ['r', 'Rose'], ['n', 'Gray']];

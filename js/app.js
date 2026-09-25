@@ -25,6 +25,9 @@
     const cloudUserRef = useRef(undefined);
     const spaceChoiceRef = useRef(false);
     const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
+    const cloudRef = useRef(cloud); cloudRef.current = cloud;
+    // When another device saved first, the vault merges both and hands the result back here
+    K.onVaultMerged = (vault, merged) => { if (vault !== vaultRef.current) return; const c = cloudRef.current; const next = c.target === 'household' && c.household ? K.jointData(merged, c.household.name) : merged; dataRef.current = next; setData(next); };
     if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
     useEffect(() => {
       if (!K.cloudClient) { setCloud({ status: 'guest', user: null, error: 'Cloud sign-in is unavailable.' }); return; }
@@ -168,7 +171,7 @@
       if (!data.onboarded || !['guest', 'ready'].includes(cloud.status)) return;
       const age = data.fx.updated ? Date.now() - new Date(data.fx.updated).getTime() : Infinity;
       if (age < 12 * 3600 * 1000 && Object.keys(data.fx.usd).length > 40) return;
-      K.refreshFx(data).then((fx) => commit(Object.assign({}, dataRef.current, { fx }))).catch(() => {});
+      K.refreshFx(data).then((fx) => commit(K.fillPendingRates(Object.assign({}, dataRef.current, { fx })))).catch(() => {});
     }, [data.onboarded, data.active.join(), cloud.status]);
     // Month change: record this month’s balances even without new activity
     useEffect(() => { if (['guest', 'ready'].includes(cloud.status) && data.onboarded && !data.snapshots[K.monthKey(K.today())]) commit(K.snapshot(dataRef.current)); }, [data.onboarded, cloud.status]);
@@ -190,6 +193,9 @@
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);
     const displayName = cloud.target === 'household' && cloud.user ? (cloud.user.user_metadata && (cloud.user.user_metadata.full_name || cloud.user.user_metadata.name)) || (cloud.user.email || '').split('@')[0] : data.profile.name;
     const toast = useCallback((m) => { setToast(m); clearTimeout(window.__kt); window.__kt = setTimeout(() => setToast(null), 2800); }, []);
+    // Anything that would need a missing exchange rate stops and says so instead of guessing
+    useEffect(() => { const on = (e) => { const msg = String((e.reason || e.error || {}).message || e.message || ''); const i = msg.indexOf('NO_RATE:'); if (i < 0) return; e.preventDefault && e.preventDefault(); toast('Kipu needs the exchange rate for ' + msg.slice(i + 8).trim() + ' first. Tap Update rates.'); }; window.addEventListener('error', on); window.addEventListener('unhandledrejection', on); return () => { window.removeEventListener('error', on); window.removeEventListener('unhandledrejection', on); }; }, []);
+    const updateRates = useCallback(async () => { try { const fx = await K.refreshFx(dataRef.current); commit(K.fillPendingRates(Object.assign({}, dataRef.current, { fx }))); toast('Exchange rates updated'); return true; } catch (e) { toast('Couldn’t reach the rate service. Check your connection.'); return false; } }, []);
     const resetAll = useCallback(() => {
       if (vaultRef.current && vaultRef.current.key) {
         const empty = cloud.target === 'household'
@@ -205,7 +211,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, updateRates, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;

@@ -7,12 +7,13 @@
 
   const STATS_TABS = [['overview', 'Statistics'], ['insights', 'Insights'], ['reviews', 'Reviews'], ['forecast', 'Forecast']];
   K.Stats = function Stats({ route }) {
-    const { go, wide } = useApp();
+    const { go, wide, D } = useApp();
     const tab = route.tab || 'overview';
     const Body = { overview: Statistics, spending: Statistics, income: Statistics, insights: Insights, reviews: Reviews, forecast: Forecast }[tab] || Statistics;
     return html`<div class="stack">
       <div class="between" style=${{ paddingTop: wide ? 0 : '8px', flexWrap: 'wrap' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Financial performance</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Stats</h1></div><${ContextFilter} show=${tab === 'overview' || tab === 'spending' || tab === 'income' ? ['scope', 'currency', 'period'] : ['scope']} /></div>
       <${Tabs} tabs=${STATS_TABS} value=${['spending', 'income'].includes(tab) ? 'overview' : tab} onChange=${(t) => go({ r: 'stats', tab: t }, true)} />
+      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}
       <${Body} route=${route} /></div>`;
   };
 

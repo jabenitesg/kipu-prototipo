@@ -101,3 +101,27 @@ test('joint data starts empty and includes every item in the shared view', () =>
   assert.equal(joint.txns[0].shared, true);
   assert.equal(source.accounts[0].shared, false);
 });
+
+test('two devices saving at the same time are merged instead of stopping', async () => {
+  const storeSrc = fs.readFileSync(require('node:path').join(__dirname, '../js/store.js'), 'utf8');
+  const sctx = { window: {}, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, console };
+  vm.runInNewContext(storeSrc, sctx);
+  K.mergeData = sctx.window.K.mergeData;
+  const merged = [];
+  K.onVaultMerged = (vault, data) => merged.push(data);
+  const phone = new K.CloudVault(client), laptop = new K.CloudVault(client);
+  await phone.open('dana', 'dana private passphrase');
+  const start = { ...K.factory(), onboarded: true, accounts: [{ id: 'a', bal: 100 }], txns: [] };
+  await phone.create(start);
+  await laptop.open('dana', 'dana private passphrase');
+  phone.enqueue({ ...start, accounts: [{ id: 'a', bal: 90 }], txns: [{ id: 'p1', amt: 10 }] });
+  await settled(phone);
+  laptop.enqueue({ ...start, accounts: [{ id: 'a', bal: 75 }], txns: [{ id: 'l1', amt: 25 }] });
+  await settled(laptop);
+  assert.equal(laptop.error, null);
+  const final = await new K.CloudVault(client).open('dana', 'dana private passphrase');
+  assert.deepEqual(final.txns.map((t) => t.id).sort(), ['l1', 'p1']);
+  assert.equal(final.accounts[0].bal, 65);
+  assert.ok(merged.length > 0);
+  delete K.mergeData; delete K.onVaultMerged;
+});
