@@ -254,6 +254,8 @@
   };
   const postingsFor = (d, t) => {
     const out = [];
+    // Already paid (an old statement): it counts in statistics but no balance moves
+    if (t.settled) return out;
     const post = (where, sign) => {
       if (!where || !(where.startsWith('acct:') || where.startsWith('card:'))) return;
       // A two-currency card keeps charges in its second currency on their own balance
@@ -312,7 +314,7 @@
   K.removeTxn = (d, id) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; d = effects(d, t, -1); return K.snapshot(Object.assign({}, d, { txns: d.txns.filter((x) => x.id !== id) })); };
   K.editTxn = (d, id, patch) => {
     const t = d.txns.find((x) => x.id === id); if (!t) return d;
-    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
+    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
     if (!financial) return Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) });
     const next = Object.assign({}, t, patch);
     delete next.postings;
@@ -321,6 +323,9 @@
     d = K.removeTxn(d, id);
     return K.addTxn(d, next);
   };
+  // Imported movements on one account or card, up to a date, become "already paid": their balance effect is undone
+  K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
+  K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
   K.upsert = (d, coll, item) => {
     const old = d[coll].find((x) => x.id === item.id);
     const next = Object.assign({}, d, { [coll]: old ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) });

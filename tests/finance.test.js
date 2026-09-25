@@ -247,3 +247,22 @@ test('a loan in another currency is paid in that currency and counted converted'
   assert.equal(d.accounts[0].bal, 4500);
   assert.equal(d.txns[0].cur, 'PEN');
 });
+
+test('an old statement marked as already paid counts in statistics but moves no balance', () => {
+  let d = K.factory();
+  d.cards = [{ id: 'visa', name: 'Visa', cur: 'CAD', bal: 0, limit: 5000, stmtBal: 0 }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Loblaws', amt: 120, cur: 'CAD', from: 'card:visa', date: '2026-03-10', source: 'statement', settled: true });
+  assert.equal(d.cards[0].bal, 0);
+  assert.equal(d.txns[0].base, 120);
+  // Imported before the option existed: mark them paid afterwards
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shell', amt: 80, cur: 'CAD', from: 'card:visa', date: '2026-03-12', source: 'statement' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Uber', amt: 20, cur: 'CAD', from: 'card:visa', date: '2026-09-20', source: 'statement' });
+  assert.equal(d.cards[0].bal, 100);
+  d = K.settleImported(d, 'card:visa', '2026-03-31');
+  assert.equal(d.cards[0].bal, 20);
+  assert.equal(d.txns.length, 3);
+  // Turning it off puts the charge back on the card
+  const shell = d.txns.find((t) => t.merchant === 'Shell');
+  d = K.editTxn(d, shell.id, { settled: undefined });
+  assert.equal(d.cards[0].bal, 100);
+});

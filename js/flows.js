@@ -180,6 +180,7 @@
     const [st, setSt] = useState({ step: 'pick' });
     const [sign, setSign] = useState('auto');
     const [cur, setCur] = useState(data.base);
+    const [settled, setSettled] = useState(null);
     const isCard = where.startsWith('card:');
     const run = async (file) => {
       if (!file) return;
@@ -195,11 +196,16 @@
     const classify = (r) => { const spend = negIsSpend ? r.amt < 0 : r.amt > 0; return { type: spend ? 'expense' : isCard ? 'transfer' : 'income', amt: Math.abs(r.amt) }; };
     const rows = (st.rows || []).map((r) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !!K.findDuplicate(data, { date: r.date, amt: Math.abs(r.amt) }, where), cat: K.guessCat(data, r.desc), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
+    // An old statement is usually paid already; guess from the newest line, and let the person change it
+    const newest = rows.reduce((m, r) => (r.date && r.date > m ? r.date : m), '');
+    const oldFile = !!newest && K.days(K.parse(newest), K.today()) > 40;
+    const paidAlready = settled == null ? oldFile : settled;
     const doImport = () => {
       let d = data;
-      chosen.forEach((r) => { d = K.addTxn(d, { type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.type === 'transfer' ? null : where, to: r.type === 'transfer' ? where : null, date: r.date, source: 'statement' }); });
-      d = Object.assign({}, d, { imports: [{ id: K.uid('i'), name: st.name, when: K.iso(K.today()), count: chosen.length, where }].concat(d.imports) });
-      commit(d); toast(chosen.length + ' transactions imported'); onClose();
+      const imp = K.uid('i');
+      chosen.forEach((r) => { d = K.addTxn(d, { imp, settled: paidAlready || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.type === 'transfer' ? null : where, to: r.type === 'transfer' ? where : null, date: r.date, source: 'statement' }); });
+      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidAlready }].concat(d.imports) });
+      commit(d); toast(paidAlready ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
     };
     const toggle = (i) => setSt(Object.assign({}, st, { rows: st.rows.map((r) => (r.i === i ? Object.assign({}, r, { keep: !r.keep }) : r)) }));
     if (!places.length) return html`<${Sheet} title="Upload statement" onClose=${onClose}><${NoPlace} /></${Sheet}>`;
@@ -212,7 +218,23 @@
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
         <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', isCard ? 'Positive (card)' : 'Negative (bank)'], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
         <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.bill ? 'Pays ' + r.bill.name : r.type === 'expense' ? K.CATS[r.cat].name : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
+        <div class="card tight"><${ToggleRow} title="Already paid" sub=${paidAlready ? 'For statistics only. Balances stay as they are.' : isCard ? 'Off: charges are added to what you owe on this card.' : 'Off: these movements change this account’s balance.'} on=${paidAlready} onChange=${setSettled} icon="check" tone="g" /></div>
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
+  };
+
+  // ---------------------------------------------------------------- imported statements that were already paid
+  const SettleImports = ({ onClose, where }) => {
+    const { data, commit, toast, fmt } = useApp();
+    const all = K.importedOn(data, where);
+    const [before, setBefore] = useState(() => all.reduce((m, t) => (t.date > m ? t.date : m), ''));
+    const list = K.importedOn(data, where, before);
+    const name = (K.whereItem(data, where) || {}).name || '';
+    const save = () => { commit(K.settleImported(data, where, before)); toast(list.length + ' marked as already paid · balance updated'); onClose(); };
+    return html`<${Sheet} title="Already paid" sub=${'Imported movements on ' + name + ' stay in statistics, but no longer change its balance.'} onClose=${onClose}>
+      <${K.DateInput} label="Up to" value=${before} onChange=${setBefore} />
+      <div><${K.Facts} rows=${[['Movements', String(list.length)], ['Total', fmt(list.reduce((a, t) => a + (t.type === 'expense' ? t.base || 0 : 0), 0))]]} /></div>
+      <span class="small muted">Use this for old statements you had already paid. After this, update the balance so it matches your bank today.</span>
+      <button class="btn pri block" disabled=${!list.length} onClick=${save}>Mark ${list.length} as already paid</button></${Sheet}>`;
   };
 
   // ---------------------------------------------------------------- create and edit
@@ -360,5 +382,5 @@
       <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
   };
 
-  K.SHEETS = { quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
+  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
 })();
