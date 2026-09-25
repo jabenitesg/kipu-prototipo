@@ -20,6 +20,8 @@ test('fresh storage and clean onboarding have no financial data; demo requires a
   const clean = K.snapshot({ ...fresh, onboarded: true });
   assert.equal(clean.txns.length, 0);
   assert.ok(K.sampleData().txns.length > 0);
+  assert.equal(K.sampleData().demo, true);
+  assert.equal(fresh.demo, false);
   assert.equal(K.load().txns.length, 0);
 });
 

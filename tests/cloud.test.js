@@ -68,3 +68,36 @@ test('an unsynced encrypted draft survives reopening and can be retried', async 
   assert.equal(local.has('kipu-cloud-pending:carol'), false);
   assert.equal(store.get('carol').revision, 2);
 });
+
+test('a joint household uses its own encrypted vault and pending queue', async () => {
+  const rows = new Map();
+  const sharedClient = { from(table) {
+    assert.equal(table, 'household_vaults');
+    return {
+      select() { return { eq(column, id) { assert.equal(column, 'household_id'); return { async maybeSingle() { return { data: rows.get(id) || null, error: null }; } }; } }; },
+      insert(value) { return { select() { return { async single() { assert.ok(value.household_id); const row = { payload: value.payload, revision: 1 }; rows.set(value.household_id, row); return { data: row, error: null }; } }; } }; },
+      update(value) { let id, revision; return { eq(column, val) { if (column === 'household_id') id = val; if (column === 'revision') revision = val; return this; }, select() { return { async maybeSingle() { const old = rows.get(id); if (!old || old.revision !== revision) return { data: null, error: null }; const row = { payload: value.payload, revision: value.revision }; rows.set(id, row); return { data: row, error: null }; } }; } }; },
+    };
+  } };
+  const first = new K.CloudVault(sharedClient, null, 'household_vaults', 'household_id');
+  const second = new K.CloudVault(sharedClient, null, 'household_vaults', 'household_id');
+  assert.equal(await first.open('family-1', 'a separate family passphrase'), null);
+  await first.create({ ...K.factory(), onboarded: true, txns: [] });
+  await second.open('family-1', 'a separate family passphrase');
+  first.enqueue({ ...K.factory(), txns: [{ id: 'joint', merchant: 'Joint purchase' }] });
+  await settled(first);
+  assert.equal((await second.refresh()).txns[0].id, 'joint');
+  assert.ok(!JSON.stringify(rows.get('family-1')).includes('Joint purchase'));
+  assert.equal(local.has('kipu-cloud-pending:family-1'), false);
+});
+
+test('joint data starts empty and includes every item in the shared view', () => {
+  const empty = K.jointData(K.factory(), 'Kari & Juan');
+  for (const collection of ['accounts', 'cards', 'loans', 'txns']) assert.equal(empty[collection].length, 0);
+  const source = { ...K.factory(), accounts: [{ id: 'a1', name: 'Joint cash', shared: false }], txns: [{ id: 't1', amt: 5, shared: false }] };
+  const joint = K.jointData(source, 'Kari & Juan');
+  assert.equal(joint.household.joint, true);
+  assert.equal(joint.accounts[0].shared, true);
+  assert.equal(joint.txns[0].shared, true);
+  assert.equal(source.accounts[0].shared, false);
+});
