@@ -51,7 +51,7 @@
       const pct = b.plan ? (b.actual / b.plan) * 100 : 0, over = b.actual > b.plan + 0.5, c = K.CATS[b.cat];
       return html`<button key=${b.cat} class="lrow" style=${{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }} onClick=${() => openSheet({ k: 'budgetEdit', cat: b.cat })}>
         <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${c.icon} tone=${c.tone} s=${30} /><span class="t1">${c.name}</span>${over && html`<span class="pill warn" style=${{ height: '22px' }}><${Icon} n="alert" s=${11} w=${2.4} />Over</span>`}</span><span class="small num"><b>${fmt(b.actual)}</b><span class="muted"> of ${fmt(b.plan)}</span></span></span>
-        <${Bar} pct=${pct} color=${over ? 'var(--warn2)' : 'var(--acc)'} mark=${elapsed} />
+        <${K.Segs} pct=${pct} n=${24} h=${7} color=${pct > 100 ? 'var(--crit2)' : pct > 90 ? 'var(--warn2)' : 'var(--acc)'} mark=${elapsed} />
         <span class="tiny muted num" style=${{ textAlign: 'left' }}>${over ? fmt(b.actual - b.plan) + ' over plan' : fmt(b.plan - b.actual) + ' left'}</span></button>`;
     };
     const unplanned = K.CAT_ORDER.filter((c) => !D.plan.budgetRows.some((b) => b.cat === c) && (D.month.cats[c] || 0) > 0);
@@ -153,7 +153,7 @@
     const live = K.sum(t.txns, (x) => K.toBase(data, x.amt, x.cur));
     const left = html`<div class="stack">
       <div class="card stack" style=${{ gap: '12px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span class="small muted">Spent</span><span class="disp num" style=${{ fontSize: '30px', fontWeight: 800 }}>${fmt(t.spent)}</span>${t.cur !== data.base && t.native > 0 && html`<span class="small muted num">${fmt.native(t.native, t.cur)} in ${t.cur}</span>`}</span><span class="stack-s" style=${{ alignItems: 'flex-end', gap: '2px' }}><span class="small muted">Budget</span><span class="amt">${t.budget ? fmt(t.budget) : 'Not set'}</span></span></div>
-        ${t.budget > 0 && html`<${Bar} pct=${(t.spent / t.budget) * 100} color="var(--info)" mark=${t.status === 'active' ? (t.day / t.total) * 100 : null} h=${12} />`}</div>
+        ${t.budget > 0 && html`<${K.Segs} pct=${(t.spent / t.budget) * 100} color=${t.spent > t.budget ? 'var(--crit2)' : 'var(--acc)'} mark=${t.status === 'active' ? (t.day / t.total) * 100 : null} h=${10} />`}</div>
       ${t.txns.length > 0 && html`<${K.ChartBox} title="Daily spending" question="Which days cost the most?"><${BarChart} groups=${perDay.map((v, i) => ({ label: String(dayList[i].getDate()), values: [v] }))} colors=${['var(--info)']} h=${150} hi=${perDay.indexOf(Math.max(...perDay))} labelTop=${(v) => fmt.k(v)} fmtY=${fmt.k} /></${K.ChartBox}>`}
       ${cats.length > 0 && html`<div class="card stack-s"><h3 style=${{ fontSize: '16px' }}>By category</h3>${cats.map((c) => html`<div key=${c} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span>${K.CATS[c].name}</span><span class="amt">${fmt(byCat[c])}</span></div><${Bar} pct=${(byCat[c] / byCat[cats[0]]) * 100} color="var(--info)" /></div>`)}</div>`}</div>`;
     const right = html`<div class="stack">

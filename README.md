@@ -8,14 +8,17 @@ Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza va
 
 ## Qué hace
 
-- Cuentas, tarjetas, préstamos y efectivo, en varias monedas, con tipos de cambio en vivo
+- Cuentas, tarjetas, préstamos y efectivo en cualquier moneda (unas 160), con banderas, búsqueda por país, nombre o código, y tipos de cambio en vivo
+- **Conversor de monedas** en Settings → Currencies, con los pares que más usas primero
+- Tarjetas con día de cierre, día de pago y fecha de vencimiento (aviso dos meses antes), y color a elección
 - **Safe to Spend:** tu efectivo menos las facturas, pagos de tarjeta, cuotas de préstamos y ahorro que vencen antes del próximo pago
 - Gastos, ingresos y transferencias; cada uno mueve el saldo de su cuenta
 - **Escanear recibo:** lee comercio, total, fecha y moneda con OCR dentro del navegador. La primera vez descarga unos 10 MB.
 - **Subir estado de cuenta:** CSV o PDF; detecta duplicados y sugiere categorías
 - Presupuesto, facturas y suscripciones, metas, viajes
 - Estadísticas, insights, revisiones mensuales y forecast con escenarios
-- Settings: 7 temas y 5 modos (Light, Dark, Midnight, Ash, Onyx), ocultar montos, reglas de categorías, copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
+- Settings: 6 temas como paletas completas (Kipu, Ocean, Forest, Ember, Sand, Mono), cada uno en claro y oscuro; foto de perfil; ocultar montos; reglas de categorías; copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
+- Calendario al tocar cualquier fecha
 
 ## Tus datos
 
@@ -27,7 +30,7 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 
 - `store.js`: modelo de datos y cálculos
 - `readers.js`: lectura de recibos y estados de cuenta
-- `ui.js`, `themes.js`: componentes y temas
+- `ui.js`, `themes.js`, `currency.js`: componentes, paletas y monedas
 - `screens-*.js`, `flows.js`: pantallas y formularios
 - `app.js`: navegación y layout
 

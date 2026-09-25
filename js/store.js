@@ -61,11 +61,12 @@
   // ---------------------------------------------------------------- factory state
   K.factory = () => ({
     v: VERSION, createdAt: iso(today()), onboarded: false,
-    profile: { name: '', email: '' },
+    profile: { name: '', email: '', photo: '' },
     base: 'CAD', active: ['CAD'],
     fx: { usd: Object.assign({}, USD_RATES), updated: null, source: 'Built-in reference rates' },
     accounts: [], cards: [], loans: [], txns: [], bills: [], income: [], budget: {}, goals: [], trips: [], rules: [], imports: [],
     household: { enabled: false, name: '' },
+    fxPairs: { fav: [], use: {} },
     snapshots: {},
     prefs: { utilRef: 30, horizon: 12, assumption: 'Recent average', insightFreq: 'Balanced' },
   });
@@ -86,8 +87,29 @@
     if (!r.ok) throw new Error('rates');
     const j = await r.json();
     if (!j || !j.rates) throw new Error('rates');
-    const usd = {}; Object.keys(USD_RATES).concat(data.active).forEach((c) => { if (j.rates[c]) usd[c] = j.rates[c]; });
+    // Keep every rate the service returns so any currency can be enabled or converted
+    const usd = {}; Object.keys(j.rates).forEach((c) => { if (/^[A-Z]{3}$/.test(c) && j.rates[c] > 0) usd[c] = j.rates[c]; });
     return { usd: Object.assign({}, data.fx.usd, usd), updated: new Date().toISOString(), source: 'ExchangeRate-API (open.er-api.com)' };
+  };
+
+  // Using a currency anywhere adds it to the active list
+  K.useCurrency = (d, c) => (!c || d.active.includes(c) ? d : Object.assign({}, d, { active: d.active.concat([c]) }));
+  // Changing the main currency: amounts Kipu keeps in the main currency are converted once at today's rate.
+  // Each transaction keeps its original amount and currency; only its main-currency value is restated.
+  K.changeBase = (d, nb) => {
+    const ob = d.base; if (nb === ob) return d;
+    const k = K.rate(d, ob, nb), c = (v) => (v == null ? v : r2(v * k));
+    const snaps = {}; Object.keys(d.snapshots || {}).forEach((m) => { const x = d.snapshots[m]; snaps[m] = Object.assign({}, x, { nw: c(x.nw), debt: c(x.debt), loans: c(x.loans), cards: c(x.cards) }); });
+    const budget = {}; Object.keys(d.budget || {}).forEach((cat) => (budget[cat] = c(d.budget[cat])));
+    return Object.assign({}, d, {
+      base: nb, active: [nb].concat(d.active.filter((x) => x !== nb)),
+      txns: d.txns.map((t) => Object.assign({}, t, { base: c(t.base), rate: t.rate != null ? t.rate * k : t.rate, principal: c(t.principal), interest: c(t.interest) })),
+      cards: d.cards.map((x) => Object.assign({}, x, { bal: c(x.bal), limit: c(x.limit), stmtBal: c(x.stmtBal), minPay: c(x.minPay) })),
+      loans: d.loans.map((x) => Object.assign({}, x, { orig: c(x.orig), bal: c(x.bal), pay: c(x.pay) })),
+      goals: d.goals.map((x) => Object.assign({}, x, { target: c(x.target), monthly: c(x.monthly), saved: c(x.saved) })),
+      trips: d.trips.map((x) => Object.assign({}, x, { budget: c(x.budget) })),
+      budget, snapshots: snaps,
+    });
   };
 
   // ---------------------------------------------------------------- schedules
@@ -364,6 +386,7 @@
     const subs = D.bills.filter((b) => b.kind === 'Subscription');
     if (subs.length >= 3) out.push({ id: 'subs', kind: 'Recurring', icon: 'repeat', title: subs.length + ' subscriptions add up to ' + f(sum(subs, (b) => K.toBase(data, b.amt, b.cur || data.base)) * 12) + ' a year.', why: 'Reviewing them once a year keeps recurring costs honest.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
     D.goals.filter((g) => !g.targetDate && g.left > 0).forEach((g) => out.push({ id: 'goal-' + g.id, kind: 'Goals', icon: 'target', title: g.name + ' has no target date, so Kipu can’t tell whether the monthly amount is enough.', why: g.monthly ? 'At the current pace it’s done in ' + g.etaLabel + '.' : 'It has no monthly amount yet.', cta: 'Open goal', route: { r: 'goal', id: g.id } }));
+    (D.cards || []).forEach((c) => { const ex = K.expiryInfo && K.expiryInfo(c); if (!ex) return; if (ex.expired) out.push({ id: 'exp-' + c.id, kind: 'Priority', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expired in ' + K.fmtMonth(ex.end) + '.', why: 'Add the new expiry date once the replacement card arrives.', cta: 'Open card', route: { r: 'card', id: c.id } }); else if (ex.soon) out.push({ id: 'exp-' + c.id, kind: 'Credit', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expires at the end of ' + K.fmtMonth(ex.end) + '.', why: 'Watch for the replacement and update subscriptions that use this card.', cta: 'Open card', route: { r: 'card', id: c.id } }); });
     if (D.unpaid.length) out.push({ id: 'unpaid', kind: 'Priority', icon: 'calendar', title: D.unpaid.length === 1 ? D.unpaid[0].name + ' was due and isn’t marked as paid.' : D.unpaid.length + ' bills were due and aren’t marked as paid.', why: 'Marking them paid keeps Safe to Spend accurate.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
     const order = { Priority: 0, Credit: 1, Debt: 2, Spending: 3, Savings: 4, Goals: 5, Recurring: 6 };
     return out.sort((a, b) => order[a.kind] - order[b.kind]);
@@ -380,7 +403,7 @@
       { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', bal: 1200 },
       { id: 'rrsp', name: 'RRSP', inst: 'Wealthsimple', kind: 'Investments', cur: 'CAD', bal: 38000 },
     ];
-    d.cards = [{ id: 'visa', name: 'Visa Infinite', network: 'Visa', last4: '1187', limit: 10000, bal: 0, stmtBal: 0, dueDay: 3, minPay: 10 }, { id: 'mc', name: 'Costco Mastercard', network: 'Mastercard', last4: '4821', limit: 6000, bal: 0, stmtBal: 0, dueDay: 12, minPay: 10 }];
+    d.cards = [{ id: 'visa', name: 'Visa Infinite', network: 'Visa', last4: '1187', limit: 10000, bal: 0, stmtBal: 0, closeDay: 8, dueDay: 3, minPay: 10, expiry: iso(addMonths(today(), 1)).slice(0, 7) }, { id: 'mc', name: 'Costco Mastercard', network: 'Mastercard', last4: '4821', limit: 6000, bal: 0, stmtBal: 0, closeDay: 18, dueDay: 12, minPay: 10, expiry: (today().getFullYear() + 3) + '-04' }];
     d.loans = [{ id: 'car', name: 'Car loan', kind: 'Vehicle', lender: 'CIBC', orig: 32000, bal: 18420, rate: 9, pay: 253.73, freq: 'Bi-weekly', next: iso(addDays(T, 3)) }];
     d.income = [{ id: 'sal', name: 'Salary', amt: 3200, cur: 'CAD', freq: 'Bi-weekly', next: iso(addDays(T, 6)), to: 'acct:chq' }];
     d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1650, day: 1, cat: 'housing', pay: 'acct:chq' }, { id: 'net', name: 'Internet', kind: 'Bill', amt: 75, day: 18, cat: 'bills', pay: 'card:visa' }, { id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20.99, day: 5, cat: 'subs', pay: 'card:visa' }, { id: 'sp', name: 'Spotify', kind: 'Subscription', amt: 11.99, day: 9, cat: 'subs', pay: 'card:mc' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 49, day: 2, cat: 'subs', pay: 'acct:chq' }];

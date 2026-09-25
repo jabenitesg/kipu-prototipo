@@ -11,6 +11,7 @@
     const [name, setName] = useState('');
     const [base, setBase] = useState('CAD');
     const [extra, setExtra] = useState([]);
+    const [more, setMore] = useState(false);
     const finish = (sample) => {
       if (sample) { commit(K.sampleData()); return; }
       commit(K.snapshot(Object.assign({}, data, { onboarded: true, profile: { name: name.trim(), email: '' }, base, active: [base].concat(extra.filter((c) => c !== base)) })));
@@ -22,8 +23,9 @@
         <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button><button class="btn sec block" onClick=${() => finish(true)}>Explore with sample data</button></div>`}
       ${step === 1 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>What should we call you?</h1><${Field} label="First name"><input id="onb-name" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Your name" autofocus /></${Field}><button class="btn pri block" onClick=${() => setStep(2)}>Continue</button></div>`}
       ${step === 2 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>Your main currency</h1><p class="muted">Totals, Safe to Spend and net worth use it. You can still record anything in other currencies.</p>
-        <div class="chips">${Object.keys(K.CURRENCIES).map((c) => html`<button key=${c} class=${'chip' + (c === base ? ' on' : '')} onClick=${() => setBase(c)}>${c} · ${K.CURRENCIES[c][0]}</button>`)}</div>
-        <span class="eyebrow">Other currencies you use</span><div class="chips">${Object.keys(K.CURRENCIES).filter((c) => c !== base).map((c) => html`<button key=${c} class=${'chip' + (extra.includes(c) ? ' on' : '')} onClick=${() => setExtra(extra.includes(c) ? extra.filter((x) => x !== c) : extra.concat([c]))}>${c}</button>`)}</div>
+        <${K.CurrencySelect} label="Main currency" value=${base} onChange=${setBase} />
+        <span class="eyebrow">Other currencies you use</span><div class="chips">${[...new Set(['USD', 'EUR', 'CAD', 'PEN', 'MXN', 'GBP'].concat(extra))].filter((c) => c !== base).map((c) => html`<button key=${c} class=${'chip' + (extra.includes(c) ? ' on' : '')} onClick=${() => setExtra(extra.includes(c) ? extra.filter((x) => x !== c) : extra.concat([c]))}><${K.Flag} cur=${c} s=${18} />${c}</button>`)}<button class="chip" aria-expanded=${more} onClick=${() => setMore(!more)}><${Icon} n=${more ? 'x' : 'search'} s=${14} />${more ? 'Close' : 'Any other'}</button></div>
+        ${more && html`<${K.CurrencyList} exclude=${[base].concat(extra)} autoFocus=${true} onPick=${(c) => { setExtra(extra.concat([c])); setMore(false); }} />`}
         <button class="btn pri block" onClick=${() => finish(false)}>Start with a clean slate</button><button class="link" onClick=${() => setStep(1)}>Back</button></div>`}
     </div></div>`;
   };
@@ -43,11 +45,11 @@
   };
   function Index({ active }) {
     const { data, go, settings, wide } = useApp();
-    const T = K.THEMES[settings.theme];
-    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length + ' active', appearance: settings.theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Amounts hidden' : 'Amounts shown', categories: data.rules.length + ' rules', finance: data.prefs.utilRef + '% reference' };
+    const T = K.THEMES[K.themeName(settings.theme)];
+    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length + ' active', appearance: K.themeName(settings.theme), ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Amounts hidden' : 'Amounts shown', categories: data.rules.length + ' rules', finance: data.prefs.utilRef + '% reference' };
     return html`<div class="stack">
       <header class="between" style=${{ paddingTop: wide ? 0 : '8px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Preferences</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Settings</h1><p class="muted">Make Kipu work the way you do.</p></div><${K.Avatar} s=${46} /></header>
-      <button class="hero" style=${{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', width: '100%' }} onClick=${() => go({ r: 'settings', s: 'appearance' }, wide)}><span class="soft eyebrow" style=${{ color: 'inherit' }}>Appearance & theme</span><span class="disp" style=${{ fontSize: '20px', fontWeight: 800 }}>${settings.theme}</span><span class="soft small">${settings.mode === 'System' ? 'Follows your device' : settings.mode + ' mode'} · ${T.desc}</span><span class="row" style=${{ gap: '6px' }}>${Object.keys(K.THEMES).map((n) => html`<span key=${n} style=${{ width: '18px', height: '18px', borderRadius: '999px', background: 'linear-gradient(135deg, ' + K.THEMES[n].g.join(', ') + ')', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}></span>`)}</span></button>
+      <button class="hero" style=${{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', width: '100%' }} onClick=${() => go({ r: 'settings', s: 'appearance' }, wide)}><span class="soft eyebrow" style=${{ color: 'inherit' }}>Appearance & theme</span><span class="disp" style=${{ fontSize: '20px', fontWeight: 800 }}>${K.themeName(settings.theme)}</span><span class="soft small">${settings.mode === 'System' ? 'Follows your device' : settings.mode + ' mode'} · ${T.desc}</span><span class="row" style=${{ gap: '6px' }}>${Object.keys(K.THEMES).map((n) => html`<span key=${n} style=${{ width: '18px', height: '18px', borderRadius: '999px', background: K.gradCss(K.THEMES[n].light.grad), boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}></span>`)}</span></button>
       ${SECTIONS.map(([g, items]) => html`<div key=${g} class="stack-s"><span class="eyebrow">${g}</span><div class="card tight list">${items.map(([k, ic, tone, l]) => html`<button key=${k} class="lrow" style=${active === k ? { background: 'var(--accbg)' } : null} onClick=${() => go({ r: 'settings', s: k }, wide)}><${Tile} icon=${ic} tone=${tone} /><span class="grow t1" style=${{ textAlign: 'left' }}>${l}</span><span class="t2">${val[k] || ''}</span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`)}</div></div>`)}
       <span class="tiny muted" style=${{ textAlign: 'center' }}>Kipu · your data stays on this device</span></div>`;
   }
@@ -59,24 +61,38 @@
 
   function Appearance() {
     const { settings, setSettings, toast, wide } = useApp();
-    const [pick, setPick] = useState(settings.theme);
-    const [pv, setPv] = useState(settings.effectiveMode);
+    const current = K.themeName(settings.theme);
+    const [pick, setPick] = useState(current);
     const T = K.THEMES[pick];
-    return html`<${SubHead} title="Appearance & theme" sub="Brightness and color theme are set separately." />
-      <div class="stack-s"><span class="eyebrow">Appearance</span>
-        <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>${['System'].concat(Object.keys(K.MODES)).map((m) => { const on = settings.mode === m || (m === 'System' && !K.MODES[settings.mode]); const sw = m === 'System' ? 'linear-gradient(135deg, ' + K.modeBg(settings.theme, 'Light') + ' 50%, ' + K.modeBg(settings.theme, 'Dark') + ' 50%)' : K.modeBg(settings.theme, m); return html`<button key=${m} aria-pressed=${on} onClick=${() => { setSettings({ mode: m }); if (m !== 'System') setPv(m); }} class="stack-s" style=${{ gap: '8px', padding: '10px', borderRadius: '16px', background: 'var(--surface)', border: '1.5px solid ' + (on ? 'var(--acc)' : 'var(--line)'), alignItems: 'flex-start', textAlign: 'left' }}><span style=${{ width: '100%', height: '38px', borderRadius: '10px', background: sw, border: '1px solid rgba(128,128,128,0.25)', display: 'flex', alignItems: 'flex-end', padding: '6px' }}><span style=${{ width: '22px', height: '6px', borderRadius: '6px', background: 'var(--grad)' }}></span></span><span style=${{ fontSize: '13px', fontWeight: on ? 700 : 500 }}>${m}</span><span class="tiny muted" style=${{ lineHeight: '14px' }}>${m === 'System' ? 'Light or Dark, like your device' : K.MODES[m]}</span></button>`; })}</div></div>
-      <div class="stack-s"><span class="eyebrow">Theme</span><div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(74px, 1fr))', gap: '10px 6px' }}>${Object.keys(K.THEMES).map((n) => html`<button key=${n} aria-pressed=${n === pick} onClick=${() => setPick(n)} class="stack-s" style=${{ alignItems: 'center', gap: '6px' }}><span style=${{ width: '48px', height: '48px', borderRadius: '999px', padding: '3px', boxShadow: n === pick ? 'inset 0 0 0 2px var(--ink)' : 'none', display: 'flex' }}><span style=${{ flex: 1, borderRadius: '999px', background: 'linear-gradient(135deg, ' + K.THEMES[n].g.join(', ') + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', color: K.THEMES[n].light.heroInk }}>${n === pick && html`<${Icon} n="check" s=${16} w=${3} />`}</span></span><span style=${{ fontSize: '11px', fontWeight: n === pick ? 700 : 500, textAlign: 'center', lineHeight: '13px' }}>${n}</span></button>`)}</div></div>
-      <div class="card flat stack" style=${{ gap: '14px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${pick}</span><span class="tiny muted">${T.desc}</span></span></div>
-        <div class="chips" style=${{ justifyContent: 'center' }}>${Object.keys(K.MODES).map((m) => html`<button key=${m} class=${'chip' + (m === pv ? ' on' : '')} onClick=${() => setPv(m)}>${m}</button>`)}</div>
-        <div class="row" style=${{ justifyContent: 'center', gap: '16px', flexWrap: 'wrap', padding: '16px', borderRadius: '18px', background: 'var(--surface)' }}>${wide && pv !== 'Light' && html`<${ThemePreview} name=${pick} mode="Light" w=${200} />`}<${ThemePreview} name=${pick} mode=${pv} w=${wide ? 200 : 190} /></div>
-        <button class="btn pri block" disabled=${pick === settings.theme} onClick=${() => { setSettings({ theme: pick }); toast(pick + ' applied'); }} style=${{ background: 'linear-gradient(135deg, ' + T.g.join(', ') + ')', color: T.light.heroInk }}>${pick === settings.theme ? '✓ Current theme' : 'Apply theme'}</button></div>
+    const pw = wide ? 210 : 128;
+    return html`<${SubHead} title="Appearance & theme" sub="Brightness and color theme are set separately. Every theme has a light and a dark palette." />
+      <div class="stack-s"><span class="eyebrow">Appearance</span><${Seg} options=${['Light', 'Dark', 'System']} value=${['Light', 'Dark'].includes(settings.mode) ? settings.mode : 'System'} onChange=${(m) => setSettings({ mode: m })} /><span class="tiny muted">${settings.mode === 'Light' || settings.mode === 'Dark' ? 'Always ' + settings.mode.toLowerCase() + '.' : 'Follows your device: now ' + (settings.effectiveDark ? 'dark' : 'light') + '.'}</span></div>
+      <div class="stack-s"><span class="eyebrow">Theme</span><div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(' + (wide ? 180 : 140) + 'px, 1fr))', gap: '10px' }}>${Object.keys(K.THEMES).map((n) => { const L = K.THEMES[n].light, Dk = K.THEMES[n].dark, on = n === pick; return html`<button key=${n} aria-pressed=${on} onClick=${() => setPick(n)} class="card" style=${{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', borderColor: on ? 'var(--acc)' : null, boxShadow: on ? '0 0 0 1px var(--acc)' : null }}>
+        <span style=${{ height: '58px', borderRadius: '12px', display: 'flex', overflow: 'hidden', border: '1px solid var(--line)' }}><span style=${{ flex: 1, background: L.bg, padding: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '4px' }}><span style=${{ height: '16px', borderRadius: '5px', background: K.gradCss(L.grad) }}></span><span style=${{ height: '6px', width: '60%', borderRadius: '3px', background: L.solid }}></span></span><span style=${{ flex: 1, background: Dk.bg, padding: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '4px' }}><span style=${{ height: '16px', borderRadius: '5px', background: K.gradCss(Dk.grad) }}></span><span style=${{ height: '6px', width: '60%', borderRadius: '3px', background: Dk.acc }}></span></span></span>
+        <span class="between"><span style=${{ fontWeight: 700 }}>${n}</span>${n === current && html`<span class="pill acc" style=${{ height: '20px', fontSize: '10px' }}>Current</span>`}</span>
+        <span class="row" style=${{ gap: '4px' }}>${L.chart.map((c, i) => html`<i key=${i} style=${{ width: '14px', height: '14px', borderRadius: '999px', background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)' }}></i>`)}</span></button>`; })}</div></div>
+      <div class="card flat stack" style=${{ gap: '14px' }}><div class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${pick}</span><span class="tiny muted">${T.desc}</span></div>
+        <div class="row" style=${{ justifyContent: 'center', gap: wide ? '20px' : '10px', padding: wide ? '18px' : '12px 6px', borderRadius: '18px', background: 'var(--surface)' }}><div class="stack-s" style=${{ alignItems: 'center', gap: '6px' }}><${ThemePreview} name=${pick} dark=${false} w=${pw} /><span class="tiny muted">Light</span></div><div class="stack-s" style=${{ alignItems: 'center', gap: '6px' }}><${ThemePreview} name=${pick} dark=${true} w=${pw} /><span class="tiny muted">Dark</span></div></div>
+        <button class="btn block" disabled=${pick === current} onClick=${() => { setSettings({ theme: pick }); toast(pick + ' applied'); }} style=${{ background: K.gradCss(T.light.grad), color: '#FFFFFF' }}>${pick === current ? '✓ Current theme' : 'Apply ' + pick}</button></div>
       <div class="card tight"><${ToggleRow} title="Reduce motion" on=${settings.reduce} onChange=${(v) => setSettings({ reduce: v })} /></div>`;
   }
 
+  // Photos are cropped to a square and shrunk so they fit comfortably in on-device storage
+  const shrinkPhoto = (file) => new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const S = 256, c = document.createElement('canvas'); c.width = S; c.height = S; const m = Math.min(img.width, img.height); c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85)); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image')); };
+    img.src = url;
+  });
   function Profile() {
-    const { data, commit } = useApp();
-    const upd = (k) => (e) => commit(Object.assign({}, data, { profile: Object.assign({}, data.profile, { [k]: e.target.value }) }));
-    return html`<${SubHead} title="Profile" sub="Used for the greeting and your avatar." /><${Field} label="Name"><input id="p-name" class="input" value=${data.profile.name} onInput=${upd('name')} /></${Field}><${Field} label="Email" hint="Optional. Kept on this device."><input id="p-email" class="input" type="email" value=${data.profile.email} onInput=${upd('email')} /></${Field}>`;
+    const { data, commit, toast } = useApp();
+    const fileRef = useRef(null);
+    const setP = (o) => commit(Object.assign({}, data, { profile: Object.assign({}, data.profile, o) }));
+    const upd = (k) => (e) => setP({ [k]: e.target.value });
+    const choose = async (file) => { if (!file) return; try { setP({ photo: await shrinkPhoto(file) }); toast('Photo updated'); } catch (e) { toast('That image couldn’t be read'); } };
+    return html`<${SubHead} title="Profile" sub="Used for the greeting and your avatar." />
+      <div class="card row" style=${{ gap: '16px' }}><${K.Face} s=${72} /><div class="stack-s" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${15} />${data.profile.photo ? 'Change photo' : 'Add a photo'}</button>${data.profile.photo && html`<button class="link" style=${{ color: 'var(--muted)' }} onClick=${() => { setP({ photo: '' }); toast('Photo removed'); }}>Remove photo</button>`}<span class="tiny muted">Stays on this device.</span></div><input ref=${fileRef} type="file" accept="image/*" style=${{ display: 'none' }} onChange=${(e) => { choose(e.target.files[0]); e.target.value = ''; }} /></div>
+      <${Field} label="Name"><input id="p-name" class="input" value=${data.profile.name} onInput=${upd('name')} /></${Field}><${Field} label="Email" hint="Optional. Kept on this device."><input id="p-email" class="input" type="email" value=${data.profile.email} onInput=${upd('email')} /></${Field}>`;
   }
 
   function Household() {
@@ -92,13 +108,34 @@
   }
 
   function Currencies() {
-    const { data, commit, toast } = useApp();
+    const { data, commit, toast, fmt } = useApp();
     const [busy, setBusy] = useState(false);
-    const toggle = (c) => commit(Object.assign({}, data, { active: data.active.includes(c) ? data.active.filter((x) => x !== c) : data.active.concat([c]) }));
-    const refresh = async () => { setBusy(true); try { commit(Object.assign({}, data, { fx: await K.refreshFx(data) })); toast('Exchange rates updated'); } catch (e) { toast('Couldn’t reach the rate service. Check your connection.'); } setBusy(false); };
-    return html`<${SubHead} title="Currencies & exchange rates" sub=${'Your main currency is ' + data.base + '. Every transaction keeps its original amount and the rate used that day.'} />
-      <div class="stack-s"><span class="eyebrow">Currencies you use</span><div class="card tight list">${Object.keys(K.CURRENCIES).map((c) => html`<div key=${c} class="lrow"><span class="ic n" style=${{ fontWeight: 700, fontSize: '11px' }}>${K.CURRENCIES[c][0]}</span><span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${c}</span><span class="t2">${K.CURRENCIES[c][1]}${c === data.base ? ' · main' : ''}</span></span>${c === data.base ? html`<span class="pill acc">Main</span>` : html`<${Switch} on=${data.active.includes(c)} onChange=${() => toggle(c)} label=${c} />`}</div>`)}</div></div>
-      <div class="stack-s"><span class="eyebrow">Exchange rates</span><${Facts} rows=${[['Source', data.fx.source], ['Last updated', data.fx.updated ? new Date(data.fx.updated).toLocaleString() : 'Never (built-in rates)']].concat(data.active.filter((c) => c !== data.base).map((c) => ['1 ' + c, K.sym(data.base) + K.rate(data, c, data.base).toFixed(4)]))} /><button class="btn sec" disabled=${busy} onClick=${refresh}>${busy ? 'Updating…' : 'Update rates now'}</button><span class="tiny muted">Rates update automatically when you open Kipu. Past transactions keep their stored rate.</span></div>`;
+    const [adding, setAdding] = useState(false);
+    const [changing, setChanging] = useState(false);
+    const [nextBase, setNextBase] = useState(null);
+    const [ordering, setOrdering] = useState(false);
+    const favs = data.favCur || [];
+    const refresh = async (d, quiet) => { setBusy(true); try { const n = Object.assign({}, d || data, { fx: await K.refreshFx(d || data) }); commit(n); if (!quiet) toast('Exchange rates updated'); } catch (e) { if (d) commit(d); toast('Couldn’t reach the rate service. Check your connection.'); } setBusy(false); };
+    const add = (c) => { const d = K.useCurrency(data, c); setAdding(false); if (!K.hasRate(data, c)) refresh(d, true); else commit(d); toast(c + ' added'); };
+    const remove = (c) => { commit(Object.assign({}, data, { active: data.active.filter((x) => x !== c), favCur: favs.filter((x) => x !== c) })); toast(c + ' removed · past transactions keep it'); };
+    const move = (c, dir) => { const a = data.active.slice(), i = a.indexOf(c), j = i + dir; if (j < 1 || j >= a.length) return; a[i] = a[j]; a[j] = c; commit(Object.assign({}, data, { active: a })); };
+    const fav = (c) => commit(Object.assign({}, data, { favCur: favs.includes(c) ? favs.filter((x) => x !== c) : favs.concat([c]) }));
+    const age = data.fx.updated ? (Date.now() - new Date(data.fx.updated).getTime()) / 3600000 : null;
+    const status = age == null ? ['Built-in reference rates', 'warn'] : age < 24 ? ['Live · updated ' + (age < 1 ? 'less than an hour ago' : Math.round(age) + ' h ago'), 'pos'] : ['Last updated ' + Math.round(age / 24) + ' days ago', 'warn'];
+    const others = data.active.filter((c) => c !== data.base);
+    return html`<${SubHead} title="Currencies & exchange rates" sub="Use any currency. Every transaction keeps its original amount and the rate used that day." />
+      <div class="stack-s"><span class="eyebrow">Main currency</span>
+        <div class="card row" style=${{ gap: '14px' }}><${K.Flag} cur=${data.base} s=${44} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '17px' }}>${data.base} · ${K.curName(data.base)}</span><span class="small muted">Totals, Safe to Spend and net worth</span></span><button class="btn sec sm" onClick=${() => { setChanging(!changing); setNextBase(null); }}>${changing ? 'Cancel' : 'Change'}</button></div>
+        ${changing && !nextBase && html`<${K.CurrencyList} selected=${data.base} autoFocus=${true} onPick=${(c) => (c === data.base ? setChanging(false) : setNextBase(c))} />`}
+        ${changing && nextBase && html`<div class="card stack-s" style=${{ borderColor: 'var(--warn2)' }}><span style=${{ fontWeight: 600 }}>Change main currency to ${nextBase}?</span><span class="small muted" style=${{ lineHeight: 1.5 }}>Card, loan, goal and budget amounts Kipu keeps in ${data.base} are converted once at today’s rate (1 ${data.base} = ${K.rate(data, data.base, nextBase).toFixed(4)} ${nextBase}). Each transaction keeps its original amount and currency.</span>${!K.hasRate(data, nextBase) && html`<span class="small" style=${{ color: 'var(--warn)' }}>No rate for ${nextBase} yet. Update rates first.</span>`}<div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => setNextBase(null)}>Pick another</button><button class="btn pri sm" disabled=${!K.hasRate(data, nextBase)} onClick=${() => { commit(K.changeBase(data, nextBase)); setChanging(false); setNextBase(null); toast('Main currency is now ' + nextBase); }}>Change to ${nextBase}</button></div></div>`}</div>
+      <div class="stack-s"><div class="between"><span class="eyebrow">Currencies you use</span>${others.length > 1 ? html`<button class="link" onClick=${() => setOrdering(!ordering)}>${ordering ? 'Done' : 'Reorder'}</button>` : html`<span class="tiny muted">${data.active.length} active</span>`}</div>
+        <div class="card tight list">${data.active.map((c, i) => html`<div key=${c} class="lrow" style=${{ gap: '10px' }}><${K.Flag} cur=${c} s=${34} /><span class="grow stack-s" style=${{ gap: '1px', minWidth: 0 }}><span class="t1 row" style=${{ gap: '6px' }}><b>${c}</b>${favs.includes(c) && html`<${Icon} n="star" s=${12} c="var(--acc)" w=${2.4} />`}</span><span class="t2 num" style=${{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${K.curName(c)}${c === data.base ? '' : K.hasRate(data, c) ? ' · 1 = ' + fmt(K.rate(data, c, data.base), { dec: K.rate(data, c, data.base) < 0.1 ? 4 : 2, show: true }) : ' · rate after next update'}</span></span>
+          ${c === data.base ? html`<span class="pill acc">Main</span>` : ordering ? html`<button class="ic n" aria-label=${'Move ' + c + ' up'} disabled=${i <= 1} onClick=${() => move(c, -1)} style=${{ opacity: i <= 1 ? 0.3 : 1 }}><${Icon} n="up" s=${15} w=${2.2} /></button><button class="ic n" aria-label=${'Move ' + c + ' down'} disabled=${i === data.active.length - 1} onClick=${() => move(c, 1)} style=${{ opacity: i === data.active.length - 1 ? 0.3 : 1 }}><${Icon} n="dn" s=${15} w=${2.2} /></button>` : html`<button class="ic n" aria-label=${(favs.includes(c) ? 'Unfavorite ' : 'Favorite ') + c} aria-pressed=${favs.includes(c)} onClick=${() => fav(c)} style=${{ color: favs.includes(c) ? 'var(--acc)' : null, background: favs.includes(c) ? 'var(--accbg)' : null }}><${Icon} n="star" s=${15} /></button><button class="ic n" aria-label=${'Remove ' + c} onClick=${() => remove(c)}><${Icon} n="x" s=${14} w=${2.2} /></button>`}</div>`)}
+          <button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => setAdding(!adding)}><span class="ic p"><${Icon} n=${adding ? 'x' : 'plus'} s=${17} w=${2.2} /></span>${adding ? 'Close' : 'Add a currency'}</button></div>
+        ${adding && html`<${K.CurrencyList} exclude=${data.active} autoFocus=${true} onPick=${add} />`}
+        <span class="tiny muted">Starred currencies come first when you add expenses. Removing one hides it from pickers; transactions already recorded in it stay as they are.</span></div>
+      <div class="stack-s"><span class="eyebrow">Exchange rates</span><${Facts} rows=${[['Status', status[0], status[1]], ['Source', data.fx.source], ['Last updated', data.fx.updated ? new Date(data.fx.updated).toLocaleString() : 'Never']]} /><button class="btn sec" disabled=${busy} onClick=${() => refresh()}>${busy ? 'Updating…' : 'Update rates now'}</button><span class="tiny muted">Rates update by themselves when you open Kipu. Past transactions keep their stored rate.</span></div>
+      <${K.Converter} />`;
   }
 
   function Categories() {

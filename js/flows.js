@@ -9,7 +9,8 @@
   const In = ({ id, label, value, onInput, ph, mode, hint, type }) => html`<${Field} label=${label} hint=${hint}><input id=${id} class="input" type=${type || 'text'} value=${value == null ? '' : value} onInput=${onInput} placeholder=${ph || ''} inputmode=${mode || 'text'} /></${Field}>`;
   const useForm = (init) => { const [s, set] = useState(init); return [s, (k) => (e) => set((p) => Object.assign({}, p, { [k]: e && e.target ? e.target.value : e })), set]; };
   const numv = (v) => { const n = parseFloat(String(v || '').replace(',', '.')); return isNaN(n) ? 0 : n; };
-  const curOptions = (data) => data.active.filter((c, i, a) => a.indexOf(c) === i);
+  // Main currency first, then favorites, then the rest in your order
+  const curOptions = (data) => { const f = data.favCur || []; const a = data.active.filter((c, i, x) => x.indexOf(c) === i); return [data.base].concat(a.filter((c) => c !== data.base && f.includes(c)), a.filter((c) => c !== data.base && !f.includes(c))); };
   const NoPlace = ({ onClose }) => { const { openSheet } = useApp(); return html`<div class="card flat stack-s"><span class="small">You need an account or card to record this.</span><button class="btn sec sm" onClick=${() => openSheet({ k: 'addAccount' })}>Add an account</button></div>`; };
 
   // ---------------------------------------------------------------- quick add
@@ -66,7 +67,7 @@
       <${In} id="e-merchant" label="Merchant" value=${merchant} onInput=${(e) => setMerchant(e.target.value)} ph="Where did you spend?" />
       <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].name}</button>`)}</div></div>
       ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="e-date" label="Date" type="date" value=${date} onInput=${(e) => setDate(e.target.value)} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" /></div>
+      <${K.DateInput} label="Date" value=${date} onChange=${setDate} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" />
       ${(D.trips.length > 0 || data.household.enabled) && html`<div class="card tight list">${D.trips.length > 0 && html`<div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div>`}${data.household.enabled && html`<${ToggleRow} title="Share with Household" on=${shared} onChange=${setShared} icon="people" tone="p" />`}</div>`}
       <button class="btn pri block" disabled=${!v || !from} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
   };
@@ -81,7 +82,7 @@
       <${Amount} value=${f.amt} onChange=${on('amt')} cur=${f.cur} />${curOptions(data).length > 1 && html`<${Seg} options=${curOptions(data)} value=${f.cur} onChange=${on('cur')} />`}
       <${In} id="i-src" label="From" value=${f.merchant} onInput=${on('merchant')} ph="Employer, client or refund" />
       ${places.length ? html`<${Field} label="Into"><${Select} id="i-to" value=${f.from} onChange=${on('from')} options=${places} /></${Field}>` : html`<${NoPlace} />`}
-      <${In} id="i-date" label="Date" type="date" value=${f.date} onInput=${on('date')} />
+      <${K.DateInput} label="Date" value=${f.date} onChange=${on('date')} />
       <button class="btn pri block" disabled=${!v || !f.from} onClick=${save}>${item ? 'Save changes' : 'Add income'}</button></${Sheet}>`;
   };
 
@@ -179,12 +180,12 @@
   const AddAccount = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal) }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
-    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(data, 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
+    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save}>
       <${Chips} options=${['Everyday', 'Savings', 'Cash', 'Investments', 'Property']} value=${f.kind} onChange=${on('kind')} />
       <${In} id="aa-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Everyday Chequing" />
       <${In} id="aa-inst" label="Institution" value=${f.inst} onInput=${on('inst')} ph="Optional" />
-      <${Field} label="Currency"><${Select} id="aa-cur" value=${f.cur} onChange=${on('cur')} options=${Object.keys(K.CURRENCIES).map((c) => [c, c + ' · ' + K.CURRENCIES[c][1]])} /></${Field}>
+      <${K.CurrencySelect} label="Currency" value=${f.cur} onChange=${on('cur')} />
       <${In} id="aa-bal" label=${item ? 'Balance' : 'Current balance'} value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0.00" hint=${item ? 'Changing it here doesn’t create a transaction.' : 'Today’s balance. Later transactions move it automatically.'} />
       ${data.household.enabled && html`<div class="card tight"><${ToggleRow} title="Share with Household" on=${!!f.shared} onChange=${on('shared')} /></div>`}</${Form}>`;
   };
@@ -199,13 +200,19 @@
 
   const AddCard = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), minPay: String(item.minPay || '') }) : { name: '', network: 'Visa', last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', minPay: '' });
-    const save = () => { commit(K.upsert(data, 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
+    const [f, on] = useForm(item ? Object.assign({}, item, { limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
+    const preview = { name: f.name || f.network + ' card', network: f.network, last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
+    const save = () => { commit(K.upsert(data, 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit card' : 'Add credit card'} sub="Only the last four digits are stored." onClose=${onClose} cta=${item ? 'Save' : 'Add card'} onSave=${save}>
+      <div style=${{ maxWidth: '300px', width: '100%', alignSelf: 'center' }}><${K.CardPreview} c=${preview} /></div>
       <${Chips} options=${['Visa', 'Mastercard', 'Amex', 'Other']} value=${f.network} onChange=${on('network')} />
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" /></div>
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" /><${In} id="ac-bal" label="Current balance" value=${f.bal} onInput=${on('bal')} mode="decimal" /></div>
-      <div class="grid g3" style=${{ gap: '10px' }}><${In} id="ac-stmt" label="Statement" value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" /><${In} id="ac-min" label="Minimum" value=${f.minPay} onInput=${on('minPay')} mode="decimal" /><${In} id="ac-due" label="Due day" value=${f.dueDay} onInput=${on('dueDay')} mode="numeric" /></div>
+      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" ph="1234" /></div>
+      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" /><${In} id="ac-bal" label="Current balance" value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0" /></div>
+      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-stmt" label="Statement balance" value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" ph="0" /><${In} id="ac-min" label="Minimum payment" value=${f.minPay} onInput=${on('minPay')} mode="decimal" ph="0" /></div>
+      <${K.DayInput} label="Statement closing day" value=${f.closeDay} onChange=${on('closeDay')} optional=${true} hint="The day your statement is cut. Purchases after it go on the next statement." />
+      <${K.DayInput} label="Payment due day" value=${f.dueDay} onChange=${on('dueDay')} optional=${true} hint="Usually about three weeks after the closing day. Kipu counts it in Safe to Spend." />
+      <${K.MonthInput} label="Expiry date" value=${f.expiry} onChange=${on('expiry')} optional=${true} placeholder="MM / YY" fromYear=${K.today().getFullYear() - 1} hint="Kipu reminds you two months before it expires." />
+      <${K.LookPicker} label="Card color" value=${f.look} onChange=${on('look')} fallback=${['var(--grad)', 'var(--solid)', 'linear-gradient(140deg, #1C1C1E 0%, #48484C 100%)'][(item ? item.style || 0 : data.cards.length) % 3]} />
       ${data.household.enabled && html`<div class="card tight"><${ToggleRow} title="Share with Household" on=${!!f.shared} onChange=${on('shared')} /></div>`}</${Form}>`;
   };
 
@@ -221,7 +228,7 @@
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-orig" label="Original amount" value=${f.orig} onInput=${on('orig')} mode="decimal" /><${In} id="al-bal" label="Balance today" value=${f.bal} onInput=${on('bal')} mode="decimal" /></div>
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-rate" label="Interest rate %" value=${f.rate} onInput=${on('rate')} mode="decimal" /><${In} id="al-pay" label="Payment" value=${f.pay} onInput=${on('pay')} mode="decimal" /></div>
       <${Chips} options=${['Weekly', 'Bi-weekly', 'Twice monthly', 'Monthly', 'Quarterly']} value=${f.freq} onChange=${on('freq')} />
-      <${In} id="al-next" label="Next payment" type="date" value=${f.next} onInput=${on('next')} />
+      <${K.DateInput} label="Next payment" value=${f.next} onChange=${on('next')} />
       <div class="card flat small">${p ? 'Paid off ' + p.label + (isFinite(p.interest) ? ' · about ' + fmt(p.interest) + ' interest left' : '') + ' · estimate' : 'Add the balance, rate and payment to see when it’s paid off.'}</div></${Form}>`;
   };
 
@@ -243,14 +250,15 @@
     const [f, on] = useForm(item ? Object.assign({}, item, { target: String(item.target), monthly: String(item.monthly || ''), saved: String(item.saved || ''), targetDate: item.targetDate || '', linked: item.linked || '' }) : { name: '', target: '', monthly: '', saved: '', targetDate: '', linked: '' });
     const left = numv(f.target) - numv(f.saved), m = numv(f.monthly);
     const eta = m > 0 && left > 0 ? K.addMonths(K.today(), Math.ceil(left / m)) : null;
-    const save = () => { commit(K.upsert(data, 'goals', Object.assign({}, item || {}, { name: f.name || 'Goal', target: numv(f.target), monthly: m, saved: numv(f.saved), targetDate: f.targetDate || null, linked: f.linked || null, shared: !!f.shared }))); toast(item ? 'Goal updated' : 'Goal added · its monthly amount counts in Safe to Spend'); onClose(); };
+    const save = () => { commit(K.upsert(data, 'goals', Object.assign({}, item || {}, { name: f.name || 'Goal', target: numv(f.target), monthly: m, saved: numv(f.saved), targetDate: f.targetDate || null, linked: f.linked || null, shared: !!f.shared, look: f.look || null }))); toast(item ? 'Goal updated' : 'Goal added · its monthly amount counts in Safe to Spend'); onClose(); };
     return html`<${Form} title=${item ? 'Edit goal' : 'Add goal'} onClose=${onClose} cta=${item ? 'Save' : 'Add goal'} onSave=${save} disabled=${!numv(f.target)}>
       <${In} id="ag-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Emergency fund" />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ag-target" label="Target" value=${f.target} onInput=${on('target')} mode="decimal" /><${In} id="ag-monthly" label="Monthly amount" value=${f.monthly} onInput=${on('monthly')} mode="decimal" /></div>
       <${Field} label="Linked savings account" hint="If linked, its balance is the goal’s progress."><${Select} id="ag-linked" value=${f.linked} onChange=${on('linked')} options=${data.accounts.filter((a) => a.kind === 'Savings' || a.kind === 'Investments').map((a) => [a.id, a.name])} placeholder="Not linked" /></${Field}>
       ${!f.linked && html`<${In} id="ag-saved" label="Already saved" value=${f.saved} onInput=${on('saved')} mode="decimal" ph="0" />`}
-      <${In} id="ag-date" label="Target month" type="month" value=${f.targetDate} onInput=${on('targetDate')} />
-      ${eta && html`<div class="card flat between small"><span class="muted">At ${fmt(m)} a month</span><b>Done by ${K.fmtMonth(eta)}</b></div>`}</${Form}>`;
+      <${K.MonthInput} label="Target month" value=${f.targetDate} onChange=${on('targetDate')} optional=${true} placeholder="No target month" fromYear=${K.today().getFullYear()} />
+      ${eta && html`<div class="card flat between small"><span class="muted">At ${fmt(m)} a month</span><b>Done by ${K.fmtMonth(eta)}</b></div>`}
+      <${K.LookPicker} label="Goal card" value=${f.look} onChange=${on('look')} fallback="var(--grad2)" /></${Form}>`;
   };
 
   const AddBill = ({ onClose, item }) => {
@@ -260,7 +268,7 @@
     return html`<${Form} title=${item ? 'Edit ' + item.name : 'Add bill or subscription'} sub="It counts in Safe to Spend and shows up before it’s due." onClose=${onClose} cta=${item ? 'Save' : 'Add'} onSave=${save} disabled=${!numv(f.amt)} onDelete=${item && (() => { commit(K.remove(data, 'bills', item.id)); toast('Deleted'); onClose(); })}>
       <${Seg} options=${['Bill', 'Subscription', 'Annual']} value=${f.kind} onChange=${on('kind')} />
       <${In} id="ab-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Rent, Netflix" />
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ab-amt" label="Amount" value=${f.amt} onInput=${on('amt')} mode="decimal" /><${In} id="ab-day" label="Day of month" value=${f.day} onInput=${on('day')} mode="numeric" /></div>
+      <${In} id="ab-amt" label="Amount" value=${f.amt} onInput=${on('amt')} mode="decimal" /><${K.DayInput} label=${f.kind === 'Annual' ? 'Day' : 'Due day'} value=${f.day} onChange=${on('day')} max=${28} />
       ${f.kind === 'Annual' && html`<${Field} label="Month"><${Select} id="ab-month" value=${f.month} onChange=${on('month')} options=${K.MONTH_LONG.map((m, i) => [String(i + 1), m])} /></${Field}>`}
       ${f.kind !== 'Subscription' && html`<${Field} label="Category"><${Select} id="ab-cat" value=${f.cat} onChange=${on('cat')} options=${K.CAT_ORDER.map((c) => [c, K.CATS[c].name])} /></${Field}>`}
       <${Field} label="Paid with"><${Select} id="ab-pay" value=${f.pay} onChange=${on('pay')} options=${K.whereOptions(data)} placeholder="Not set" /></${Field}></${Form}>`;
@@ -274,18 +282,19 @@
       <${In} id="is-name" label="Name" value=${f.name} onInput=${on('name')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="is-amt" label="Amount after tax" value=${f.amt} onInput=${on('amt')} mode="decimal" /><${Field} label="Currency"><${Select} id="is-cur" value=${f.cur} onChange=${on('cur')} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
       <${Chips} options=${['Weekly', 'Bi-weekly', 'Twice monthly', 'Monthly']} value=${f.freq} onChange=${on('freq')} />
-      <${In} id="is-next" label="Next payday" type="date" value=${f.next} onInput=${on('next')} />
+      <${K.DateInput} label="Next payday" value=${f.next} onChange=${on('next')} />
       ${K.whereOptions(data, { cashOnly: true, noCards: true }).length > 0 && html`<${Field} label="Paid into"><${Select} id="is-to" value=${f.to} onChange=${on('to')} options=${K.whereOptions(data, { cashOnly: true, noCards: true })} /></${Field}>`}</${Form}>`;
   };
 
   const AddTrip = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { budget: String(item.budget || '') }) : { name: '', place: '', start: K.iso(K.addDays(K.today(), 14)), end: K.iso(K.addDays(K.today(), 21)), cur: data.base, budget: '' });
-    const save = () => { commit(K.upsert(data, 'trips', Object.assign({}, item || {}, { name: f.name || f.place || 'Trip', place: f.place, start: f.start, end: f.end < f.start ? f.start : f.end, cur: f.cur, budget: numv(f.budget) }))); toast(item ? 'Trip updated' : 'Trip added'); onClose(); };
+    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'trips', Object.assign({}, item || {}, { name: f.name || f.place || 'Trip', place: f.place, start: f.start, end: f.end < f.start ? f.start : f.end, cur: f.cur, budget: numv(f.budget), look: f.look || null }))); toast(item ? 'Trip updated' : 'Trip added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit trip' : 'Plan a trip'} onClose=${onClose} cta=${item ? 'Save' : 'Add trip'} onSave=${save}>
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="at-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Lima 2026" /><${In} id="at-place" label="Destination" value=${f.place} onInput=${on('place')} /></div>
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="at-start" label="Start" type="date" value=${f.start} onInput=${on('start')} /><${In} id="at-end" label="End" type="date" value=${f.end} onInput=${on('end')} /></div>
-      <div class="grid g2" style=${{ gap: '10px' }}><${Field} label="Local currency"><${Select} id="at-cur" value=${f.cur} onChange=${on('cur')} options=${Object.keys(K.CURRENCIES).map((c) => [c, c])} /></${Field}><${In} id="at-budget" label=${'Budget (' + data.base + ')'} value=${f.budget} onInput=${on('budget')} mode="decimal" /></div>
+      <${K.DateInput} label="Start" value=${f.start} onChange=${on('start')} /><${K.DateInput} label="End" value=${f.end} onChange=${on('end')} min=${f.start} />
+      <${K.CurrencySelect} label="Local currency" value=${f.cur} onChange=${on('cur')} /><${In} id="at-budget" label=${'Budget (' + data.base + ')'} value=${f.budget} onInput=${on('budget')} mode="decimal" />
+      <${K.LookPicker} label="Trip card" value=${f.look} onChange=${on('look')} fallback="var(--grad2)" />
       <span class="tiny muted">Expenses in the trip currency during these dates are tagged to it automatically.</span></${Form}>`;
   };
 

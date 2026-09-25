@@ -6,7 +6,10 @@
 
   const initials = (n) => (n || 'K').split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   K.initials = initials;
-  const Avatar = ({ s = 40 }) => { const { data, go } = useApp(); return html`<button onClick=${() => go({ r: 'settings' })} aria-label="Profile and settings" style=${{ width: s + 'px', height: s + 'px', borderRadius: '999px', background: 'var(--grad)', color: 'var(--hero-ink)', fontWeight: 700, fontSize: s * 0.36 + 'px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>${initials(data.profile.name)}</button>`; };
+  // Profile photo when there is one, initials otherwise
+  const Face = ({ s = 40 }) => { const { data } = useApp(); const photo = data.profile.photo; return html`<span style=${{ width: s + 'px', height: s + 'px', borderRadius: '999px', background: photo ? 'var(--surface2)' : 'var(--grad)', color: 'var(--hero-ink)', fontWeight: 700, fontSize: s * 0.36 + 'px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>${photo ? html`<img src=${photo} alt="" style=${{ width: '100%', height: '100%', objectFit: 'cover' }} />` : initials(data.profile.name)}</span>`; };
+  K.Face = Face;
+  const Avatar = ({ s = 40 }) => { const { go } = useApp(); return html`<button onClick=${() => go({ r: 'settings' })} aria-label="Profile and settings" style=${{ borderRadius: '999px', flexShrink: 0 }}><${Face} s=${s} /></button>`; };
   K.Avatar = Avatar;
   const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
   const longDate = () => new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -61,26 +64,32 @@
     const m = D.month, prev = D.series[10];
     const top = insights[0];
     const trip = D.activeTrip;
-    const month = html`<button class="card" style=${{ padding: '16px 18px', width: '100%' }} onClick=${() => go({ r: 'stats', tab: 'overview' })}>
+    const month = html`<button class="card tint" style=${{ padding: '16px 18px', width: '100%' }} onClick=${() => go({ r: 'stats', tab: 'overview' })}>
       <div class="between" style=${{ marginBottom: '12px' }}><span class="small muted">${K.MONTH_LONG[D.T.getMonth()]} so far</span><span class="link">Statistics<${Icon} n="next" s=${13} w=${2.2} /></span></div>
       <div class="grid g3" style=${{ gap: '8px', textAlign: 'left' }}>
         <${Metric} label="Income" value=${fmt.ctx(D, m.income)} sub=${prev.count ? 'Last month ' + fmt(prev.income) : null} />
         <${Metric} label="Spent" value=${fmt.ctx(D, m.spending)} sub=${D.plan.budgetPlan ? 'Plan ' + fmt(D.plan.budgetPlan) : null} />
-        <${Metric} label="Saved" value=${fmt.ctx(D, m.saved)} tone=${m.saved ? 'pos' : null} sub=${D.plan.savingsPlanned ? 'of ' + fmt(D.plan.savingsPlanned) + ' planned' : null} />
+        <${Metric} label="Saved" value=${fmt.ctx(D, m.saved)} sub=${D.plan.savingsPlanned ? 'of ' + fmt(D.plan.savingsPlanned) + ' planned' : null} />
       </div></button>`;
     const upcoming = html`<div class="stack-s"><${SectionHeader} title="Coming up" action="Bills & recurring" onAction=${() => go({ r: 'plan', tab: 'bills' })} />${D.upcoming.length ? html`<div class="card tight list">${D.upcoming.slice(0, 4).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div class="card"><${EmptyState} icon="calendar" title="Nothing scheduled" text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
-    const credit = D.cards.length > 0 && html`<button class="card" style=${{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }} onClick=${() => go({ r: 'money', tab: 'cards' })}>
-      <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon="card" tone="b" /><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">Credit utilization</span><span class="t2">${fmt(D.cardBal)} of ${fmt(D.cardLimit)}</span></span></span><span class="disp num" style=${{ fontWeight: 700, fontSize: '18px' }}>${D.util.toFixed(1)}%</span></span>
-      <${Bar} pct=${D.util} color="var(--info)" mark=${data.prefs.utilRef} /></button>`;
-    const tripCard = trip && html`<button class="card" style=${{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }} onClick=${() => go({ r: 'trip', id: trip.id })}>
-      <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon="plane" tone="b" /><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${trip.name}</span><span class="t2">Day ${trip.day} of ${trip.total}</span></span></span><span class="amt">${fmt(trip.spent)}</span></span>
-      ${trip.budget > 0 && html`<${Bar} pct=${(trip.spent / trip.budget) * 100} color="var(--info)" mark=${(trip.day / trip.total) * 100} />`}</button>`;
+    const over = D.util > data.prefs.utilRef;
+    const credit = D.cards.length > 0 && html`<button class="card solid" style=${{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }} onClick=${() => go({ r: 'money', tab: 'cards' })}>
+      <span class="between"><span class="row" style=${{ gap: '10px' }}><span class="ic" style=${{ background: 'rgba(255,255,255,0.16)', color: '#FFFFFF' }}><${Icon} n="card" s=${17} /></span><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1" style=${{ fontWeight: 600 }}>Credit utilization</span><span class="t2" style=${{ color: 'rgba(255,255,255,0.76)' }}>${fmt(D.cardBal)} of ${fmt(D.cardLimit)}</span></span></span><span class="disp num" style=${{ fontWeight: 800, fontSize: '22px' }}>${D.util.toFixed(1)}%</span></span>
+      <${K.Segs} pct=${D.util} color=${over ? '#F6C36A' : '#FFFFFF'} track="rgba(255,255,255,0.22)" mark=${data.prefs.utilRef} markColor="#FFFFFF" />
+      <span class="tiny" style=${{ textAlign: 'left', fontWeight: 600, color: over ? '#FFD58A' : 'rgba(255,255,255,0.76)' }}>${over ? 'Above your ' + data.prefs.utilRef + '% reference' : 'Under your ' + data.prefs.utilRef + '% reference'}</span></button>`;
+    const tripStyled = trip && trip.look && trip.look.kind && trip.look.kind !== 'theme';
+    const tripPct = trip && trip.budget > 0 ? (trip.spent / trip.budget) * 100 : 0;
+    const tripCard = trip && html`<button class="card" style=${Object.assign({ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }, tripStyled ? { background: K.lookBg(trip.look), color: '#FFFFFF', border: 0, boxShadow: 'var(--glow)' } : {})} onClick=${() => go({ r: 'trip', id: trip.id })}>
+      <span class="between"><span class="row" style=${{ gap: '10px' }}>${tripStyled ? html`<span class="ic" style=${{ background: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}><${Icon} n="plane" s=${17} /></span>` : html`<${Tile} icon="plane" tone="p" />`}<span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${trip.name}</span><span class="t2" style=${tripStyled ? { color: 'rgba(255,255,255,0.78)' } : null}>Day ${trip.day} of ${trip.total}</span></span></span><span class="amt">${fmt(trip.spent)}</span></span>
+      ${trip.budget > 0 && html`<${K.Segs} pct=${tripPct} color=${tripStyled ? '#FFFFFF' : tripPct > 100 ? 'var(--crit2)' : tripPct > (trip.day / trip.total) * 100 + 10 ? 'var(--warn2)' : 'var(--acc)'} track=${tripStyled ? 'rgba(255,255,255,0.25)' : null} mark=${(trip.day / trip.total) * 100} />`}</button>`;
+    const goal = D.goals.filter((g) => g.pct < 100).sort((a, b) => b.pct - a.pct)[0] || D.goals[0];
+    const goalCard = goal && html`<div class="stack-s"><${SectionHeader} title="Featured goal" action="Goals" onAction=${() => go({ r: 'plan', tab: 'goals' })} /><${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`;
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
     const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${data.profile.name ? ', ' + data.profile.name.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
     const ctxChip = !wide && data.household.enabled && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     if (wide) return html`<div class="stack">${head}<${Setup} />
-      <div class="grid w3" style=${{ alignItems: 'start' }}><div class="stack span2"><${SafeHero} />${month}<${QuickRow} />${insight}</div><div class="stack">${upcoming}${credit}${tripCard}</div></div></div>`;
-    return html`<div class="stack">${head}${ctxChip}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${upcoming}${tripCard}${credit}${insight}</div>`;
+      <div class="grid w3" style=${{ alignItems: 'start' }}><div class="stack span2"><${SafeHero} />${month}${goalCard}<${QuickRow} />${insight}</div><div class="stack">${upcoming}${credit}${tripCard}</div></div></div>`;
+    return html`<div class="stack">${head}${ctxChip}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
@@ -125,8 +134,8 @@
     const { D, fmt, go, data, openSheet } = useApp();
     if (!D.cards.length) return html`<div class="card"><${EmptyState} icon="card" title="No credit cards yet" text="Add a card to track balance, utilization and due dates. Only the last four digits are stored." action="Add credit card" onAction=${() => openSheet({ k: 'addCard' })} /></div>`;
     return html`<div class="stack">
-      <div class="card stack-s"><div class="between"><span class="small muted">Across ${D.cards.length} ${D.cards.length === 1 ? 'card' : 'cards'}</span><span class="disp num" style=${{ fontWeight: 700, fontSize: '18px' }}>${D.util.toFixed(1)}% used</span></div><${Bar} pct=${D.util} color="var(--info)" mark=${data.prefs.utilRef} h=${10} /><div class="between tiny muted num"><span>${fmt(D.cardBal)} owed · ${fmt(D.cardLimit - D.cardBal)} available</span><span>${data.prefs.utilRef}% reference</span></div></div>
-      <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>${D.cards.map((c) => html`<div key=${c.id} class="stack-s"><${CardPreview} c=${c} onClick=${() => go({ r: 'card', id: c.id })} /><span class="small muted" style=${{ padding: '0 4px' }}>${c.dueDay ? 'Due on the ' + c.dueDay + (c.dueDay === 1 ? 'st' : c.dueDay === 2 ? 'nd' : c.dueDay === 3 ? 'rd' : 'th') : 'No due date set'}</span></div>`)}</div>
+      <div class="card stack-s"><div class="between"><span class="small muted">Across ${D.cards.length} ${D.cards.length === 1 ? 'card' : 'cards'}</span><span class="disp num" style=${{ fontWeight: 700, fontSize: '18px' }}>${D.util.toFixed(1)}% used</span></div><${K.Segs} pct=${D.util} color=${D.util > data.prefs.utilRef ? 'var(--warn2)' : 'var(--acc)'} mark=${data.prefs.utilRef} h=${10} /><div class="between tiny muted num"><span>${fmt(D.cardBal)} owed · ${fmt(D.cardLimit - D.cardBal)} available</span><span>${data.prefs.utilRef}% reference</span></div></div>
+      <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>${D.cards.map((c) => html`<div key=${c.id} class="stack-s"><${CardPreview} c=${c} onClick=${() => go({ r: 'card', id: c.id })} /><span class="small muted" style=${{ padding: '0 4px' }}>${[c.closeDay && 'Closes the ' + K.ord(c.closeDay), c.dueDay ? 'due the ' + K.ord(c.dueDay) : 'No due date set'].filter(Boolean).join(' · ').replace(/^due/, 'Due')}${(() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? html` · <b style=${{ color: 'var(--warn)' }}>${ex.expired ? 'Expired' : 'Expires ' + ex.label}</b>` : ''; })()}</span></div>`)}</div>
       <div class="card tight"><${AddRow} label="Add credit card" sheet="addCard" /></div></div>`;
   }
 
@@ -135,7 +144,7 @@
     if (!D.loans.length) return html`<div class="card"><${EmptyState} icon="loan" title="No loans" text="Track car loans, student loans, mortgages or lines of credit and see when they’re paid off." /><${AddRow} label="Add loan" sheet="addLoan" /></div>`;
     const paid = K.sum(D.loans, (l) => Math.max(0, (l.orig || l.bal) - l.bal)), orig = K.sum(D.loans, (l) => l.orig || l.bal);
     return html`<div class="stack">
-      <div class="card stack-s"><div class="between"><span class="small muted">Loan balances</span><span class="disp num" style=${{ fontWeight: 700, fontSize: '22px' }}>${fmt(D.loanBal)}</span></div><${Bar} pct=${orig ? (paid / orig) * 100 : 0} color="var(--pos2)" h=${10} /><span class="tiny muted num">${fmt(paid)} paid of ${fmt(orig)} borrowed</span></div>
+      <div class="card stack-s"><div class="between"><span class="small muted">Loan balances</span><span class="disp num" style=${{ fontWeight: 700, fontSize: '22px' }}>${fmt(D.loanBal)}</span></div><${K.Segs} pct=${orig ? (paid / orig) * 100 : 0} color="var(--acc)" h=${10} /><span class="tiny muted num">${fmt(paid)} paid of ${fmt(orig)} borrowed</span></div>
       <div class="card tight list">${D.loans.map((l) => html`<${LoanRow} key=${l.id} l=${l} />`)}</div>
       <div class="card tight"><${AddRow} label="Add loan" sheet="addLoan" /></div></div>`;
   }
@@ -193,8 +202,8 @@
     const left = html`<div class="stack">
       <${CardPreview} c=${c} selected=${true} />
       <div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Balance" value=${fmt(c.bal)} /><${Metric} label="Available" value=${fmt((c.limit || 0) - c.bal)} /><${Metric} label="Limit" value=${fmt(c.limit || 0)} /></div>
-      <div class="card stack-s"><div class="between"><span class="small muted">Utilization</span><span class="amt">${util.toFixed(1)}%</span></div><${Bar} pct=${util} color="var(--info)" mark=${data.prefs.utilRef} /><span class="tiny muted">The tick is your ${data.prefs.utilRef}% reference. It’s a visual guide, not a credit score rule.</span></div>
-      <${Facts} rows=${[['Statement balance', fmt(c.stmtBal || 0, { dec: 2 })], ['Minimum payment', fmt(c.minPay || 0, { dec: 2 })], ['Due day', c.dueDay ? 'Day ' + c.dueDay : 'Not set'], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%']]} />
+      <div class="card stack-s"><div class="between"><span class="small muted">Utilization</span><span class="amt">${util.toFixed(1)}%</span></div><${K.Segs} pct=${util} color=${util > data.prefs.utilRef ? 'var(--warn2)' : 'var(--acc)'} mark=${data.prefs.utilRef} /><span class="tiny muted">The line is your ${data.prefs.utilRef}% reference. It’s a visual guide, not a credit score rule.</span></div>
+      <${Facts} rows=${[['Statement balance', fmt(c.stmtBal || 0, { dec: 2 })], ['Minimum payment', fmt(c.minPay || 0, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%']]} />
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, amount: c.stmtBal || c.bal })}>Pay card</button><button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
       <${DangerButton} label="Delete card" onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
     const right = html`<div class="stack-s"><${SectionHeader} title="Recent charges" />${tx.length ? html`<div class="card tight list">${tx.slice(0, 30).map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`}</div>`;
@@ -210,7 +219,7 @@
     const pays = data.txns.filter((t) => t.loan === l.id).sort((a, b) => (a.date < b.date ? 1 : -1));
     const split = K.loanSplit(l);
     const left = html`<div class="stack">
-      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span class="small muted">Remaining</span><span class="disp num" style=${{ fontSize: '32px', fontWeight: 800 }}>${fmt(l.bal)}</span></span>${l.orig ? html`<span class="pill pos">${pct.toFixed(0)}% paid</span>` : null}</div>${l.orig ? html`<${Bar} pct=${pct} color="var(--pos2)" h=${12} />` : null}</div>
+      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span class="small muted">Remaining</span><span class="disp num" style=${{ fontSize: '32px', fontWeight: 800 }}>${fmt(l.bal)}</span></span>${l.orig ? html`<span class="pill pos">${pct.toFixed(0)}% paid</span>` : null}</div>${l.orig ? html`<${K.Segs} pct=${pct} color="var(--acc)" h=${12} />` : null}</div>
       <${Facts} rows=${[['Interest rate', (l.rate || 0).toFixed(2) + '%'], ['Payment', fmt(l.pay || 0, { dec: 2 }) + ' · ' + (l.freq || '').toLowerCase()], ['Next payment', l.next ? K.fmtDate(K.nextDate(l.next, l.freq, D0()), true) : 'Not set'], l.lender && ['Lender', l.lender], ['Next payment split', fmt(split.principal, { dec: 2 }) + ' principal · ' + fmt(split.interest, { dec: 2 }) + ' interest']]} />
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'payLoan', id: l.id })}>Record payment</button><button class="btn sec" onClick=${() => openSheet({ k: 'addLoan', item: l })}>Edit</button></div></div>`;
     const right = html`<div class="stack">

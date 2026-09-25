@@ -41,11 +41,20 @@
     const idx = ctx.period === 'ytd' ? null : ctx.period == null ? 11 : ctx.period;
     const prev = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1] : null;
     const tr = (a, b, goodUp, isPts) => (b == null ? null : html`<${Trend} small=${true} d=${a - b} good=${a === b ? null : (a > b) === goodUp} text=${isPts ? (a - b > 0 ? '+' : '') + (a - b).toFixed(1) + ' pts' : (pctCh(a, b) > 0 ? '+' : '') + pctCh(a, b).toFixed(1) + '%'} />`);
-    const cells = [['Income', fmt(p.income), tr(p.income, prev && prev.income, true)], ['Spending', fmt(p.spending), tr(p.spending, prev && prev.spending, false)], ['Saved', fmt(p.saved), tr(p.saved, prev && prev.saved, true)], ['Savings rate', (p.rate || 0).toFixed(1) + '%', tr(p.rate, prev && prev.rate, true, true)], ['Net worth', p.netWorth != null ? fmt(p.netWorth) : '—', null], ['Total debt', p.debt != null ? fmt(p.debt) : '—', null]];
     const S = D.activeSeries;
+    const Tile2 = ({ cls, label, value, trend, children }) => html`<div class=${'card ' + (cls || '')} style=${{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}><span class="metric stack-s" style=${{ gap: '4px' }}><span class="l">${label}</span><span class="v num" style=${{ fontSize: '22px' }}>${value}</span></span>${trend && html`<span>${trend}</span>`}${children}</div>`;
     return html`<div class="stack">
-      <div class="card stack" style=${{ gap: '14px' }}><h3 style=${{ fontSize: '16px' }}>${p.label}</h3><div class=${wide ? 'grid w3' : 'grid g2'} style=${{ gap: '16px 12px' }}>${cells.map(([l, v, t]) => html`<${Metric} key=${l} label=${l} value=${v} trend=${t} />`)}</div>${prev && html`<span class="tiny muted">Compared with ${K.MONTH_LONG[prev.mi]}. Green helps you, amber deserves a look.</span>`}</div>
-      ${S.length > 1 && html`<${ChartBox} title="Income and spending" question="Did more come in than went out each month?" legend=${[['var(--pos2)', 'Income'], ['var(--acc)', 'Spending']]}><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income, s.spending] }))} colors=${['var(--pos2)', 'var(--acc)']} hi=${S.length - 1} fmtY=${fmt.k} /></${ChartBox}>`}</div>`;
+      <div class="between"><h3 style=${{ fontSize: '16px' }}>${p.label}</h3>${prev && html`<span class="tiny muted">vs ${K.MONTH_LONG[prev.mi]}</span>`}</div>
+      <div class=${wide ? 'grid w3' : 'grid g2'} style=${{ gap: '12px' }}>
+        <${Tile2} cls="solid" label="Spending" value=${fmt(p.spending)} trend=${tr(p.spending, prev && prev.spending, false)} />
+        <${Tile2} cls="tint" label="Income" value=${fmt(p.income)} trend=${tr(p.income, prev && prev.income, true)} />
+        <${Tile2} cls="tint" label="Saved" value=${fmt(p.saved)} trend=${tr(p.saved, prev && prev.saved, true)} />
+        <${Tile2} label="Savings rate" value=${(p.rate || 0).toFixed(1) + '%'} trend=${tr(p.rate, prev && prev.rate, true, true)}><${K.Segs} pct=${p.rate || 0} n=${20} h=${6} color="var(--acc)" /></${Tile2}>
+        <${Tile2} cls="tint" label="Net worth" value=${p.netWorth != null ? fmt(p.netWorth) : '—'} />
+        <${Tile2} label="Total debt" value=${p.debt != null ? fmt(p.debt) : '—'} />
+      </div>
+      ${prev && html`<span class="tiny muted">Green helps you, amber deserves a look.</span>`}
+      ${S.length > 1 && html`<${ChartBox} title="Income and spending" question="Did more come in than went out each month?" legend=${[['var(--c2)', 'Income'], ['var(--c1)', 'Spending']]}><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income, s.spending] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${S.length - 1} fmtY=${fmt.k} /></${ChartBox}>`}</div>`;
   }
 
   function SSpending() {
@@ -61,9 +70,9 @@
     const merchants = {}; mt.forEach((t) => (merchants[t.merchant] = (merchants[t.merchant] || 0) + t.base));
     const topM = Object.keys(merchants).sort((a, b) => merchants[b] - merchants[a]).slice(0, 6);
     const cat = html`<div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Where it went · ${p.label}</h3><span class="amt">${fmt(p.spending)}</span></div>
-      ${order.length ? order.map((c) => html`<div key=${c} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span class="row" style=${{ gap: '8px' }}><${Icon} n=${K.CATS[c].icon} s=${15} c="var(--muted)" />${K.CATS[c].name}</span><span class="row" style=${{ gap: '8px' }}>${prevCats && Math.abs(p.cats[c] - prevCats[c]) >= 20 && html`<span class="tiny" style=${{ color: p.cats[c] > prevCats[c] ? 'var(--warn)' : 'var(--pos)' }}>${p.cats[c] > prevCats[c] ? '▲' : '▼'} ${fmt(Math.abs(p.cats[c] - prevCats[c]))}</span>`}<span class="amt">${fmt(p.cats[c])}</span></span></div><${Bar} pct=${(p.cats[c] / max) * 100} mark=${prevCats ? (prevCats[c] / max) * 100 : null} /></div>`) : html`<span class="muted small">No spending in this period.</span>`}
+      ${order.length ? order.map((c) => html`<div key=${c} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span class="row" style=${{ gap: '8px' }}><${Icon} n=${K.CATS[c].icon} s=${15} c="var(--muted)" />${K.CATS[c].name}</span><span class="row" style=${{ gap: '8px' }}>${prevCats && Math.abs(p.cats[c] - prevCats[c]) >= 20 && html`<span class="tiny" style=${{ color: p.cats[c] > prevCats[c] ? 'var(--warn)' : 'var(--pos)' }}>${p.cats[c] > prevCats[c] ? '▲' : '▼'} ${fmt(Math.abs(p.cats[c] - prevCats[c]))}</span>`}<span class="amt">${fmt(p.cats[c])}</span></span></div><${Bar} pct=${(p.cats[c] / max) * 100} color="var(--c1)" mark=${prevCats ? (prevCats[c] / max) * 100 : null} /></div>`) : html`<span class="muted small">No spending in this period.</span>`}
       ${prevCats && html`<span class="tiny muted">Tick = previous month.</span>`}</div>`;
-    const trend = S.length > 1 && html`<${ChartBox} title="Spending over time" question="Is spending steady, or are some months unusual?"><${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.spending), color: 'var(--acc)', area: true }]} ref=${avg ? { value: avg, label: 'avg ' + fmt(avg), color: 'var(--muted)' } : null} fmtY=${fmt.k} /><span class="tiny muted">The current month is month to date.</span></${ChartBox}>`;
+    const trend = S.length > 1 && html`<${ChartBox} title="Spending over time" question="Is spending steady, or are some months unusual?"><${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.spending), color: 'var(--c1)', area: true }]} ref=${avg ? { value: avg, label: 'avg ' + fmt(avg), color: 'var(--muted)' } : null} fmtY=${fmt.k} /><span class="tiny muted">The current month is month to date.</span></${ChartBox}>`;
     const mer = topM.length > 0 && html`<div class="stack-s"><${SectionHeader} title="Top merchants" /><div class="card tight list">${topM.map((m) => html`<${Row} key=${m} title=${m} right=${fmt(merchants[m])} />`)}</div></div>`;
     return wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${cat}<div class="stack">${trend}${mer}</div></div>` : html`<div class="stack">${cat}${trend}${mer}</div>`;
   }
@@ -74,8 +83,8 @@
     const byCur = {}; D.txAll.filter((t) => t.type === 'income').forEach((t) => (byCur[t.cur] = (byCur[t.cur] || 0) + t.amt));
     const tot = K.sum(S, (s) => s.income);
     return html`<div class="stack">
-      <${ChartBox} title="Income by month" question="How steady is what comes in?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income] }))} colors=${['var(--pos2)']} hi=${S.length - 1} fmtY=${fmt.k} labelTop=${fmt.k} /></${ChartBox}>
-      <div class="grid g3" style=${{ gap: '10px' }}><div class="card"><${Metric} label="Total" value=${fmt(tot)} /></div><div class="card"><${Metric} label="Monthly average" value=${fmt(tot / Math.max(1, S.length))} /></div><div class="card"><${Metric} label="Sources" value=${String(D.incomeSrc.length)} /></div></div>
+      <${ChartBox} title="Income by month" question="How steady is what comes in?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income] }))} colors=${['var(--c2)']} hi=${S.length - 1} fmtY=${fmt.k} labelTop=${fmt.k} /></${ChartBox}>
+      <div class="grid g3" style=${{ gap: '10px' }}><div class="card solid"><${Metric} label="Total" value=${fmt(tot)} /></div><div class="card tint"><${Metric} label="Monthly average" value=${fmt(tot / Math.max(1, S.length))} /></div><div class="card tint"><${Metric} label="Sources" value=${String(D.incomeSrc.length)} /></div></div>
       ${Object.keys(byCur).length > 1 && html`<div class="card stack-s"><h3 style=${{ fontSize: '16px' }}>By original currency</h3>${Object.keys(byCur).map((c) => html`<div key=${c} class="between small"><span>${c}</span><b class="num">${fmt.native(byCur[c], c)}</b></div>`)}<span class="tiny muted">Each payment keeps its own amount and rate.</span></div>`}</div>`;
   }
 
@@ -86,11 +95,11 @@
     const S = D.activeSeries;
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
       <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>Where income went · ${p.label}</h3>
-        ${p.income > 0 && html`<${Stripe} h=${16} parts=${[[p.spending, 'var(--acc)'], [p.saved, 'var(--pos2)'], [p.debtPaid, 'var(--info2)'], [Math.max(0, left), 'var(--neutral)']]} />`}
-        <${KeyRow} color="transparent" label="Income" value=${fmt(p.income)} bold=${true} /><${KeyRow} color="var(--acc)" label="Spending" value=${'−' + fmt(p.spending)} /><${KeyRow} color="var(--pos2)" label="Saved to goals" value=${'−' + fmt(p.saved)} /><${KeyRow} color="var(--info2)" label="Loan payments" value=${'−' + fmt(p.debtPaid)} />
+        ${p.income > 0 && html`<${Stripe} h=${16} parts=${[[p.spending, 'var(--c1)'], [p.saved, 'var(--c2)'], [p.debtPaid, 'var(--c3)'], [Math.max(0, left), 'var(--neutral)']]} />`}
+        <${KeyRow} color="transparent" label="Income" value=${fmt(p.income)} bold=${true} /><${KeyRow} color="var(--c1)" label="Spending" value=${'−' + fmt(p.spending)} /><${KeyRow} color="var(--c2)" label="Saved to goals" value=${'−' + fmt(p.saved)} /><${KeyRow} color="var(--c3)" label="Loan payments" value=${'−' + fmt(p.debtPaid)} />
         <div style=${{ borderTop: '1.5px solid var(--ink)', paddingTop: '10px' }}><${KeyRow} color="var(--neutral)" label="Left over" value=${fmt(left, { sign: true })} bold=${true} /></div>
         <span class="tiny muted">Transfers between your own accounts and card payments aren’t counted, so nothing appears twice.</span></div>
-      ${S.length > 1 && html`<${ChartBox} title="Left over each month" question="Which months added to your cushion?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [Math.max(0, s.net)] }))} colors=${['var(--pos2)']} fmtY=${fmt.k} hi=${S.length - 1} labelTop=${fmt.k} /></${ChartBox}>`}</div>`;
+      ${S.length > 1 && html`<${ChartBox} title="Left over each month" question="Which months added to your cushion?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [Math.max(0, s.net)] }))} colors=${['var(--c2)']} fmtY=${fmt.k} hi=${S.length - 1} labelTop=${fmt.k} /></${ChartBox}>`}</div>`;
   }
 
   function SNW() {
@@ -99,9 +108,9 @@
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
       <${ChartBox} title="Net worth" question="Is what you own growing faster than what you owe?">
         <div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.netWorth)} />${S.length > 1 && html`<${Metric} label=${'Since ' + S[0].m} value=${fmt(D.netWorth - S[0].netWorth, { sign: true })} tone=${D.netWorth >= S[0].netWorth ? 'pos' : 'warn'} />`}</div>
-        ${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.netWorth), color: 'var(--acc)', area: true }]} fmtY=${fmt.k} />` : html`<span class="small muted">Kipu records net worth once a month. The chart appears after your second month.</span>`}</${ChartBox}>
-      <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>What it’s made of</h3><${Stripe} h=${14} parts=${[[D.cash, 'var(--acc)'], [D.invest, 'color-mix(in srgb, var(--acc) 50%, var(--surface2))'], [D.property, 'var(--neutral)']]} />
-        <${KeyRow} color="var(--acc)" label="Cash & savings" value=${fmt(D.cash)} /><${KeyRow} color="color-mix(in srgb, var(--acc) 50%, var(--surface2))" label="Investments" value=${fmt(D.invest)} /><${KeyRow} color="var(--neutral)" label="Property" value=${fmt(D.property)} /><${KeyRow} color="var(--info2)" label="Debt" value=${'−' + fmt(D.debt)} /></div></div>`;
+        ${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.netWorth), color: 'var(--c1)', area: true }]} fmtY=${fmt.k} />` : html`<span class="small muted">Kipu records net worth once a month. The chart appears after your second month.</span>`}</${ChartBox}>
+      <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>What it’s made of</h3><${Stripe} h=${14} parts=${[[D.cash, 'var(--c1)'], [D.invest, 'var(--c2)'], [D.property, 'var(--c3)']]} />
+        <${KeyRow} color="var(--c1)" label="Cash & savings" value=${fmt(D.cash)} /><${KeyRow} color="var(--c2)" label="Investments" value=${fmt(D.invest)} /><${KeyRow} color="var(--c3)" label="Property" value=${fmt(D.property)} /><${KeyRow} color="var(--c5)" label="Debt" value=${'−' + fmt(D.debt)} /></div></div>`;
   }
 
   function SDebt() {
@@ -110,8 +119,8 @@
     const S = D.series.filter((s) => s.debt != null);
     const interest = K.sum(D.series, (s) => s.interest);
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
-      <${ChartBox} title="Total debt" question="Is debt actually going down?" legend=${[['var(--info)', 'Loans'], ['var(--info2)', 'Cards']]}><div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.debt)} />${S.length > 1 && html`<${Metric} label=${'Change since ' + S[0].m} value=${fmt(D.debt - S[0].debt, { sign: true })} tone=${D.debt <= S[0].debt ? 'pos' : 'warn'} />`}</div>
-        ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--info)', 'var(--info2)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
+      <${ChartBox} title="Total debt" question="Is debt actually going down?" legend=${[['var(--c1)', 'Loans'], ['var(--c3)', 'Cards']]}><div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.debt)} />${S.length > 1 && html`<${Metric} label=${'Change since ' + S[0].m} value=${fmt(D.debt - S[0].debt, { sign: true })} tone=${D.debt <= S[0].debt ? 'pos' : 'warn'} />`}</div>
+        ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--c1)', 'var(--c3)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
       <div class="stack">${D.loans.length > 0 && html`<div class="card tight list">${D.loans.map((l) => html`<${K.LoanRow} key=${l.id} l=${l} />`)}</div>`}<div class="card stack-s"><div class="between"><span class="muted">Loan interest paid (12 months)</span><span class="amt">${fmt(interest)}</span></div></div></div></div>`;
   }
 
@@ -121,8 +130,8 @@
     const ref = data.prefs.utilRef;
     const S = D.series.filter((s) => s.util != null);
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
-      <${ChartBox} title="Card utilization" question="How much of your available credit are you using?"><${Metric} label="Now" value=${D.util.toFixed(1) + '%'} />${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.util), color: 'var(--info)', area: true }]} ref=${{ value: ref, label: ref + '% reference' }} min=${0} fmtY=${(v) => Math.round(v) + '%'} />` : html`<${Bar} pct=${D.util} color="var(--info)" mark=${ref} h=${10} />`}<span class="tiny muted">The reference is your own threshold from Settings. Kipu doesn’t estimate credit scores.</span></${ChartBox}>
-      <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>By card</h3>${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span>${c.name}</span><span class="num"><b>${c.limit ? ((c.bal / c.limit) * 100).toFixed(1) : 0}%</b> <span class="muted">${fmt(c.bal)} of ${fmt(c.limit || 0)}</span></span></div><${Bar} pct=${c.limit ? (c.bal / c.limit) * 100 : 0} color="var(--info)" mark=${ref} /></div>`)}</div></div>`;
+      <${ChartBox} title="Card utilization" question="How much of your available credit are you using?"><${Metric} label="Now" value=${D.util.toFixed(1) + '%'} />${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.util), color: 'var(--c1)', area: true }]} ref=${{ value: ref, label: ref + '% reference' }} min=${0} fmtY=${(v) => Math.round(v) + '%'} />` : html`<${K.Segs} pct=${D.util} color=${D.util > ref ? 'var(--warn2)' : 'var(--acc)'} mark=${ref} h=${10} />`}<span class="tiny muted">The reference is your own threshold from Settings. Kipu doesn’t estimate credit scores.</span></${ChartBox}>
+      <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>By card</h3>${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span>${c.name}</span><span class="num"><b>${c.limit ? ((c.bal / c.limit) * 100).toFixed(1) : 0}%</b> <span class="muted">${fmt(c.bal)} of ${fmt(c.limit || 0)}</span></span></div><${K.Segs} pct=${c.limit ? (c.bal / c.limit) * 100 : 0} color=${c.limit && (c.bal / c.limit) * 100 > ref ? 'var(--warn2)' : 'var(--acc)'} mark=${ref} h=${6} /></div>`)}</div></div>`;
   }
 
   // ---------------------------------------------------------------- Insights
@@ -178,10 +187,10 @@
     const any = Object.keys(scen).some((k) => scen[k]);
     const B = F.base.months.slice(0, h), Sc = F.scen.months.slice(0, h);
     const key = { cash: 'net', safe: 'safe', savings: 'savings', debt: 'loanBal', networth: 'nw' }[metric];
-    const series = [{ values: B.map((x) => x[key]), color: 'var(--acc)', dash: true }].concat(any ? [{ values: Sc.map((x) => x[key]), color: 'var(--pos2)', dash: true }] : []);
+    const series = [{ values: B.map((x) => x[key]), color: 'var(--c1)', dash: true }].concat(any ? [{ values: Sc.map((x) => x[key]), color: 'var(--c2)', dash: true }] : []);
     const s = F.summary;
     const rows = [['Left over', s.net, true], ['Saved', s.savings, true], ['Loan interest', s.interest, false], ['Net worth at end', s.nw, true], ['Loans at end', s.loan, false]];
-    const chart = html`<${ChartBox} title=${METRICS.find((m) => m[0] === metric)[1]} tag=${html`<span class="tag proj">Projected</span>`} legend=${[['var(--acc)', 'Baseline', true]].concat(any ? [['var(--pos2)', 'Scenario', true]] : [])}><${LineChart} labels=${B.map((x) => x.label)} series=${series} fmtY=${fmt.k} min=${metric === 'debt' ? 0 : null} /><span class="tiny muted">Starts next month. Everyday spending assumed at ${fmt(F.flexible)} a month.</span></${ChartBox}>`;
+    const chart = html`<${ChartBox} title=${METRICS.find((m) => m[0] === metric)[1]} tag=${html`<span class="tag proj">Projected</span>`} legend=${[['var(--c1)', 'Baseline', true]].concat(any ? [['var(--c2)', 'Scenario', true]] : [])}><${LineChart} labels=${B.map((x) => x.label)} series=${series} fmtY=${fmt.k} min=${metric === 'debt' ? 0 : null} /><span class="tiny muted">Starts next month. Everyday spending assumed at ${fmt(F.flexible)} a month.</span></${ChartBox}>`;
     const summary = html`<div class="card stack" style=${{ gap: '8px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Next ${h} months</h3><span class="tag proj">Projected</span></div><div class="xscroll"><table class="tbl"><thead><tr><th></th><th>Baseline</th>${any && html`<th>Scenario</th><th>Difference</th>`}</tr></thead><tbody>${rows.map(([l, v, up]) => html`<tr key=${l}><td>${l}</td><td>${fmt(v[0])}</td>${any && html`<td>${fmt(v[1])}</td><td style=${{ color: Math.abs(v[1] - v[0]) < 0.5 ? 'var(--muted)' : (v[1] > v[0]) === up ? 'var(--pos)' : 'var(--warn)', fontWeight: 600 }}>${Math.abs(v[1] - v[0]) < 0.5 ? '—' : fmt(v[1] - v[0], { sign: true })}</td>`}</tr>`)}</tbody></table></div></div>`;
     const controls = html`<div class="stack-s"><${Seg} options=${[3, 6, 12]} value=${h} onChange=${setH} labels=${['3 months', '6 months', '12 months']} />
       <span class="eyebrow" style=${{ marginTop: '6px' }}>Assumption</span><${Chips} options=${['Recent average', 'Budget based', 'Conservative']} value=${assumption} onChange=${setAssumption} />

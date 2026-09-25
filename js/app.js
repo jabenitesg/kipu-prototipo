@@ -6,7 +6,7 @@
 
   const SKEY = 'kipu-settings-v1';
   const loadSettings = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) { return {}; } };
-  const DEFAULT_SETTINGS = { theme: 'Kipu Purple', mode: 'System', hide: false, reduce: false, ai: { insights: true } };
+  const DEFAULT_SETTINGS = { theme: 'Kipu', mode: 'System', hide: false, reduce: false, ai: { insights: true } };
   const TITLES = { account: 'Account', card: 'Credit card', loan: 'Loan', txn: 'Transaction', goal: 'Goal', trip: 'Trip', settings: 'Settings' };
   const SCREENS = () => ({ home: K.Home, money: K.Money, plan: K.Plan, stats: K.Stats, settings: K.Settings, account: K.AccountDetail, card: K.CardDetail, loan: K.LoanDetail, txn: K.TxnDetail, goal: K.GoalDetail, trip: K.TripDetail });
   const WIDE_AT = 768;
@@ -21,7 +21,7 @@
   function App() {
     const [data, setData] = useState(() => K.load());
     const [ctx, setCtxRaw] = useState({ scope: 'personal', currency: 'Combined', period: 11 });
-    const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); if (!K.THEMES[s.theme]) s.theme = s.theme === 'Midnight' ? 'Indigo' : 'Kipu Purple'; return s; });
+    const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Dark', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
     const [stack, setStack] = useState([{ r: 'home' }]);
     const [sheet, setSheet] = useState(null);
     const [toastMsg, setToast] = useState(null);
@@ -33,17 +33,16 @@
     const commit = useCallback((next) => { setData(next); if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.'); }, []);
     const setCtx = useCallback((o) => setCtxRaw((c) => Object.assign({}, c, o)), []);
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
-    const mode = K.MODES[settings.mode] ? settings.mode : sysDark ? 'Dark' : 'Light';
-    const effectiveDark = mode !== 'Light';
-    useEffect(() => { const v = K.themeVars(settings.theme, mode); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, mode]);
+    const effectiveDark = settings.mode === 'Dark' || (settings.mode !== 'Light' && sysDark);
+    useEffect(() => { const v = K.themeVars(settings.theme, effectiveDark); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, effectiveDark]);
 
     // Live exchange rates, at most twice a day
     useEffect(() => {
-      if (!data.onboarded || data.active.length < 2) return;
+      if (!data.onboarded) return;
       const age = data.fx.updated ? Date.now() - new Date(data.fx.updated).getTime() : Infinity;
-      if (age < 12 * 3600 * 1000) return;
+      if (age < 12 * 3600 * 1000 && Object.keys(data.fx.usd).length > 40) return;
       K.refreshFx(data).then((fx) => setData((d) => { const n = Object.assign({}, d, { fx }); K.save(n); return n; })).catch(() => {});
-    }, [data.onboarded, data.active.length]);
+    }, [data.onboarded, data.active.join()]);
     // Month change: record this month’s balances even without new activity
     useEffect(() => { if (data.onboarded && !data.snapshots[K.monthKey(K.today())]) commit(K.snapshot(data)); }, [data.onboarded]);
 
@@ -66,7 +65,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode: mode }), setSettings, wide, insights, resetAll };
+    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark }), setSettings, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!data.onboarded) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.Onboarding} /></div></${Ctx.Provider}>`;
@@ -84,7 +83,7 @@
           <div class="brand"><span style=${{ width: '30px', height: '30px', borderRadius: '10px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '19px', fontWeight: 800 }}>Kipu</span></div>
           <button class="btn pri" style=${{ margin: '0 4px 14px', height: '44px' }} onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${17} w=${2.4} />Add</button>
           ${nav.map(([r, ic, l]) => html`<button key=${r} class=${'nav' + (rootOf === r ? ' on' : '')} onClick=${() => go({ r })}><${Icon} n=${ic} s=${18} />${l}</button>`)}
-          <div style=${{ marginTop: 'auto' }}><button class="row" style=${{ width: '100%', padding: '10px', borderRadius: '14px', background: 'var(--surface2)', gap: '10px' }} onClick=${() => go({ r: 'settings', s: 'profile' })}><span style=${{ width: '32px', height: '32px', borderRadius: '999px', background: 'var(--grad)', color: 'var(--hero-ink)', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>${K.initials(data.profile.name)}</span><span class="stack-s" style=${{ gap: 0, textAlign: 'left', minWidth: 0 }}><span style=${{ fontWeight: 600, fontSize: '13px' }}>${data.profile.name || 'You'}</span><span class="tiny muted">${ctx.scope === 'household' ? 'Household view' : 'Personal view'}</span></span></button></div>
+          <div style=${{ marginTop: 'auto' }}><button class="row" style=${{ width: '100%', padding: '10px', borderRadius: '14px', background: 'var(--surface2)', gap: '10px' }} onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${32} /><span class="stack-s" style=${{ gap: 0, textAlign: 'left', minWidth: 0 }}><span style=${{ fontWeight: 600, fontSize: '13px' }}>${data.profile.name || 'You'}</span><span class="tiny muted">${ctx.scope === 'household' ? 'Household view' : 'Personal view'}</span></span></button></div>
         </aside>
         <main class="d-main"><div class="d-content">
           ${stack.length > 1 && html`<div class="d-top"><button class="chip" onClick=${back}><${Icon} n="back" s=${15} w=${2.2} />Back</button><span class="small muted">${TITLES[route.r] || ''}</span></div>`}

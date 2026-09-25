@@ -39,7 +39,7 @@
     sliders: 'M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6', calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
     alert: 'M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
     search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5', book: 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16', phone: 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2',
-    monitor: 'M3 5h18v11H3zM8 20h8M12 16v4', review: 'M4 4h16v16H4zM8 9h8M8 13h5M8 17h3', history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', copy: 'M9 9h11v11H9zM5 15V4h11',
+    monitor: 'M3 5h18v11H3zM8 20h8M12 16v4', review: 'M4 4h16v16H4zM8 9h8M8 13h5M8 17h3', history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', copy: 'M9 9h11v11H9zM5 15V4h11', star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
   };
   const Icon = ({ n, s = 18, w = 1.9, c = 'currentColor' }) => html`<svg width=${s} height=${s} viewBox="0 0 24 24" fill="none" stroke=${c} stroke-width=${w} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${P[n] || P.dots}></path></svg>`;
   K.Icon = Icon;
@@ -137,14 +137,25 @@
   };
   K.AccountRow = AccountRow;
 
-  const CARD_STYLES = ['linear-gradient(140deg, #1D1B2F 0%, #3A3552 100%)', 'var(--grad)', 'linear-gradient(140deg, #2F6E83 0%, #1D3E57 100%)'];
+  // Default card looks when the person hasn't chosen one: theme gradient, theme solid, graphite
+  const CARD_DEFAULTS = ['var(--grad)', 'var(--solid)', 'linear-gradient(140deg, #1C1C1E 0%, #48484C 100%)'];
+  K.cardBg = (c) => K.lookBg(c.look, CARD_DEFAULTS[(c.style != null ? c.style : [...String(c.id || '')].reduce((n, ch) => n + ch.charCodeAt(0), 0)) % 3]);
+  K.expiryInfo = (c) => {
+    if (!c.expiry) return null;
+    const [y, m] = c.expiry.split('-').map(Number);
+    const end = new Date(y, m, 0);
+    const days = K.days(K.today(), end);
+    return { label: K.pad(m) + '/' + String(y).slice(2), days, expired: days < 0, soon: days >= 0 && days <= 60, end };
+  };
   const CardPreview = ({ c, selected, onClick, compact }) => {
     const { fmt } = useApp();
     const util = c.limit ? (c.bal / c.limit) * 100 : 0;
-    return html`<button onClick=${onClick} aria-label=${c.name} style=${{ width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: '#FFFFFF', background: selected ? 'var(--grad)' : CARD_STYLES[(c.style || 0) % 3], display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow), 0 12px 28px color-mix(in srgb, var(--acc) 30%, transparent)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left', outline: selected ? '2px solid color-mix(in srgb, var(--acc) 50%, transparent)' : null, outlineOffset: '3px' }}>
+    const ex = K.expiryInfo(c);
+    return html`<button onClick=${onClick} aria-label=${c.name} style=${{ position: 'relative', overflow: 'hidden', width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: '#FFFFFF', background: K.cardBg(c), display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left' }}>
+      <span aria-hidden="true" style=${{ position: 'absolute', right: '-50px', top: '-70px', width: '200px', height: '200px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)', pointerEvents: 'none' }}></span>
       <span class="between"><span style=${{ fontSize: '13px', fontWeight: 600, opacity: 0.92 }}>${c.name}</span><span style=${{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>${(c.network || '').toUpperCase()}</span></span>
       <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt(c.bal)}</span></span>
-      <span class="between" style=${{ fontSize: '12px', opacity: 0.9 }}><span class="num">${c.last4 ? '•••• ' + c.last4 : ''}</span><span class="num">${util.toFixed(0)}% used</span></span>
+      <span class="between" style=${{ fontSize: '12px', opacity: 0.9 }}><span class="num">${c.last4 ? '•••• ' + c.last4 : ''}${ex ? '  ·  ' + ex.label : ''}</span><span class="num">${util.toFixed(0)}% used</span></span>
     </button>`;
   };
   K.CardPreview = CardPreview;
@@ -154,18 +165,25 @@
     const pct = l.orig ? ((l.orig - l.bal) / l.orig) * 100 : 0;
     return html`<button class="lrow" style=${{ alignItems: 'flex-start', flexDirection: 'column', gap: '8px' }} onClick=${() => go({ r: 'loan', id: l.id })}>
       <span class="between" style=${{ width: '100%' }}><span class="row"><${Tile} icon=${l.kind === 'Vehicle' ? 'car' : 'loan'} tone="b" /><span class="stack-s" style=${{ gap: '2px' }}><span class="t1">${l.name}</span><span class="t2">${(l.rate || 0).toFixed(2)}% · ${fmt(l.pay || 0, { dec: 2 })} ${(l.freq || '').toLowerCase()}</span></span></span><span class="stack-s" style=${{ gap: '2px', alignItems: 'flex-end' }}><span class="amt">${fmt(l.bal)}</span><span class="t2">left</span></span></span>
-      <span style=${{ width: '100%' }}><${Bar} pct=${pct} color="var(--pos2)" /></span>
+      <span style=${{ width: '100%' }}><${K.Segs} pct=${pct} color="var(--acc)" h=${6} /></span>
       <span class="between tiny muted" style=${{ width: '100%' }}><span>${pct.toFixed(0)}% paid off</span><span>${K.payoffDate(l).label}</span></span>
     </button>`;
   };
   K.LoanRow = LoanRow;
 
-  const GoalProgress = ({ g, onClick }) => {
+  const GoalProgress = ({ g, onClick, featured }) => {
     const { fmt } = useApp();
-    const color = { p: 'var(--acc)', b: 'var(--info)', g: 'var(--pos2)', a: 'var(--warn2)' }[g.tone] || 'var(--acc)';
+    const styled = featured || (g.look && g.look.kind && g.look.kind !== 'theme');
+    const sub = g.pct >= 100 ? 'Funded' : g.monthly ? 'On track for ' + g.etaLabel : 'No monthly amount yet';
+    if (styled) return html`<button class="card" style=${{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', background: K.lookBg(g.look, 'var(--grad2)'), color: '#FFFFFF', border: 0, boxShadow: 'var(--glow)' }} onClick=${onClick}>
+      <span aria-hidden="true" style=${{ position: 'absolute', right: '-60px', top: '-80px', width: '220px', height: '220px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)' }}></span>
+      <span class="between"><span class="row" style=${{ gap: '10px' }}><span class="ic" style=${{ background: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}><${Icon} n=${g.trip ? 'plane' : 'target'} s=${17} /></span><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1" style=${{ fontWeight: 600 }}>${g.name}</span><span class="t2" style=${{ color: 'rgba(255,255,255,0.78)' }}>${sub}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 800, fontSize: '22px' }}>${g.pct}%</span></span>
+      <${K.Segs} pct=${g.pct} color="#FFFFFF" track="rgba(255,255,255,0.25)" />
+      <span class="between tiny num" style=${{ color: 'rgba(255,255,255,0.82)' }}><span>${fmt(g.savedNow)} of ${fmt(g.target)}</span><span>${g.monthly ? fmt(g.monthly) + ' a month' : 'No monthly amount'}</span></span>
+    </button>`;
     return html`<button class="card" style=${{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }} onClick=${onClick}>
-      <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${g.trip ? 'plane' : 'target'} tone=${g.tone} /><span class="stack-s" style=${{ gap: '2px' }}><span class="t1">${g.name}</span><span class="t2">${g.pct >= 100 ? 'Funded' : g.monthly ? 'On track for ' + g.etaLabel : 'No monthly amount yet'}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 700, fontSize: '17px' }}>${g.pct}%</span></span>
-      <${Bar} pct=${g.pct} color=${color} />
+      <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${g.trip ? 'plane' : 'target'} tone="p" /><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${g.name}</span><span class="t2">${sub}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 700, fontSize: '17px' }}>${g.pct}%</span></span>
+      <${K.Segs} pct=${g.pct} color=${g.pct >= 100 ? 'var(--pos2)' : 'var(--acc)'} />
       <span class="between tiny muted num"><span>${fmt(g.savedNow)} of ${fmt(g.target)}</span><span>${g.monthly ? fmt(g.monthly) + ' a month' : 'No monthly amount'}</span></span>
     </button>`;
   };
@@ -281,4 +299,63 @@
 
   const PageHead = ({ eyebrow, title, sub, right }) => html`<header class="between" style=${{ alignItems: 'flex-end', paddingTop: '4px' }}><div class="stack-s" style=${{ gap: '6px' }}>${eyebrow && html`<span class="eyebrow">${eyebrow}</span>`}<h1 style=${{ fontSize: '30px', lineHeight: '36px', fontWeight: 800 }}>${title}</h1>${sub && html`<p class="muted" style=${{ fontSize: '15px', lineHeight: 1.45 }}>${sub}</p>`}</div>${right}</header>`;
   K.PageHead = PageHead;
+
+  // ---------------------------------------------------------------- segmented progress (budget, utilization, goals, payoff, trips)
+  // tone: a CSS color; mark: a target marker in percent
+  const Segs = ({ pct, n = 20, color, h = 8, mark, gap = 3, track, markColor }) => {
+    const filled = Math.max(0, Math.min(n, Math.round(((pct || 0) / 100) * n)));
+    return html`<div style=${{ position: 'relative', display: 'flex', gap: gap + 'px', paddingTop: mark != null ? '4px' : 0, paddingBottom: mark != null ? '4px' : 0 }} role="img" aria-label=${Math.round(pct || 0) + '%'}>
+      ${Array.from({ length: n }, (_, i) => html`<i key=${i} style=${{ flex: 1, height: h + 'px', borderRadius: Math.min(3, h / 2) + 'px', background: i < filled ? color || 'var(--acc)' : track || 'var(--neutral)' }}></i>`)}
+      ${mark != null && html`<span style=${{ position: 'absolute', top: 0, bottom: 0, left: 'calc(' + Math.min(99.5, Math.max(0, mark)) + '% - 1px)', width: '2px', borderRadius: '2px', background: markColor || 'var(--ink)' }}></span>`}</div>`;
+  };
+  K.Segs = Segs;
+  // Theme color unless there is a real problem
+  K.stateColor = (pct, warnAt, critAt) => (critAt != null && pct > critAt ? 'var(--crit2)' : warnAt != null && pct > warnAt ? 'var(--warn2)' : 'var(--acc)');
+
+  // ---------------------------------------------------------------- date pickers: tap a date field, pick from a calendar
+  K.ord = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+  const PickerField = ({ label, hint, open, onToggle, display, icon, children, placeholder }) => html`<div class="field"><span>${label}</span>
+    <button type="button" class="input row" aria-expanded=${open} style=${{ gap: '10px', justifyContent: 'space-between', textAlign: 'left', borderColor: open ? 'var(--acc)' : null, background: open ? 'var(--surface)' : null }} onClick=${onToggle}><span style=${{ color: display ? null : 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${display || placeholder || 'Choose'}</span><${Icon} n=${icon || 'calendar'} s=${17} c="var(--muted)" /></button>
+    ${open && html`<div class="picker">${children}</div>`}
+    ${hint && html`<span class="tiny muted" style=${{ fontWeight: 400 }}>${hint}</span>`}</div>`;
+  const WD = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const Calendar = ({ value, onPick, onClear, min, max }) => {
+    const sel = value ? K.parse(value) : null;
+    const [view, setView] = useState(() => { const d = sel || K.today(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+    const nDays = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+    const cells = Array.from({ length: view.getDay() }, () => null).concat(Array.from({ length: nDays }, (_, i) => i + 1));
+    const T = K.iso(K.today());
+    const move = (m) => setView(new Date(view.getFullYear(), view.getMonth() + m, 1));
+    return html`<div class="stack-s" style=${{ gap: '8px' }}>
+      <div class="between"><button type="button" class="ic n" aria-label="Previous month" onClick=${() => move(-1)}><${Icon} n="back" s=${16} w=${2.2} /></button><b>${K.MONTH_LONG[view.getMonth()]} ${view.getFullYear()}</b><button type="button" class="ic n" aria-label="Next month" onClick=${() => move(1)}><${Icon} n="next" s=${16} w=${2.2} /></button></div>
+      <div class="cal">${WD.map((w, i) => html`<span key=${'w' + i} class="wd">${w}</span>`)}${cells.map((d, i) => { if (!d) return html`<span key=${'b' + i}></span>`; const s = K.iso(new Date(view.getFullYear(), view.getMonth(), d)); const off = (min && s < min) || (max && s > max); return html`<button key=${s} type="button" disabled=${off} aria-pressed=${value === s} aria-label=${K.fmtDate(s, true)} class=${(value === s ? 'on' : '') + (s === T ? ' today' : '')} onClick=${() => onPick(s)}>${d}</button>`; })}</div>
+      <div class="between"><button type="button" class="link" onClick=${() => onPick(T)}>Today</button>${onClear && html`<button type="button" class="link" style=${{ color: 'var(--muted)' }} onClick=${onClear}>Clear</button>`}</div></div>`;
+  };
+  K.Calendar = Calendar;
+  K.DateInput = function DateInput({ label, value, onChange, hint, optional, min, max, placeholder }) {
+    const [open, setOpen] = useState(false);
+    const d = value ? K.parse(value) : null;
+    const display = d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    return html`<${PickerField} label=${label} hint=${hint} open=${open} onToggle=${() => setOpen(!open)} display=${display} placeholder=${placeholder || 'Choose a date'}><${Calendar} value=${value} min=${min} max=${max} onPick=${(s) => { onChange(s); setOpen(false); }} onClear=${optional ? () => { onChange(''); setOpen(false); } : null} /></${PickerField}>`;
+  };
+  // Day of the month, for due dates, closing dates and bills
+  K.DayInput = function DayInput({ label, value, onChange, hint, max, optional, placeholder }) {
+    const [open, setOpen] = useState(false);
+    const n = parseInt(value) || null;
+    return html`<${PickerField} label=${label} hint=${hint} open=${open} onToggle=${() => setOpen(!open)} display=${n ? K.ord(n) + ' of the month' : ''} placeholder=${placeholder || 'Choose a day'}>
+      <div class="cal days">${Array.from({ length: max || 31 }, (_, i) => i + 1).map((d) => html`<button key=${d} type="button" aria-pressed=${n === d} class=${n === d ? 'on' : ''} onClick=${() => { onChange(String(d)); setOpen(false); }}>${d}</button>`)}</div>
+      ${(max || 31) > 28 && html`<span class="tiny muted">In shorter months, days past the end use the last day.</span>`}${optional && n && html`<button type="button" class="link" style=${{ color: 'var(--muted)', alignSelf: 'flex-start' }} onClick=${() => { onChange(''); setOpen(false); }}>Clear</button>`}</${PickerField}>`;
+  };
+  // Month and year ('YYYY-MM'), for card expiry and goal target months
+  K.MonthInput = function MonthInput({ label, value, onChange, hint, optional, placeholder, fromYear }) {
+    const [open, setOpen] = useState(false);
+    const [y0, m0] = value ? value.split('-').map(Number) : [K.today().getFullYear(), 0];
+    const [year, setYear] = useState(y0);
+    const display = value ? K.MON[m0 - 1] + ' ' + y0 : '';
+    const minY = fromYear || K.today().getFullYear() - 1;
+    return html`<${PickerField} label=${label} hint=${hint} open=${open} onToggle=${() => setOpen(!open)} display=${display} placeholder=${placeholder || 'Choose a month'}>
+      <div class="between"><button type="button" class="ic n" aria-label="Previous year" disabled=${year <= minY} onClick=${() => setYear(year - 1)}><${Icon} n="back" s=${16} w=${2.2} /></button><b>${year}</b><button type="button" class="ic n" aria-label="Next year" onClick=${() => setYear(year + 1)}><${Icon} n="next" s=${16} w=${2.2} /></button></div>
+      <div class="cal months">${K.MON.map((m, i) => { const s = year + '-' + K.pad(i + 1); return html`<button key=${s} type="button" aria-pressed=${value === s} class=${value === s ? 'on' : ''} onClick=${() => { onChange(s); setOpen(false); }}>${m}</button>`; })}</div>
+      ${optional && value && html`<button type="button" class="link" style=${{ color: 'var(--muted)', alignSelf: 'flex-start' }} onClick=${() => { onChange(''); setOpen(false); }}>Clear</button>`}</${PickerField}>`;
+  };
 })();
