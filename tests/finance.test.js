@@ -194,3 +194,56 @@ test('edits made on two devices at once are merged, balances included', () => {
   const deleted = K.removeTxn(phone, phone.txns[0].id);
   assert.equal(K.mergeData(phone, deleted, phone).txns.length, 0); // a delete on one side sticks when the other didn't touch it
 });
+
+test('each country is viewed on its own, in its own currency, with its own Safe to Spend', () => {
+  let d = K.factory();
+  d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.accounts = [account('cad', 'CAD', 2000), account('pen', 'PEN', 3000)];
+  d.bills = [{ id: 'rent', name: 'Rent', amt: 1500, cur: 'CAD', day: 28, pay: 'acct:cad' }, { id: 'luz', name: 'Luz', amt: 150, cur: 'PEN', day: 28, pay: 'acct:pen' }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Tottus', amt: 180, cur: 'PEN', from: 'acct:pen' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Loblaws', amt: 60, cur: 'CAD', from: 'acct:cad' });
+  assert.deepEqual(K.countries(d), ['CA', 'PE']);
+  const pe = K.countryView(d, 'PE');
+  assert.equal(pe.base, 'PEN');
+  assert.deepEqual(pe.accounts.map((a) => a.id), ['pen']);
+  assert.deepEqual(pe.txns.map((t) => [t.merchant, t.base]), [['Tottus', 180]]); // exact soles, not a round trip through CAD
+  assert.deepEqual(pe.bills.map((b) => b.id), ['luz']);
+  const peD = K.derive(pe, ctx);
+  assert.equal(peD.cash, 2820);
+  const ca = K.derive(K.countryView(d, 'CA'), ctx);
+  assert.equal(ca.cash, 1940);
+  assert.equal(K.derive(d, ctx).cash, K.r2(1940 + 2820 * 1.35 / 3.75)); // global converts to the main currency
+  d.accounts.push(account('wise', 'USD', 100));
+  assert.deepEqual(K.countries(d), ['CA', 'PE']); // a US-dollar account with no country counts as home, not a new country
+});
+
+test('a two-currency card keeps soles and dollars apart and shares one limit', () => {
+  let d = K.factory();
+  d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.accounts = [account('pen', 'PEN', 5000), account('usd', 'USD', 500)];
+  d.cards = [{ id: 'bcp', name: 'BCP Visa', cur: 'PEN', cur2: 'USD', bal: 0, bal2: 0, limit: 7500, stmtBal: 0, stmtBal2: 0 }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Wong', amt: 300, cur: 'PEN', from: 'card:bcp' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Amazon', amt: 40, cur: 'USD', from: 'card:bcp' });
+  assert.equal(d.cards[0].bal, 300);
+  assert.equal(d.cards[0].bal2, 40);
+  assert.equal(K.cardUsed(d, d.cards[0]), 450); // 300 soles + 40 dollars × 3.75
+  d = K.addTxn(d, { type: 'transfer', amt: 40, cur: 'USD', from: 'acct:usd', to: 'card:bcp' });
+  assert.equal(d.cards[0].bal2, 0);
+  assert.equal(d.cards[0].bal, 300);
+  assert.equal(d.accounts[1].bal, 460);
+  const id = d.txns[1].id;
+  d = K.removeTxn(d, id);
+  assert.equal(d.cards[0].bal2, -40); // removing the Amazon charge after paying leaves a 40 credit, exactly
+});
+
+test('a loan in another currency is paid in that currency and counted converted', () => {
+  let d = K.factory();
+  d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.accounts = [account('pen', 'PEN', 5000)];
+  d.loans = [{ id: 'car', name: 'Car', cur: 'PEN', bal: 10000, orig: 12000, rate: 0, pay: 500, freq: 'Monthly', next: K.iso(K.addDays(K.today(), 3)) }];
+  assert.equal(K.derive(d, ctx).loanBal, 3600); // 10,000 PEN in CAD
+  d = K.payLoan(d, 'car', 'acct:pen', 0);
+  assert.equal(d.loans[0].bal, 9500);
+  assert.equal(d.accounts[0].bal, 4500);
+  assert.equal(d.txns[0].cur, 'PEN');
+});

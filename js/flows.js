@@ -26,8 +26,9 @@
   const ContextSheet = ({ show, onClose }) => {
     const { ctx, setCtx, data, D, cloud } = useApp();
     const curs = ['Combined'].concat(curOptions(data));
-    return html`<${Sheet} title="View" sub="Scope, currency and period apply across Kipu." onClose=${onClose}>
+    return html`<${Sheet} title="View" sub="Country, scope, currency and period apply across Kipu." onClose=${onClose}>
       ${data.household.enabled && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
+      ${D.countries && D.countries.length > 1 && html`<div class="stack-s"><span class="eyebrow">Country</span><${Chips} options=${['All'].concat(D.countries)} value=${ctx.country || 'All'} onChange=${(v) => setCtx({ country: v })} labels=${['All'].concat(D.countries).map((c) => (c === 'All' ? html`<${Icon} n="globe" s=${16} />Global · ${K.sym(data.base)}` : html`<${K.CountryFlag} cc=${c} s=${18} />${K.countryName(c)} · ${K.sym(K.countryCur(data, c))}`))} /><span class="tiny muted">${(ctx.country || 'All') === 'All' ? 'Everything, converted to ' + data.base + ' at today’s rates.' : 'Only ' + K.countryName(ctx.country) + ', in its own currency.'}</span></div>`}
       ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
       ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${ctx.period == null ? 11 : ctx.period} onChange=${(v) => setCtx({ period: v })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
       <button class="btn pri block" onClick=${onClose}>Done</button></${Sheet}>`;
@@ -104,6 +105,11 @@
     const [from, setFrom] = useState(preset.from || (accts[0] || [])[0] || '');
     const [to, setTo] = useState(preset.toWhere || (preset.goal ? 'goal:' + preset.goal : preset.to || (toOpts.find((o) => o[0] !== from) || [])[0] || ''));
     const v = numv(amt);
+    const kind = to.startsWith('goal:') ? 'saving' : 'transfer';
+    const draftT = { type: kind, amt: v, cur, from, to: to.startsWith('goal:') ? null : to };
+    const blocked = v && to ? K.canPost(data, draftT) : null;
+    // Show exactly what leaves and what arrives when currencies differ, with the rate used
+    const moves = v && to && !blocked ? (K.previewPostings(data, draftT) || []).filter((p) => { const it = K.whereItem ? K.whereItem(data, p.where) : null; return it && (p.slot === 2 ? it.cur2 : it.cur || data.base) !== cur; }) : [];
     const save = () => {
       let t = { amt: v, cur, from };
       if (to.startsWith('goal:')) { const g = data.goals.find((x) => 'goal:' + x.id === to); t = Object.assign(t, { type: 'saving', cat: 'saving', goal: g.id, to: g.linked ? 'acct:' + g.linked : null, merchant: g.name, shared: !!g.shared }); }
@@ -116,7 +122,9 @@
       ${curOptions(data).length > 1 && html`<${Field} label="Transaction currency"><${Select} value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}>`}
       <${Field} label="From"><${Select} id="t-from" value=${from} onChange=${setFrom} options=${accts} /></${Field}>
       <${Field} label="To"><${Select} id="t-to" value=${to} onChange=${setTo} options=${toOpts.filter((o) => o[0] !== from)} placeholder="Choose where it goes" /></${Field}>
-      <button class="btn pri block" disabled=${!v || !to} onClick=${save}>Move ${v ? fmt(v, { dec: 2 }) : 'money'}</button></${Sheet}>`;
+      ${moves.length > 0 && html`<div class="card flat stack-s" style=${{ gap: '6px', padding: '12px 14px' }}><span class="small" style=${{ fontWeight: 600 }}>Currency exchange</span>${moves.map((p, i) => { const it = K.whereItem(data, p.where); const c = p.slot === 2 ? it.cur2 : it.cur || data.base; return html`<div key=${i} class="between small"><span class="muted">${p.amount < 0 ? 'Leaves ' : 'Arrives in '}${it.name}</span><b class="num">${fmt.native(Math.abs(p.amount), c, { dec: 2 })}</b></div>`; })}<span class="tiny muted">${'1 ' + cur + ' = ' + moves.map((p) => { const it = K.whereItem(data, p.where); const c = p.slot === 2 ? it.cur2 : it.cur || data.base; const r = K.rate(data, cur, c); return (r >= 100 ? r.toFixed(2) : r.toFixed(4)) + ' ' + c; }).join(' · ') + ' · today’s rate, locked when you save'}</span></div>`}
+      ${blocked && html`<${K.RateNote} cur=${blocked} blocked=${true} />`}
+      <button class="btn pri block" disabled=${!v || !to || !!blocked} onClick=${save}>Move ${v ? fmt.native(v, cur, { dec: 2 }) : 'money'}</button></${Sheet}>`;
   };
 
   const DebtSheet = ({ onClose, item }) => {
@@ -213,12 +221,14 @@
   const AddAccount = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal) }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
-    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
+    const country = f.country || K.countryOfCur(f.cur) || null;
+    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save}>
       <${Chips} options=${['Everyday', 'Savings', 'Cash', 'Investments', 'Property']} value=${f.kind} onChange=${on('kind')} />
       <${In} id="aa-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Everyday Chequing" />
       <${In} id="aa-inst" label="Institution" value=${f.inst} onInput=${on('inst')} ph="Optional" />
       <${K.CurrencySelect} label="Currency" value=${f.cur} onChange=${on('cur')} />
+      <${K.CountrySelect} label="Country" value=${country} onChange=${on('country')} hint="Kipu groups your money by country, each in its own currency." />
       <${In} id="aa-bal" label=${item ? 'Balance' : 'Current balance'} value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0.00" hint=${item ? 'Changing it here doesn’t create a transaction.' : 'Today’s balance. Later transactions move it automatically.'} />
       ${data.household.enabled && html`<div class="card tight"><${ToggleRow} title="Share with Household" on=${!!f.shared} onChange=${on('shared')} /></div>`}</${Form}>`;
   };
@@ -233,16 +243,22 @@
 
   const AddCard = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
-    const preview = { name: f.name || f.network + ' card', network: f.network, cur: f.cur, last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
-    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, cur: f.cur, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
+    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, cur2: item.cur2 || '', bal2: String(item.bal2 || ''), stmtBal2: String(item.stmtBal2 || ''), limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
+    const country = f.country || K.countryOfCur(f.cur) || null;
+    const two = !!f.cur2;
+    const preview = { name: f.name || f.network + ' card', network: f.network, cur: f.cur, cur2: f.cur2 || null, bal2: numv(f.bal2), last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
+    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, cur: f.cur, country, cur2: two ? f.cur2 : null, bal2: two ? numv(f.bal2) : 0, stmtBal2: two ? numv(f.stmtBal2) : 0, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit card' : 'Add credit card'} sub="Only the last four digits are stored." onClose=${onClose} cta=${item ? 'Save' : 'Add card'} onSave=${save}>
       <div style=${{ maxWidth: '300px', width: '100%', alignSelf: 'center' }}><${K.CardPreview} c=${preview} /></div>
       <${Chips} options=${['Visa', 'Mastercard', 'Amex', 'Other']} value=${f.network} onChange=${on('network')} />
       <${K.CurrencySelect} label="Card currency" value=${f.cur} onChange=${on('cur')} />
+      <${K.CountrySelect} label="Country" value=${country} onChange=${on('country')} />
+      <div class="card tight"><${ToggleRow} title="Two-currency card" sub=${'Common in Peru and Latin America: charges in ' + (f.cur2 || 'US dollars') + ' keep their own balance, sharing one limit.'} on=${two} onChange=${(v) => on('cur2')(v ? (f.cur === 'USD' ? data.base : 'USD') : '')} /></div>
+      ${two && html`<${K.CurrencySelect} label="Second currency" value=${f.cur2} onChange=${on('cur2')} />`}
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" ph="1234" /></div>
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" /><${In} id="ac-bal" label="Current balance" value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0" /></div>
-      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-stmt" label="Statement balance" value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" ph="0" /><${In} id="ac-min" label="Minimum payment" value=${f.minPay} onInput=${on('minPay')} mode="decimal" ph="0" /></div>
+      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" /><${In} id="ac-bal" label=${two ? 'Balance in ' + f.cur : 'Current balance'} value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0" /></div>
+      ${two && html`<div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-bal2" label=${'Balance in ' + f.cur2} value=${f.bal2} onInput=${on('bal2')} mode="decimal" ph="0" /><${In} id="ac-stmt2" label=${'Statement in ' + f.cur2} value=${f.stmtBal2} onInput=${on('stmtBal2')} mode="decimal" ph="0" /></div>`}
+      <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-stmt" label=${two ? 'Statement in ' + f.cur : 'Statement balance'} value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" ph="0" /><${In} id="ac-min" label="Minimum payment" value=${f.minPay} onInput=${on('minPay')} mode="decimal" ph="0" /></div>
       <${K.DayInput} label="Statement closing day" value=${f.closeDay} onChange=${on('closeDay')} optional=${true} hint="The day your statement is cut. Purchases after it go on the next statement." />
       <${K.DayInput} label="Payment due day" value=${f.dueDay} onChange=${on('dueDay')} optional=${true} hint="Usually about three weeks after the closing day. Kipu counts it in Safe to Spend." />
       <${K.MonthInput} label="Expiry date" value=${f.expiry} onChange=${on('expiry')} optional=${true} placeholder="MM / YY" fromYear=${K.today().getFullYear() - 1} hint="Kipu reminds you two months before it expires." />
@@ -252,13 +268,15 @@
 
   const AddLoan = ({ onClose, item }) => {
     const { data, commit, toast, fmt } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { orig: String(item.orig || ''), bal: String(item.bal), rate: String(item.rate || ''), pay: String(item.pay || '') }) : { name: '', kind: 'Vehicle', lender: '', orig: '', bal: '', rate: '', pay: '', freq: 'Monthly', next: K.iso(K.addDays(K.today(), 7)) });
+    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, orig: String(item.orig || ''), bal: String(item.bal), rate: String(item.rate || ''), pay: String(item.pay || '') }) : { name: '', kind: 'Vehicle', lender: '', orig: '', bal: '', rate: '', pay: '', freq: 'Monthly', next: K.iso(K.addDays(K.today(), 7)) });
     const loan = { bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next };
     const p = loan.bal && loan.pay ? K.payoffDate(loan) : null;
-    const save = () => { commit(K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, shared: !!f.shared }))); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
+    const save = () => { commit(K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, cur: f.cur || data.base, country: f.country || K.countryOfCur(f.cur || data.base) || null, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, shared: !!f.shared }))); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit loan' : 'Add loan'} sub="Track what you owe and when it’s paid off." onClose=${onClose} cta=${item ? 'Save' : 'Add loan'} onSave=${save} disabled=${!numv(f.bal)}>
       <${Chips} options=${['Vehicle', 'Personal', 'Student', 'Mortgage', 'Line of credit', 'Other']} value=${f.kind} onChange=${on('kind')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Car loan" /><${In} id="al-lender" label="Lender" value=${f.lender} onInput=${on('lender')} ph="Optional" /></div>
+      <${K.CurrencySelect} label="Loan currency" value=${f.cur || data.base} onChange=${on('cur')} />
+      <${K.CountrySelect} label="Country" value=${f.country || K.countryOfCur(f.cur || data.base)} onChange=${on('country')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-orig" label="Original amount" value=${f.orig} onInput=${on('orig')} mode="decimal" /><${In} id="al-bal" label="Balance today" value=${f.bal} onInput=${on('bal')} mode="decimal" /></div>
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-rate" label="Interest rate %" value=${f.rate} onInput=${on('rate')} mode="decimal" /><${In} id="al-pay" label="Payment" value=${f.pay} onInput=${on('pay')} mode="decimal" /></div>
       <${Chips} options=${['Weekly', 'Bi-weekly', 'Twice monthly', 'Monthly', 'Quarterly']} value=${f.freq} onChange=${on('freq')} />
@@ -274,9 +292,12 @@
     const [extra, setExtra] = useState('');
     if (!l) return null;
     const s = K.loanSplit(l);
-    return html`<${Form} title=${'Pay ' + l.name} sub=${'Scheduled payment ' + fmt(l.pay, { dec: 2 }) + ': about ' + fmt(s.principal, { dec: 2 }) + ' principal and ' + fmt(s.interest, { dec: 2 }) + ' interest.'} onClose=${onClose} cta="Record payment" disabled=${!from} onSave=${() => { commit(K.payLoan(data, l.id, from, numv(extra))); toast('Payment recorded · balance updated'); onClose(); }}>
+    const lc = l.cur || data.base, m = (v) => fmt.native(v, lc, { dec: 2 });
+    const blocked = from ? K.canPost(data, { type: 'debt', amt: (l.pay || 0) + numv(extra), cur: lc, from }) : null;
+    return html`<${Form} title=${'Pay ' + l.name} sub=${'Scheduled payment ' + m(l.pay) + ': about ' + m(s.principal) + ' principal and ' + m(s.interest) + ' interest.'} onClose=${onClose} cta="Record payment" disabled=${!from || !!blocked} onSave=${() => { commit(K.payLoan(data, l.id, from, numv(extra))); toast('Payment recorded · balance updated'); onClose(); }}>
       ${places.length ? html`<${Field} label="Paid from"><${Select} id="pl-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
-      <${In} id="pl-extra" label="Extra toward principal" value=${extra} onInput=${(e) => setExtra(e.target.value)} mode="decimal" ph="Optional" /></${Form}>`;
+      <${In} id="pl-extra" label="Extra toward principal" value=${extra} onInput=${(e) => setExtra(e.target.value)} mode="decimal" ph="Optional" />
+      ${blocked && html`<${K.RateNote} cur=${blocked} blocked=${true} />`}</${Form}>`;
   };
 
   const AddGoal = ({ onClose, item }) => {

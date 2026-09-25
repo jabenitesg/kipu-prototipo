@@ -34,6 +34,15 @@
     </button>`;
   };
   K.SafeHero = SafeHero;
+  // Global view with money in more than one country: each country's Safe to Spend in its own currency
+  const CountrySafe = () => {
+    const { data, ctx, setCtx, fmt, D } = useApp();
+    if (!D.countries || D.countries.length < 2 || (ctx.country && ctx.country !== 'All')) return null;
+    const rows = D.countries.map((cc) => { const v = K.countryView(data, cc); const p = K.derive(v, Object.assign({}, ctx, { country: 'All' })).plan; return { cc, cur: v.base, safe: p.safe, has: p.hasAccounts }; }).filter((r) => r.has);
+    if (rows.length < 2) return null;
+    return html`<div class="card tight" style=${{ padding: '6px 0 2px' }}><div class="between" style=${{ padding: '10px 16px 6px' }}><span class="eyebrow">Safe to spend by country</span></div><div class="list">${rows.map((r) => html`<button key=${r.cc} class="lrow" style=${{ minHeight: '54px' }} onClick=${() => setCtx({ country: r.cc })}><${K.CountryFlag} cc=${r.cc} s=${28} /><span class="grow t1" style=${{ textAlign: 'left' }}>${K.countryName(r.cc)}</span><span class="disp num" style=${{ fontWeight: 700, fontSize: '16px', color: r.safe < 0 ? 'var(--crit)' : null }}>${fmt.native(r.safe, r.cur)}</span><${Icon} n="next" s=${14} c="var(--muted)" /></button>`)}</div></div>`;
+  };
+  K.CountrySafe = CountrySafe;
 
   // First-run checklist: disappears once the basics exist
   const Setup = () => {
@@ -85,7 +94,7 @@
     const goalCard = goal && html`<div class="stack-s"><${SectionHeader} title="Featured goal" action="Goals" onAction=${() => go({ r: 'plan', tab: 'goals' })} /><${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`;
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
     const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
-    const ctxChip = !wide && (data.household.enabled || cloud.target === 'household') && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const ctxChip = !wide && (data.household.enabled || cloud.target === 'household' || (D.countries && D.countries.length > 1)) && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     if (wide) {
       const badge = (a, b, goodUp) => { if (!prev.count || !b) return null; const d = ((a - b) / Math.abs(b)) * 100; if (Math.abs(d) < 0.5) return null; return html`<span class=${'b ' + ((d > 0) === goodUp ? 'pos' : 'warn')}>${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(0)}%</span>`; };
       const kpis = html`<div class="kpis">
@@ -119,13 +128,13 @@
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${kpis}</header>
         ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
-          <div style=${{ gridArea: 'hero' }}><${SafeHero} /></div>
+          <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
           ${upcomingW}${nwW}${flowW}${spendW}${budgetW}${recentW}${insW}
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} /><${CountrySafe} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
@@ -249,15 +258,17 @@
     const { data, D, fmt, openSheet, wide, commit, back, toast } = useApp();
     const c = data.cards.find((x) => x.id === route.id);
     if (!c) return html`<${EmptyState} title="Card not found" />`;
-    const util = c.limit ? (c.bal / c.limit) * 100 : 0;
+    const used = K.cardUsed(data, c);
+    const util = c.limit ? (used / c.limit) * 100 : 0;
     const tx = D.txAll.filter((t) => t.from === 'card:' + c.id || t.to === 'card:' + c.id);
     const left = html`<div class="stack">
       <${CardPreview} c=${c} selected=${true} />
-      <div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Balance" value=${fmt.native(c.bal, c.cur || data.base)} /><${Metric} label="Available" value=${fmt.native((c.limit || 0) - c.bal, c.cur || data.base)} /><${Metric} label="Limit" value=${fmt.native(c.limit || 0, c.cur || data.base)} /></div>
+      <div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Balance" value=${fmt.native(c.bal, c.cur || data.base)} /><${Metric} label="Available" value=${fmt.native((c.limit || 0) - used, c.cur || data.base)} /><${Metric} label="Limit" value=${fmt.native(c.limit || 0, c.cur || data.base)} /></div>
       ${(c.cur || data.base) !== data.base && html`<span class="small muted">≈ ${fmt(K.toBase(data, c.bal, c.cur))} in ${data.base} at the current rate; totals use this conversion.</span>`}
       <div class="card stack-s"><div class="between"><span class="small muted">Utilization</span><span class="amt">${util.toFixed(1)}%</span></div><${K.Segs} pct=${util} color=${util > data.prefs.utilRef ? 'var(--warn2)' : 'var(--acc)'} mark=${data.prefs.utilRef} /><span class="tiny muted">The line is your ${data.prefs.utilRef}% reference. It’s a visual guide, not a credit score rule.</span></div>
-      <${Facts} rows=${[['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 })], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%']]} />
-      <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: c.stmtBal || c.bal })}>Pay card</button><button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
+      ${c.cur2 && html`<div class="grid g2" style=${{ gap: '8px' }}><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur || data.base}</span><b class="num">${fmt.native(c.bal, c.cur || data.base, { dec: 2 })}</b></div><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur2}</span><b class="num">${fmt.native(c.bal2 || 0, c.cur2, { dec: 2 })}</b></div></div>`}
+      <${Facts} rows=${[c.country && ['Country', K.countryName(c.country)], ['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 }) + (c.cur2 ? ' + ' + fmt.native(c.stmtBal2 || 0, c.cur2, { dec: 2 }) : '')], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%']]} />
+      <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: c.stmtBal || c.bal })}>${c.cur2 ? 'Pay ' + (c.cur || data.base) : 'Pay card'}</button>${c.cur2 && html`<button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur2, amount: c.stmtBal2 || c.bal2 })}>Pay ${c.cur2}</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
       <${DangerButton} label="Delete card" onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
     const right = html`<div class="stack-s"><${SectionHeader} title="Recent charges" />${tx.length ? html`<div class="card tight list">${tx.slice(0, 30).map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`}</div>`;
     return html`<div class="stack"><${DetailHead} title=${c.name} sub=${c.last4 ? '•••• ' + c.last4 : c.network} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
@@ -267,16 +278,18 @@
     const { data, fmt, go, wide, openSheet, commit, back, toast } = useApp();
     const l = data.loans.find((x) => x.id === route.id);
     if (!l) return html`<${EmptyState} title="Loan not found" />`;
+    const lc = l.cur || data.base;
+    const money = (v, o) => fmt.native(v, lc, o);
     const pct = l.orig ? ((l.orig - l.bal) / l.orig) * 100 : 0;
     const p = K.payoffDate(l);
     const pays = data.txns.filter((t) => t.loan === l.id).sort((a, b) => (a.date < b.date ? 1 : -1));
     const split = K.loanSplit(l);
     const left = html`<div class="stack">
-      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span class="small muted">Remaining</span><span class="disp num" style=${{ fontSize: '32px', fontWeight: 800 }}>${fmt(l.bal)}</span></span>${l.orig ? html`<span class="pill pos">${pct.toFixed(0)}% paid</span>` : null}</div>${l.orig ? html`<${K.Segs} pct=${pct} color="var(--acc)" h=${12} />` : null}</div>
-      <${Facts} rows=${[['Interest rate', (l.rate || 0).toFixed(2) + '%'], ['Payment', fmt(l.pay || 0, { dec: 2 }) + ' · ' + (l.freq || '').toLowerCase()], ['Next payment', l.next ? K.fmtDate(K.nextDate(l.next, l.freq, D0()), true) : 'Not set'], l.lender && ['Lender', l.lender], ['Next payment split', fmt(split.principal, { dec: 2 }) + ' principal · ' + fmt(split.interest, { dec: 2 }) + ' interest']]} />
+      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><span class="stack-s" style=${{ gap: '2px' }}><span class="small muted">Remaining</span><span class="disp num" style=${{ fontSize: '32px', fontWeight: 800 }}>${money(l.bal)}</span></span>${l.orig ? html`<span class="pill pos">${pct.toFixed(0)}% paid</span>` : null}</div>${l.orig ? html`<${K.Segs} pct=${pct} color="var(--acc)" h=${12} />` : null}</div>
+      <${Facts} rows=${[['Interest rate', (l.rate || 0).toFixed(2) + '%'], ['Payment', money(l.pay || 0, { dec: 2 }) + ' · ' + (l.freq || '').toLowerCase()], ['Next payment', l.next ? K.fmtDate(K.nextDate(l.next, l.freq, D0()), true) : 'Not set'], l.lender && ['Lender', l.lender], ['Next payment split', money(split.principal, { dec: 2 }) + ' principal · ' + money(split.interest, { dec: 2 }) + ' interest']]} />
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'payLoan', id: l.id })}>Record payment</button><button class="btn sec" onClick=${() => openSheet({ k: 'addLoan', item: l })}>Edit</button></div></div>`;
     const right = html`<div class="stack">
-      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Payoff</h3><span class="tag">Estimate</span></div><div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Paid off" value=${p.label} /><${Metric} label="Payments left" value=${isFinite(p.n) ? p.n : '—'} /><${Metric} label="Interest left" value=${isFinite(p.interest) ? '≈ ' + fmt(p.interest) : '—'} /></div>
+      <div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Payoff</h3><span class="tag">Estimate</span></div><div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Paid off" value=${p.label} /><${Metric} label="Payments left" value=${isFinite(p.n) ? p.n : '—'} /><${Metric} label="Interest left" value=${isFinite(p.interest) ? '≈ ' + money(p.interest) : '—'} /></div>
         <button class="btn sec block" onClick=${() => go({ r: 'stats', tab: 'forecast', metric: 'debt', scen: { loan: 100 } })}><${Icon} n="trend" s=${16} />Try an extra payment</button></div>
       <div class="stack-s"><${SectionHeader} title="Payments" />${pays.length ? html`<div class="card tight list">${pays.map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="loan" title="No payments recorded" text="Use Record payment each time you pay; Kipu splits principal and interest." /></div>`}</div>
       <${DangerButton} label="Delete loan" onConfirm=${() => { commit(K.remove(data, 'loans', l.id)); toast('Loan deleted'); back(); }} /></div>`;

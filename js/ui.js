@@ -129,8 +129,8 @@
     const tone = t.type === 'income' ? 'g' : t.type === 'saving' ? 'p' : t.type === 'debt' ? 'b' : t.type === 'transfer' ? 'n' : cat ? cat.tone : 'n';
     const src = K.whereName(data, t.from);
     const label = t.type === 'saving' ? 'Saved to goal' : t.type === 'debt' ? 'Loan payment' : t.type === 'transfer' ? 'Transfer' : isIn ? 'Income' : cat ? cat.name : '';
-    const main = (isIn ? '+' : '') + (t.cur === data.base ? fmt(t.base) : fmt.native(t.amt, t.cur));
-    return html`<${Row} icon=${icon} tone=${tone} title=${t.merchant} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== data.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
+    const main = (isIn ? '+' : '') + (t.cur === fmt.base ? fmt(t.base) : fmt.native(t.amt, t.cur));
+    return html`<${Row} icon=${icon} tone=${tone} title=${t.merchant} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
   };
   K.TxnRow = TxnRow;
 
@@ -138,7 +138,7 @@
     const { go, fmt, data } = useApp();
     const icon = a.kind === 'Savings' ? 'target' : a.kind === 'Cash' ? 'cash' : a.kind === 'Investments' ? 'trend' : a.kind === 'Property' ? 'car' : 'bank';
     const tone = a.kind === 'Savings' ? 'p' : a.kind === 'Investments' ? 'g' : a.kind === 'Cash' ? 'a' : 'b';
-    return html`<${Row} icon=${icon} tone=${tone} title=${a.name} sub=${(a.inst || a.kind) + (a.shared ? ' · Shared' : '')} right=${a.cur === data.base ? fmt(a.bal) : fmt.native(a.bal, a.cur)} rightSub=${a.cur !== data.base ? '≈ ' + fmt(a.baseBal) : null} onClick=${() => go({ r: 'account', id: a.id })} />`;
+    return html`<${Row} icon=${icon} tone=${tone} title=${a.name} sub=${(a.inst || a.kind) + (a.shared ? ' · Shared' : '')} right=${a.cur === fmt.base ? fmt(a.bal) : fmt.native(a.bal, a.cur)} rightSub=${a.cur !== fmt.base ? '≈ ' + fmt(a.baseBal) : null} onClick=${() => go({ r: 'account', id: a.id })} />`;
   };
   K.AccountRow = AccountRow;
 
@@ -155,12 +155,12 @@
   };
   const CardPreview = ({ c, selected, onClick, compact }) => {
     const { fmt, data } = useApp();
-    const util = c.limit ? (c.bal / c.limit) * 100 : 0;
+    const util = c.limit ? (K.cardUsed(data, c) / c.limit) * 100 : 0;
     const ex = K.expiryInfo(c);
     return html`<button onClick=${onClick} aria-label=${c.name} style=${{ position: 'relative', overflow: 'hidden', width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: K.cardInk(c), background: K.cardBg(c), display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left' }}>
       <span aria-hidden="true" style=${{ position: 'absolute', right: '-50px', top: '-70px', width: '200px', height: '200px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)', pointerEvents: 'none' }}></span>
       <span class="between"><span style=${{ fontSize: '13px', fontWeight: 600, opacity: 0.92 }}>${c.name}</span><span style=${{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>${(c.network || '').toUpperCase()}</span></span>
-      <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt.native(c.bal, c.cur || data.base)}</span></span>
+      <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt.native(c.bal, c.cur || data.base)}</span>${c.cur2 && html`<span class="num" style=${{ fontSize: '14px', fontWeight: 600, opacity: 0.9 }}>+ ${fmt.native(c.bal2 || 0, c.cur2)}</span>`}</span>
       <span class="between" style=${{ fontSize: '12px', opacity: 0.9 }}><span class="num">${c.last4 ? '•••• ' + c.last4 : ''}${ex ? '  ·  ' + ex.label : ''}</span><span class="num">${util.toFixed(0)}% used</span></span>
     </button>`;
   };
@@ -170,7 +170,7 @@
     const { go, fmt } = useApp();
     const pct = l.orig ? ((l.orig - l.bal) / l.orig) * 100 : 0;
     return html`<button class="lrow" style=${{ alignItems: 'flex-start', flexDirection: 'column', gap: '8px' }} onClick=${() => go({ r: 'loan', id: l.id })}>
-      <span class="between" style=${{ width: '100%' }}><span class="row"><${Tile} icon=${l.kind === 'Vehicle' ? 'car' : 'loan'} tone="b" /><span class="stack-s" style=${{ gap: '2px' }}><span class="t1">${l.name}</span><span class="t2">${(l.rate || 0).toFixed(2)}% · ${fmt(l.pay || 0, { dec: 2 })} ${(l.freq || '').toLowerCase()}</span></span></span><span class="stack-s" style=${{ gap: '2px', alignItems: 'flex-end' }}><span class="amt">${fmt(l.bal)}</span><span class="t2">left</span></span></span>
+      <span class="between" style=${{ width: '100%' }}><span class="row"><${Tile} icon=${l.kind === 'Vehicle' ? 'car' : 'loan'} tone="b" /><span class="stack-s" style=${{ gap: '2px' }}><span class="t1">${l.name}</span><span class="t2">${(l.rate || 0).toFixed(2)}% · ${l.native ? fmt.native(l.native.pay || 0, l.native.cur, { dec: 2 }) : fmt(l.pay || 0, { dec: 2 })} ${(l.freq || '').toLowerCase()}</span></span></span><span class="stack-s" style=${{ gap: '2px', alignItems: 'flex-end' }}><span class="amt">${l.native ? fmt.native(l.native.bal, l.native.cur) : fmt(l.bal)}</span><span class="t2">left</span></span></span>
       <span style=${{ width: '100%' }}><${K.Segs} pct=${pct} color="var(--acc)" h=${6} /></span>
       <span class="between tiny muted" style=${{ width: '100%' }}><span>${pct.toFixed(0)}% paid off</span><span>${K.payoffDate(l).label}</span></span>
     </button>`;
@@ -292,9 +292,11 @@
     const { ctx, data, openSheet, D, cloud } = useApp();
     const parts = [];
     if (cloud.target === 'household' || (data.household.enabled && show.includes('scope'))) parts.push(cloud.target === 'household' || ctx.scope === 'household' ? 'Household' : 'Personal');
-    if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
+    const cc = ctx.country && ctx.country !== 'All' ? ctx.country : null;
+    if (cc) parts.push(K.countryName(cc));
+    else if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
     if (show.includes('period')) { const S = D.series; parts.push(ctx.period === 'ytd' ? 'Last 12 months' : S[ctx.period].m + ' ' + S[ctx.period].y); }
-    return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change scope, currency or period"><${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
+    return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change country, scope, currency or period">${cc && html`<${K.CountryFlag} cc=${cc} s=${16} />`}<${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
   };
   K.ContextFilter = ContextFilter;
 

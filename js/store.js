@@ -173,7 +173,8 @@
       txns: d.txns.map((t) => Object.assign({}, t, { base: c(t.base), rate: t.rate != null ? t.rate * k : t.rate, principal: c(t.principal), interest: c(t.interest) })),
       // Legacy cards had no currency and were denominated in the old base.
       cards: d.cards.map((x) => x.cur ? x : Object.assign({}, x, { cur: ob })),
-      loans: d.loans.map((x) => Object.assign({}, x, { orig: c(x.orig), bal: c(x.bal), pay: c(x.pay) })),
+      // Loans without a currency were in the old main currency; they keep their amounts and gain that currency
+      loans: d.loans.map((x) => (x.cur ? x : Object.assign({}, x, { cur: ob }))),
       goals: d.goals.map((x) => Object.assign({}, x, { target: c(x.target), monthly: c(x.monthly), saved: c(x.saved) })),
       trips: d.trips.map((x) => Object.assign({}, x, { budget: c(x.budget) })),
       budget, snapshots: snaps,
@@ -233,11 +234,11 @@
 
   // ---------------------------------------------------------------- mutations (pure: return new data)
   const upd = (arr, id, fn) => arr.map((x) => (x.id === id ? fn(x) : x));
-  const moveBal = (d, where, delta) => {
+  const moveBal = (d, where, delta, slot) => {
     if (!where) return d;
     const [kind, id] = where.split(':');
     if (kind === 'acct') return Object.assign({}, d, { accounts: upd(d.accounts, id, (a) => Object.assign({}, a, { bal: r2(a.bal + delta) })) });
-    if (kind === 'card') return Object.assign({}, d, { cards: upd(d.cards, id, (c) => Object.assign({}, c, { bal: r2(c.bal - delta) })) });
+    if (kind === 'card') return Object.assign({}, d, { cards: upd(d.cards, id, (c) => (slot === 2 ? Object.assign({}, c, { bal2: r2((c.bal2 || 0) - delta) }) : Object.assign({}, c, { bal: r2(c.bal - delta) }))) });
     return d;
   };
   // Each posting is in the account's or card's own currency. Without a rate, only same-currency postings are possible.
@@ -253,18 +254,26 @@
   };
   const postingsFor = (d, t) => {
     const out = [];
-    const post = (where, sign) => { if (where && (where.startsWith('acct:') || where.startsWith('card:'))) out.push({ where, amount: postingAmount(d, t, where, sign) }); };
+    const post = (where, sign) => {
+      if (!where || !(where.startsWith('acct:') || where.startsWith('card:'))) return;
+      // A two-currency card keeps charges in its second currency on their own balance
+      const card = where.startsWith('card:') ? d.cards.find((c) => 'card:' + c.id === where) : null;
+      if (card && card.cur2 && t.cur === card.cur2 && t.amt != null) out.push({ where, amount: r2(sign * t.amt), slot: 2 });
+      else out.push({ where, amount: postingAmount(d, t, where, sign) });
+    };
     if (t.type === 'expense') post(t.from, -1);
     if (t.type === 'income') post(t.from, 1);
     if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -1); post(t.to, 1); }
     return out;
   };
+  // What a transaction would move in each account's own currency, before saving it
+  K.previewPostings = (d, t) => { try { return postingsFor(d, Object.assign({ cur: d.base }, t, { base: K.toBase(d, t.amt, t.cur || d.base) })); } catch (e) { return null; } };
   // Forms ask first so nothing is saved with an invented conversion
   K.canPost = (d, t) => { try { postingsFor(d, Object.assign({ cur: d.base }, t, { base: t.base != null ? t.base : K.toBase(d, t.amt, t.cur || d.base) })); return null; } catch (e) { return String(e.message).startsWith('NO_RATE:') ? e.message.slice(8) : e.message; } };
   const effects = (d, t, sign) => {
     const s = sign || 1;
     const postings = t.postings || postingsFor(d, t);
-    postings.forEach((p) => { d = moveBal(d, p.where, p.amount * s); });
+    postings.forEach((p) => { d = moveBal(d, p.where, p.amount * s, p.slot); });
     if (t.type === 'saving' && t.goal && !(t.to && t.to.startsWith('acct:'))) d = Object.assign({}, d, { goals: upd(d.goals, t.goal, (g) => Object.assign({}, g, { saved: r2((g.saved || 0) + t.base * s) })) });
     if (t.type === 'debt' && t.loan) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(l.bal - (t.principal || 0) * s), next: s > 0 ? (t.loanNextAfter || l.next) : (l.next === t.loanNextAfter ? t.loanNextBefore : l.next) })) });
     return d;
@@ -331,7 +340,7 @@
     const principal = r2(Math.min(l.bal, Math.max(0, amt - interest)));
     const loanNextBefore = l.next;
     const loanNextAfter = iso(step(K.nextDate(l.next || iso(today()), l.freq, today()), l.freq, 1));
-    return K.addTxn(d, { type: 'debt', cat: 'debt', merchant: l.name + ' payment', amt, cur: d.base, from: fromAcct, loan: l.id, principal, interest, loanNextBefore, loanNextAfter });
+    return K.addTxn(d, { type: 'debt', cat: 'debt', merchant: l.name + ' payment', amt, cur: l.cur || d.base, from: fromAcct, loan: l.id, principal, interest, loanNextBefore, loanNextAfter });
   };
   K.payBill = (d, billId, fromWhere) => {
     const b = d.bills.find((x) => x.id === billId); if (!b) return d;
@@ -339,6 +348,39 @@
   };
 
   // Net worth parts in base currency
+  // ---------------------------------------------------------------- countries: where each account, card and loan lives
+  // No country saved: USD, EUR and GBP accounts are usually held at home (a Wise or US-dollar account in Canada), other currencies point to their own country
+  const HELD_AT_HOME = ['USD', 'EUR', 'GBP'];
+  const curCountry = (c) => (K.countryOfCur ? K.countryOfCur(c) : null) || String(c).slice(0, 2);
+  K.itemCountry = (d, x) => { if (x.country) return x.country; const c = x.cur || d.base; return curCountry(HELD_AT_HOME.includes(c) ? d.base : c); };
+  K.countries = (d) => { const s = []; [].concat(d.accounts.filter((a) => !a.archived), d.cards, d.loans).forEach((x) => { const c = K.itemCountry(d, x); if (c && !s.includes(c)) s.push(c); }); return s; };
+  // The country's own currency: its everyday accounts first, then anything else there
+  K.countryCur = (d, cc) => { const pick = (list) => { const m = {}; list.forEach((x) => { if (K.itemCountry(d, x) === cc) m[x.cur || d.base] = (m[x.cur || d.base] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a])[0]; }; return pick(d.accounts) || pick(d.cards) || pick(d.loans) || d.base; };
+  // Just this country's money, in its own currency. Transactions in that currency keep their exact amounts.
+  K.countryView = (d, cc) => {
+    const inC = (x) => K.itemCountry(d, x) === cc;
+    const accts = d.accounts.filter(inC), cards = d.cards.filter(inC), loans = d.loans.filter(inC);
+    const where = new Set(accts.map((a) => 'acct:' + a.id).concat(cards.map((c) => 'card:' + c.id)));
+    const loanIds = new Set(loans.map((l) => l.id));
+    const curOf = (c) => (K.countryOfCur ? K.countryOfCur(c) : String(c || '').slice(0, 2));
+    let v = Object.assign({}, d, {
+      accounts: accts, cards, loans,
+      txns: d.txns.filter((t) => where.has(t.from) || where.has(t.to) || (t.loan && loanIds.has(t.loan))),
+      bills: d.bills.filter((b) => (b.pay ? where.has(b.pay) : curOf(b.cur || d.base) === cc)),
+      income: d.income.filter((i) => (i.to ? where.has(i.to) : curOf(i.cur || d.base) === cc)),
+      goals: d.goals.filter((g) => g.linked && accts.some((a) => a.id === g.linked)),
+      snapshots: {},
+    });
+    const cur = K.countryCur(d, cc);
+    if (cur !== d.base) {
+      if (K.rate(d, d.base, cur) == null) return Object.assign(v, { view: { country: cc, cur: d.base, noRate: cur } });
+      v = K.changeBase(v, cur);
+      v.txns = v.txns.map((t) => (t.cur === cur && t.amt != null ? Object.assign({}, t, { base: t.amt, rate: 1 }) : t));
+    }
+    return Object.assign(v, { view: { country: cc, cur } });
+  };
+  // What a card has used of its limit, in the card's main currency (second-currency balance converted)
+  K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
     const inS = (x) => (scope === 'household' ? !!x.shared : true);
     const accts = d.accounts.filter((a) => !a.archived && inS(a)).map((a) => Object.assign({}, a, { baseBal: r2(a.bal * K.rate(d, a.cur, d.base)) }));
@@ -346,8 +388,10 @@
     const invest = r2(sum(accts.filter((a) => a.kind === 'Investments'), (a) => a.baseBal));
     const property = r2(sum(accts.filter((a) => a.kind === 'Property'), (a) => a.baseBal));
     const cards = d.cards.filter(inS);
-    const cardBal = r2(sum(cards, (c) => K.toBase(d, c.bal, c.cur || d.base))), cardLimit = r2(sum(cards, (c) => K.toBase(d, c.limit || 0, c.cur || d.base)));
-    const loans = d.loans.filter(inS);
+    // Two-currency cards: both balances count against one limit in the card's main currency
+    const cardBal = r2(sum(cards, (c) => K.toBase(d, c.bal, c.cur || d.base) + (c.cur2 ? K.toBase(d, c.bal2 || 0, c.cur2) : 0))), cardLimit = r2(sum(cards, (c) => K.toBase(d, c.limit || 0, c.cur || d.base)));
+    // Loans in another currency are shown in the main currency for totals; the native amounts stay on the loan
+    const loans = d.loans.filter(inS).map((l) => { const c = l.cur || d.base; if (c === d.base) return l; const k = K.rate(d, c, d.base); return Object.assign({}, l, { native: { cur: c, bal: l.bal, pay: l.pay, orig: l.orig }, bal: k == null ? 0 : r2(l.bal * k), pay: k == null ? 0 : r2((l.pay || 0) * k), orig: k == null ? 0 : r2((l.orig || 0) * k) }); });
     const loanBal = r2(sum(loans, (l) => l.bal));
     const debt = r2(cardBal + loanBal);
     return { accts, cash, invest, property, cards, cardBal, cardLimit, util: cardLimit ? r2((cardBal / cardLimit) * 100) : 0, loans, loanBal, debt, assets: r2(cash + invest + property), netWorth: r2(cash + invest + property - debt) };
@@ -355,6 +399,7 @@
   // Keep one record per month so net worth, debt and utilization have history
   K.snapshot = (d) => { const b = K.balances(d, 'personal'); const key = monthKey(today()); return Object.assign({}, d, { snapshots: Object.assign({}, d.snapshots, { [key]: { nw: b.netWorth, debt: b.debt, util: b.util, loans: b.loanBal, cards: b.cardBal } }) }); };
 
+  K.whereItem = (d, w) => { if (!w) return null; const [k, id] = w.split(':'); return (k === 'card' ? d.cards : d.accounts).find((a) => a.id === id) || null; };
   K.whereName = (d, w) => { if (!w) return ''; const [k, id] = w.split(':'); const x = (k === 'card' ? d.cards : d.accounts).find((a) => a.id === id); return x ? x.name : ''; };
   K.whereOptions = (d, opts) => d.accounts.filter((a) => !a.archived && (!opts || !opts.cashOnly || ['Everyday', 'Savings', 'Cash'].includes(a.kind))).map((a) => ['acct:' + a.id, a.name + (a.cur !== d.base ? ' (' + a.cur + ')' : '')]).concat(opts && opts.noCards ? [] : d.cards.map((c) => ['card:' + c.id, c.name]));
   K.activeTrip = (d, when) => { const w = when || today(); return d.trips.find((t) => parse(t.start) <= w && w <= parse(t.end)); };
@@ -410,17 +455,18 @@
     const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
-      if (!c.dueDay || !(c.stmtBal > 0)) return null;
+      if (!c.dueDay || !(c.stmtBal > 0 || c.stmtBal2 > 0)) return null;
       const due = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T);
       if (!inWin(due)) return null;
       const priorDue = addMonths(due, -1);
       const paid = sum(txAll.filter((t) => t.to === 'card:' + c.id && parse(t.date) > priorDue && parse(t.date) <= T), (t) => {
-        const p = (t.postings || []).find((x) => x.where === 'card:' + c.id);
+        const p = (t.postings || []).find((x) => x.where === 'card:' + c.id && x.slot !== 2);
         return p ? p.amount : t.base / K.rate(data, c.cur || data.base, data.base);
       });
-      return Object.assign({}, c, { dueAmount: r2(Math.max(0, Math.min(c.bal, c.stmtBal - paid))) });
-    }).filter((c) => c && c.dueAmount > 0);
-    const cardsDueAmt = r2(sum(cardsDue, (c) => K.toBase(data, c.dueAmount, c.cur || data.base)));
+      const paid2 = c.cur2 ? sum(txAll.filter((t) => t.to === 'card:' + c.id && parse(t.date) > priorDue && parse(t.date) <= T), (t) => { const p = (t.postings || []).find((x) => x.where === 'card:' + c.id && x.slot === 2); return p ? p.amount : 0; }) : 0;
+      return Object.assign({}, c, { dueAmount: r2(Math.max(0, Math.min(c.bal, c.stmtBal - paid))), dueAmount2: c.cur2 ? r2(Math.max(0, Math.min(c.bal2 || 0, (c.stmtBal2 || 0) - paid2))) : 0 });
+    }).filter((c) => c && (c.dueAmount > 0 || c.dueAmount2 > 0));
+    const cardsDueAmt = r2(sum(cardsDue, (c) => K.toBase(data, c.dueAmount, c.cur || data.base) + (c.cur2 ? K.toBase(data, c.dueAmount2, c.cur2) : 0)));
     const loansDue = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: futureOccurrences(l.next || iso(T), l.freq, T, until).length })).filter((x) => x.n);
     const loansDueAmt = r2(sum(loansDue, (x) => x.n * x.l.pay));
     const savingsLeft = r2(Math.max(0, savingsPlanned - monthAll.saved));
@@ -546,7 +592,7 @@
     d.accounts = [
       { id: 'chq', name: 'Everyday Chequing', inst: 'CIBC', kind: 'Everyday', cur: 'CAD', bal: 5200 },
       { id: 'sav', name: 'Emergency Savings', inst: 'EQ Bank', kind: 'Savings', cur: 'CAD', bal: 4800, shared: true },
-      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', bal: 1200 },
+      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', country: 'CA', bal: 1200 },
       { id: 'rrsp', name: 'RRSP', inst: 'Wealthsimple', kind: 'Investments', cur: 'CAD', bal: 38000 },
     ];
     d.cards = [{ id: 'visa', name: 'Visa Infinite', network: 'Visa', last4: '1187', limit: 10000, bal: 0, stmtBal: 0, closeDay: 8, dueDay: 3, minPay: 10, expiry: iso(addMonths(today(), 1)).slice(0, 7) }, { id: 'mc', name: 'Costco Mastercard', network: 'Mastercard', last4: '4821', limit: 6000, bal: 0, stmtBal: 0, closeDay: 18, dueDay: 12, minPay: 10, expiry: (today().getFullYear() + 3) + '-04' }];

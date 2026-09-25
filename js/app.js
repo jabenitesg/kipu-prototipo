@@ -58,7 +58,7 @@
       });
       return () => listener.subscription.unsubscribe();
     }, []);
-    const [ctx, setCtxRaw] = useState({ scope: 'personal', currency: 'Combined', period: 11 });
+    const [ctx, setCtxRaw] = useState({ scope: 'personal', currency: 'Combined', period: 11, country: 'All' });
     const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Graphite', 'Dark', 'Midnight', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
     const [stack, setStack] = useState([{ r: 'home' }]);
     const [sheet, setSheet] = useState(null);
@@ -118,7 +118,7 @@
       spaceChoiceRef.current = true;
       try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, 'personal'); } catch (e) {}
       const next = K.factory(); dataRef.current = next; setData(next);
-      setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
+      setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11, country: 'All' }); setStack([{ r: 'home' }]); setSheet(null);
       setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'personal', household: null, error: '', sync: null }));
     }, []);
     const cloudStartHousehold = useCallback(() => {
@@ -188,8 +188,10 @@
     useEffect(() => { window.scrollTo(0, 0); }, [stack.length, route.r, route.id, route.tab]);
 
     K.syncCats(data);
-    const D = useMemo(() => K.derive(data, ctx), [data, ctx]);
-    const fmt = useMemo(() => K.makeFmt(settings, data), [settings.hide, data.base]);
+    // Global (everything in the main currency) or one country in its own currency. `data` stays the full record for edits.
+    const view = useMemo(() => (ctx.country && ctx.country !== 'All' && K.countries(data).includes(ctx.country) ? K.countryView(data, ctx.country) : data), [data, ctx.country]);
+    const D = useMemo(() => Object.assign(K.derive(view, ctx), { view: view.view || null, countries: K.countries(data) }), [view, ctx, data]);
+    const fmt = useMemo(() => K.makeFmt(settings, view), [settings.hide, view.base]);
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);
     const displayName = cloud.target === 'household' && cloud.user ? (cloud.user.user_metadata && (cloud.user.user_metadata.full_name || cloud.user.user_metadata.name)) || (cloud.user.email || '').split('@')[0] : data.profile.name;
     const toast = useCallback((m) => { setToast(m); clearTimeout(window.__kt); window.__kt = setTimeout(() => setToast(null), 2800); }, []);
@@ -211,7 +213,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, updateRates, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, view, updateRates, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;

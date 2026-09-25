@@ -31,6 +31,9 @@
   };
   K.curName = (c) => { if (K.CURRENCIES[c]) return K.CURRENCIES[c][1]; try { const n = curNames && curNames.of(c); if (n && n !== c) return n.charAt(0).toUpperCase() + n.slice(1); } catch (e) {} return c; };
   K.curCountry = (c) => country(c)[1];
+  // ISO country code for a currency (null for shared ones like the euro)
+  K.countryOfCur = (c) => { const f = country(c || '')[0]; return f && f !== 'eu' ? f.toUpperCase() : null; };
+  K.countryName = (cc) => { if (!cc) return ''; try { return (regNames && regNames.of(cc)) || cc; } catch (e) { return cc; } };
 
   let list = null;
   K.allCurrencies = (data) => {
@@ -63,6 +66,12 @@
     return html`<span style=${box} aria-hidden="true"><img src=${'https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/flags/1x1/' + f + '.svg'} alt="" width=${size} height=${size} loading="lazy" style=${{ width: '100%', height: '100%', objectFit: 'cover' }} /></span>`;
   };
   const Flag = K.Flag;
+  K.CountryFlag = function CountryFlag({ cc, s }) {
+    const size = s || 24;
+    const box = { width: size + 'px', height: size + 'px', borderRadius: '999px', flexShrink: 0, overflow: 'hidden', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface2)', boxShadow: 'inset 0 0 0 1px var(--line)' };
+    if (!cc || !/^[A-Z]{2}$/.test(cc)) return html`<span style=${box} aria-hidden="true"><${Icon} n="globe" s=${Math.round(size * 0.62)} c="var(--muted)" /></span>`;
+    return html`<span style=${box} aria-hidden="true"><img src=${'https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/flags/1x1/' + cc.toLowerCase() + '.svg'} alt="" width=${size} height=${size} loading="lazy" style=${{ width: '100%', height: '100%', objectFit: 'cover' }} /></span>`;
+  };
 
   // ---------------------------------------------------------------- search list
   const CurrencyList = ({ onPick, exclude, selected, autoFocus, max }) => {
@@ -85,6 +94,31 @@
     return html`<div class="field"><span>${label || 'Currency'}</span>
       <button type="button" class="input row" aria-expanded=${open} style=${{ gap: '10px', justifyContent: 'flex-start', textAlign: 'left' }} onClick=${() => setOpen(!open)}><${Flag} cur=${value} s=${22} /><span class="grow"><b>${value}</b> <span class="muted">· ${K.curName(value)}</span></span><${Icon} n=${open ? 'x' : 'down'} s=${15} c="var(--muted)" /></button>
       ${open && html`<${CurrencyList} selected=${value} autoFocus=${true} onPick=${(c) => { onChange(c); setOpen(false); }} />`}
+      ${hint && html`<span class="tiny muted" style=${{ fontWeight: 400 }}>${hint}</span>`}</div>`;
+  };
+
+  // ---------------------------------------------------------------- countries
+  const EXTRA_COUNTRIES = 'AT BE HR CY EE FI FR DE GR IE IT LV LT LU MT NL PT SK SI ES EC SV PA PR MC AD SM VA ME XK'.split(' ');
+  let countryList = null;
+  K.allCountries = (data) => {
+    if (countryList) return countryList;
+    const seen = new Map();
+    K.allCurrencies(data).forEach((c) => { if (c.flag && c.flag !== 'eu' && c.place) seen.set(c.flag.toUpperCase(), c.place); });
+    EXTRA_COUNTRIES.forEach((cc) => { if (!seen.has(cc)) seen.set(cc, K.countryName(cc)); });
+    countryList = [...seen.entries()].map(([cc, name]) => ({ cc, name })).filter((x) => x.name && x.name !== x.cc).sort((a, b) => a.name.localeCompare(b.name));
+    return countryList;
+  };
+  K.CountrySelect = function CountrySelect({ label, value, onChange, hint }) {
+    const { data } = useApp();
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState('');
+    const used = K.countries(data);
+    const all = K.allCountries(data);
+    const list = (q ? all.filter((c) => (c.name + ' ' + c.cc).toLowerCase().includes(q.trim().toLowerCase())) : used.map((cc) => all.find((c) => c.cc === cc) || { cc, name: K.countryName(cc) }).concat(all.filter((c) => !used.includes(c.cc)))).slice(0, 60);
+    return html`<div class="field"><span>${label || 'Country'}</span>
+      <button type="button" class="input row" aria-expanded=${open} style=${{ gap: '10px', justifyContent: 'flex-start', textAlign: 'left' }} onClick=${() => setOpen(!open)}><${K.CountryFlag} cc=${value} s=${22} /><span class="grow">${value ? K.countryName(value) : 'Choose a country'}</span><${Icon} n=${open ? 'x' : 'down'} s=${15} c="var(--muted)" /></button>
+      ${open && html`<div class="stack-s" style=${{ gap: '8px' }}><div class="row" style=${{ gap: '8px', padding: '0 12px', height: '44px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="search" s=${17} c="var(--muted)" /><input class="grow" aria-label="Search countries" placeholder="Search a country" value=${q} autofocus onInput=${(e) => setQ(e.target.value)} style=${{ border: 0, background: 'transparent', outline: 'none', fontSize: '15px', minWidth: 0 }} /></div>
+        <div class="card tight list" style=${{ maxHeight: '280px', overflowY: 'auto' }}>${list.map((c) => html`<button key=${c.cc} type="button" class="lrow" style=${{ minHeight: '50px', padding: '8px 14px', background: value === c.cc ? 'var(--accbg)' : null }} onClick=${() => { onChange(c.cc); setOpen(false); setQ(''); }}><${K.CountryFlag} cc=${c.cc} s=${26} /><span class="grow t1" style=${{ fontSize: '14px', textAlign: 'left' }}>${c.name}</span>${used.includes(c.cc) && html`<span class="tiny muted">In use</span>`}</button>`)}${!list.length && html`<div class="lrow muted small">No country matches “${q}”.</div>`}</div></div>`}
       ${hint && html`<span class="tiny muted" style=${{ fontWeight: 400 }}>${hint}</span>`}</div>`;
   };
 
