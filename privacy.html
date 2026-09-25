@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kipu · Privacidad</title>
+<style>
+  :root { --bg: #FFFFFF; --ink: #1B1530; --muted: #5E5873; --acc: #6D4AE0; --line: #E7E3F2; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0B0A10; --ink: #F2EFFA; --muted: #A9A3BC; --acc: #A58BFF; --line: #26222F; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 6px; }
+  p, li { color: var(--muted); }
+  a { color: var(--acc); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .date { font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacidad en Kipu</h1>
+  <p class="date">Actualizado el 25 de septiembre de 2026</p>
+
+  <p>Kipu es una app personal para ordenar cuentas, tarjetas, recibos, metas y viajes. Es un proyecto personal, hecho para familia y personas cercanas. Esta página explica qué datos usa y dónde quedan.</p>
+
+  <h2>Sin cuenta</h2>
+  <p>Si usas Kipu sin iniciar sesión, todo se guarda solo en el navegador de tu dispositivo. Nadie más lo recibe.</p>
+
+  <h2>Con cuenta</h2>
+  <ul>
+    <li>Puedes entrar con Google o con correo y contraseña. De Google, Kipu solo recibe tu nombre, tu correo y tu foto de perfil.</li>
+    <li>Tus datos financieros se cifran en tu dispositivo con una frase secreta que eliges tú, antes de subirse. Se guardan cifrados en Supabase. Ni Supabase ni el autor de Kipu pueden leerlos, y la frase no se puede recuperar.</li>
+    <li>Supabase guarda tu correo y los datos de acceso para que puedas iniciar sesión.</li>
+  </ul>
+
+  <h2>Lo que Kipu no hace</h2>
+  <ul>
+    <li>No vende ni comparte tus datos.</li>
+    <li>No muestra publicidad ni usa rastreadores.</li>
+    <li>No se conecta a tus bancos. Solo guarda los últimos cuatro dígitos de tus tarjetas.</li>
+  </ul>
+
+  <h2>Recibos y estados de cuenta</h2>
+  <p>La lectura de fotos de recibos y de archivos CSV o PDF se hace dentro de tu navegador. Los archivos no se suben a ningún servidor.</p>
+
+  <h2>Tipos de cambio</h2>
+  <p>Para actualizar los tipos de cambio, Kipu consulta un servicio público de tasas. Esa consulta no incluye ningún dato tuyo.</p>
+
+  <h2>Borrar tus datos</h2>
+  <p>En Ajustes → Datos, copia y reinicio puedes borrar todo lo guardado en tu dispositivo. Para borrar tu cuenta y tus datos cifrados, escribe a <a href="mailto:jabenitesg@gmail.com">jabenitesg@gmail.com</a>.</p>
+
+  <hr />
+
+  <h1 lang="en">Privacy in Kipu</h1>
+  <div lang="en">
+    <p>Kipu is a personal money app, made for family and friends.</p>
+    <ul>
+      <li>Without an account, everything stays in your browser on your device.</li>
+      <li>With an account, sign in with Google (Kipu receives only your name, email and profile picture) or with email and password. Your financial data is encrypted on your device with a passphrase only you know before it is stored in Supabase. Nobody else can read it.</li>
+      <li>Kipu doesn't sell or share data, show ads, use trackers or connect to your bank. Receipts and statements are read inside your browser.</li>
+      <li>To delete your account and data, email <a href="mailto:jabenitesg@gmail.com">jabenitesg@gmail.com</a>.</li>
+    </ul>
+  </div>
+  <p><a href="/">← Volver a Kipu</a></p>
+</main>
+</body>
+</html>
