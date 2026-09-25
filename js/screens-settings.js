@@ -1,7 +1,7 @@
 /* Kipu · Settings and first-run welcome */
 (function () {
   const K = window.K;
-  const { useState, useRef } = React;
+  const { useState, useRef, useEffect } = React;
   const { html, useApp, Icon, Row, Tile, Bar, Seg, Chips, Switch, ToggleRow, Field, EmptyState, Facts, ThemePreview, DangerButton } = K;
 
   // ---------------------------------------------------------------- first run
@@ -37,11 +37,13 @@
     ['Data', [['data', 'upload', 'Data, backup & reset']]],
   ];
   K.Settings = function Settings({ route }) {
-    const { wide } = useApp();
+    const { wide, go } = useApp();
     const s = route.s;
-    if (s && !wide) return html`<${Section} s=${s} />`;
-    if (wide) return html`<div class="grid" style=${{ gridTemplateColumns: '340px minmax(0, 1fr)', gap: '28px', alignItems: 'start' }}><${Index} active=${s || 'appearance'} /><div class="card" style=${{ padding: '28px' }}><${Section} s=${s || 'appearance'} /></div></div>`;
-    return html`<${Index} />`;
+    // Menu and section side by side only when there's room; tablets move between them like the phone
+    const two = wide && window.innerWidth >= 1100;
+    if (s && !two) return html`<div class="stack">${wide && html`<button class="pill-link" style=${{ alignSelf: 'flex-start', color: 'var(--ink)' }} onClick=${() => go({ r: 'settings' })}><${Icon} n="back" s=${14} w=${2.2} />Settings</button>`}<${Section} s=${s} /></div>`;
+    if (two) return html`<div class="grid" style=${{ gridTemplateColumns: '340px minmax(0, 1fr)', gap: '28px', alignItems: 'start' }}><${Index} active=${s || 'appearance'} /><div class="card" style=${{ padding: '28px' }}><${Section} s=${s || 'appearance'} /></div></div>`;
+    return html`<${Index} active=${wide ? null : undefined} />`;
   };
   function Index({ active }) {
     const { data, go, settings, setSettings, wide } = useApp();
@@ -80,9 +82,13 @@
     if (isCustom) K.THEMES._draft = K.buildCustom(draft);
     const previewName = isCustom ? '_draft' : pick;
     const T = K.THEMES[previewName];
-    // Previews fit the space they have: 2 per row, 4 when the panel is wide enough
-    const panel = wide ? window.innerWidth - 108 - 48 - 348 - 48 - 28 : window.innerWidth - 40 - 36 - 16;
-    const pw = Math.max(96, Math.min(190, Math.floor((panel - 12) / 2)));
+    // Previews measure the box they sit in: 4 in a row when there's room, otherwise 2 by 2
+    const boxRef = useRef(null);
+    const [boxW, setBoxW] = useState(0);
+    useEffect(() => { const el = boxRef.current; if (!el) return; const on = () => setBoxW(el.clientWidth); on(); const ro = window.ResizeObserver ? new ResizeObserver(on) : null; if (ro) ro.observe(el); else window.addEventListener('resize', on); return () => (ro ? ro.disconnect() : window.removeEventListener('resize', on)); }, []);
+    const inner = Math.max(0, boxW - 24), gap = 12;
+    const cols = inner >= 4 * 130 + 3 * gap ? 4 : inner >= 2 * 86 + gap ? 2 : 1;
+    const pw = boxW ? Math.max(84, Math.min(200, Math.floor((inner - gap * (cols - 1)) / cols))) : 120;
     const darkPreview = settings.effectiveMode === 'Light' ? 'Dark' : settings.effectiveMode;
     const dirty = isCustom ? current !== 'Custom' || JSON.stringify(draft) !== JSON.stringify(Object.assign({}, K.DEFAULT_CUSTOM, settings.custom || {})) : pick !== current;
     const setD = (o) => setDraft(Object.assign({}, draft, o));
@@ -91,10 +97,9 @@
     return html`<${SubHead} title="Appearance & theme" sub="Appearance sets the background. The theme sets the colors on top of it." />
       <div class="stack-s"><span class="eyebrow">Appearance</span>
         <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>${Object.keys(K.MODES).concat(['System']).map((m) => { const on = (settings.mode || 'System') === m; const pal = K.palette(current, m !== 'Light'); const bg = m === 'System' ? 'linear-gradient(135deg, #FFFFFF 50%, #09090B 50%)' : K.MODES[m].base.bg; return html`<button key=${m} aria-pressed=${on} onClick=${() => setSettings({ mode: m })} class="stack-s" style=${{ gap: '8px', padding: '10px', borderRadius: '18px', background: 'var(--surface)', border: '1.5px solid ' + (on ? 'var(--acc)' : 'var(--line)'), alignItems: 'flex-start', textAlign: 'left' }}><span style=${{ width: '100%', height: '40px', borderRadius: '11px', background: bg, border: '1px solid rgba(128,128,128,0.25)', display: 'flex', alignItems: 'flex-end', padding: '6px', gap: '4px' }}><span style=${{ width: '26px', height: '8px', borderRadius: '4px', background: K.gradCss(pal.grad) }}></span><span style=${{ width: '12px', height: '8px', borderRadius: '4px', background: m === 'Light' ? '#E9E9EE' : 'rgba(255,255,255,0.18)' }}></span></span><span style=${{ fontSize: '13px', fontWeight: on ? 700 : 600 }}>${m}</span><span class="tiny muted" style=${{ lineHeight: '14px' }}>${m === 'System' ? 'Light or Dark, like your device' : K.MODES[m].desc}</span></button>`; })}</div></div>
-      <div class="stack-s"><span class="eyebrow">Theme</span><div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(' + (wide ? 170 : 140) + 'px, 1fr))', gap: '10px' }}>${K.themeList().map((n) => { const th = n === 'Custom' ? K.buildCustom(isCustom ? draft : settings.custom) : K.THEMES[n]; const L = th.light, Dk = th.dark, on = n === pick; return html`<button key=${n} aria-pressed=${on} onClick=${() => setPick(n)} class="card" style=${{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', borderColor: on ? 'var(--acc)' : null, boxShadow: on ? '0 0 0 1px var(--acc)' : null }}>
-        <span style=${{ height: '58px', borderRadius: '12px', display: 'flex', overflow: 'hidden', border: '1px solid var(--line)' }}><span style=${{ flex: 1, background: '#FFFFFF', padding: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '4px' }}><span style=${{ height: '16px', borderRadius: '5px', background: K.gradCss(L.grad) }}></span><span style=${{ height: '6px', width: '60%', borderRadius: '3px', background: L.solid }}></span></span><span style=${{ flex: 1, background: '#09090B', padding: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '4px' }}><span style=${{ height: '16px', borderRadius: '5px', background: K.gradCss(Dk.grad) }}></span><span style=${{ height: '6px', width: '60%', borderRadius: '3px', background: Dk.acc }}></span></span></span>
+      <div class="stack-s"><span class="eyebrow">Theme</span><div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(' + (wide ? 170 : 140) + 'px, 1fr))', gap: '10px' }}>${K.themeList().map((n) => { const th = n === 'Custom' ? K.buildCustom(isCustom ? draft : settings.custom) : K.THEMES[n]; const L = th.light, Dk = th.dark, on = n === pick; return html`<button key=${n} aria-pressed=${on} onClick=${() => setPick(n)} class="card" style=${{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', borderColor: on ? 'var(--acc)' : null, boxShadow: on ? '0 0 0 1px var(--acc)' : null }}>
         <span class="between"><span style=${{ fontWeight: 700 }}>${n === 'Custom' ? 'Custom' : n}</span>${n === current && html`<span class="pill acc" style=${{ height: '20px', fontSize: '10px' }}>Current</span>`}</span>
-        <span class="row" style=${{ gap: '4px' }}>${n === 'Custom' && !settings.custom && !isCustom ? html`<span class="tiny muted">Pick your own colors</span>` : L.chart.map((c, i) => html`<i key=${i} style=${{ width: '14px', height: '14px', borderRadius: '999px', background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)' }}></i>`)}</span></button>`; })}</div></div>
+        <span class="row" style=${{ gap: '5px' }}>${n === 'Custom' && !settings.custom && !isCustom ? html`<span class="tiny muted">Pick your own colors</span>` : [K.gradCss(L.grad)].concat(L.chart.slice(0, 4)).map((c, i) => html`<i key=${i} style=${{ width: i === 0 ? '30px' : '18px', height: '18px', borderRadius: '999px', background: c, boxShadow: 'inset 0 0 0 1px rgba(128,128,128,0.2)' }}></i>`)}</span></button>`; })}</div></div>
       ${isCustom && html`<div class="card stack" style=${{ gap: '16px' }}>
         <div class="stack-s"><span style=${{ fontWeight: 700 }}>Main color</span><${Swatches} value=${draft.color} onPick=${(c) => { setD({ color: c }); setHexIn(c); }} />
           <label class="row small muted" style=${{ gap: '8px' }}>Hex<input class="input" aria-label="Hex color" value=${hexIn} maxlength="7" onInput=${(e) => { const v = e.target.value.toUpperCase(); setHexIn(v); if (/^#[0-9A-F]{6}$/.test(v)) setD({ color: v }); }} style=${{ height: '38px', width: '120px', fontFamily: 'ui-monospace, monospace' }} /></label></div>
@@ -102,7 +107,7 @@
         ${draft.style === 'gradient' && html`<div class="stack-s"><div class="between"><span style=${{ fontWeight: 700 }}>Second color</span><button class="link" onClick=${() => setD({ color2: K.suggestSecond(draft.color) })}>Suggest one</button></div><${Swatches} value=${draft.color2} onPick=${(c) => setD({ color2: c })} /></div>`}
         ${T.adjusted && html`<div class="row small" style=${{ gap: '8px', padding: '10px 12px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="info" s=${16} c="var(--muted)" /><span class="muted" style=${{ lineHeight: 1.45 }}>${T.light.onInk !== '#FFFFFF' ? 'Your color is light, so text on it will be dark. ' : ''}${T.light.acc !== draft.color ? 'Links and labels use a slightly deeper shade so they stay readable.' : ''}</span></div>`}</div>`}
       <div class="card flat stack" style=${{ gap: '14px' }}><div class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${pick}</span><span class="tiny muted">${T.desc}</span></div>
-        <div class="previews">${Object.keys(K.MODES).map((m) => html`<div key=${m} class="stack-s" style=${{ alignItems: 'center', gap: '6px', minWidth: 0 }}><${ThemePreview} name=${previewName} mode=${m} w=${pw} /><span class="tiny" style=${{ fontWeight: m === settings.effectiveMode ? 700 : 500, color: m === settings.effectiveMode ? 'var(--ink)' : 'var(--muted)' }}>${m}${m === settings.effectiveMode ? ' · in use' : ''}</span></div>`)}</div>
+        <div class="previews" ref=${boxRef} style=${{ gridTemplateColumns: 'repeat(' + cols + ', max-content)' }}>${Object.keys(K.MODES).map((m) => html`<div key=${m} class="stack-s" style=${{ alignItems: 'center', gap: '6px', minWidth: 0 }}><${ThemePreview} name=${previewName} mode=${m} w=${pw} /><span class="tiny" style=${{ fontWeight: m === settings.effectiveMode ? 700 : 500, color: m === settings.effectiveMode ? 'var(--ink)' : 'var(--muted)' }}>${m}${m === settings.effectiveMode ? ' · in use' : ''}</span></div>`)}</div>
         <button class="btn block" disabled=${!dirty} onClick=${() => { setSettings(isCustom ? { theme: 'Custom', custom: draft } : { theme: pick }); toast(pick + ' applied'); }} style=${{ background: K.gradCss(T.light.grad), color: T.light.onInk || '#FFFFFF' }}>${!dirty ? '✓ Current theme' : 'Apply ' + pick}</button></div>
       <div class="card tight"><${ToggleRow} title="Reduce motion" on=${settings.reduce} onChange=${(v) => setSettings({ reduce: v })} /></div>`;
   }

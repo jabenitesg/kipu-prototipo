@@ -114,8 +114,7 @@ p { margin: 0; }
 .bnav .rail-wrap { flex: 0 0 56px; display: flex; justify-content: center; }
 .wide .d-content { padding-bottom: 60px; }
 .d-bar .chip { height: 44px; border-radius: 999px; padding: 0 16px; }
-.previews { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 16px 12px; padding: 14px 8px; border-radius: 18px; background: var(--surface); }
-@media (min-width: 1180px) { .wide .previews { grid-template-columns: repeat(4, max-content); gap: 18px; } }
+.previews { display: grid; justify-content: center; gap: 16px 12px; padding: 14px 12px; border-radius: 18px; background: var(--surface); min-width: 0; overflow: hidden; }
 .set-me { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; }
 .set-tile { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-height: 124px; padding: 14px; text-align: left; width: 100%; }
 .set-tile.on, .set-me.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
