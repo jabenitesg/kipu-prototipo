@@ -42,6 +42,11 @@
       light: P({ bg: '#F7F7F7', surface: '#FFFFFF', surface2: '#F0F0F0', elev: '#FFFFFF', line: '#E5E5E5', acc: '#111111', acc2: '#4A4A4A', acc3: '#8A8A8A', accbg: '#ECECEC', tint: '#F2F2F2', solid: '#1A1A1A', grad: ['#111111', '#2B2B2B', '#474747'], grad2: ['#2B2B2B', '#555555'], chart: ['#111111', '#6B6B6B', '#A3A3A3', '#C8C8C8', '#E2E2E2'] }),
       dark: P({ bg: '#0A0A0A', surface: '#141414', surface2: '#1C1C1C', elev: '#1F1F1F', line: '#272727', acc: '#E8E8E8', acc2: '#B5B5B5', acc3: '#8C8C8C', accbg: '#262626', tint: '#181818', solid: '#2B2B2B', grad: ['#2A2A2A', '#383838', '#4F4F4F'], grad2: ['#333333', '#555555'], chart: ['#E8E8E8', '#9A9A9A', '#6A6A6A', '#C4C4C4', '#3A3A3A'], accInk: '#0A0A0A' }),
     },
+    Dusk: {
+      desc: 'Sunset orange and red fading into night blue.',
+      light: P({ bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F3F3F6', elev: '#FFFFFF', line: '#E9E9EE', acc: '#C6361A', acc2: '#3F5BA8', acc3: '#E8893A', accbg: '#FDECE5', tint: '#F8F1EE', solid: '#3F5BA8', grad: ['#E8893A', '#D8341A', '#3A1A2E', '#3F5BA8'], grad2: ['#3F5BA8', '#6FB2D6'], chart: ['#E0391A', '#3F5BA8', '#E8893A', '#6FB2D6', '#C9C9CB'] }),
+      dark: P({ bg: '#09090B', surface: '#141416', surface2: '#1C1C1F', elev: '#1E1E22', line: '#27272B', acc: '#FF8A5E', acc2: '#7D9BE6', acc3: '#F2A45C', accbg: '#3A231C', tint: '#1E1A1C', solid: '#3A55A0', grad: ['#F08A3C', '#E0391A', '#4A1C2C', '#4A67B8'], grad2: ['#4A67B8', '#7FC0E0'], chart: ['#FF7A4D', '#7D9BE6', '#F2A45C', '#8FD0EC', '#4A4F66'] }),
+    },
   };
   // Earlier theme names keep working
   K.THEME_ALIAS = { 'Kipu Purple': 'Kipu', Aurora: 'Ocean', Sunset: 'Coral', Graphite: 'Ember', 'Warm Sand': 'Sand', Indigo: 'Kipu', Midnight: 'Kipu' };
