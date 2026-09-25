@@ -8,7 +8,7 @@ Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza va
 
 ## Qué hace
 
-- Cuentas, tarjetas, préstamos y efectivo en cualquier moneda (unas 160), con banderas, búsqueda por país, nombre o código, y tipos de cambio en vivo
+- Cuentas, tarjetas, préstamos y efectivo en cualquier moneda (unas 160), con banderas, búsqueda por país, nombre o código, y tipos de cambio en vivo. Los saldos y límites de tarjetas se guardan en la moneda de cada tarjeta; patrimonio y Safe to Spend los convierten a la moneda principal.
 - **Conversor de monedas** en Settings → Currencies, con los pares que más usas primero
 - Tarjetas con día de cierre, día de pago y fecha de vencimiento (aviso dos meses antes), y color a elección
 - **Safe to Spend:** tu efectivo menos las facturas, pagos de tarjeta, cuotas de préstamos y ahorro que vencen antes del próximo pago
@@ -39,6 +39,8 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 - `screens-*.js`, `flows.js`: pantallas y formularios
 - `lock.js`: bloqueo con PIN y desbloqueo biométrico
 - `app.js`: navegación y layout
+
+Las pruebas de los cálculos financieros se ejecutan con `node --test tests/finance.test.js` (Node.js 18 o posterior). Cubren altas, ediciones y eliminaciones de movimientos; varias monedas; pagos; Safe to Spend; y el inicio vacío separado de los datos de demostración.
 
 ## Prototipo
 
