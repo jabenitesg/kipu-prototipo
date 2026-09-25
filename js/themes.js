@@ -58,8 +58,8 @@
   K.MODES = {
     Light: { desc: 'White and bright', base: { bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F3F3F6', elev: '#FFFFFF', line: '#E9E9EE' } },
     Graphite: { desc: 'Soft graphite gray', base: { bg: '#202124', surface: '#2A2B2F', surface2: '#34353A', elev: '#303136', line: '#3C3D43' } },
-    Dark: { desc: 'Deep black', base: { bg: '#09090B', surface: '#141416', surface2: '#1C1C1F', elev: '#1E1E22', line: '#27272B' } },
     Midnight: { desc: 'Night blue', base: { bg: '#0A1224', surface: '#111D36', surface2: '#182845', elev: '#1B2C4C', line: '#243758' } },
+    Dark: { desc: 'Deep black', base: { bg: '#09090B', surface: '#141416', surface2: '#1C1C1F', elev: '#1E1E22', line: '#27272B' } },
   };
   K.modeName = (m) => (m === true ? 'Dark' : !m ? 'Light' : K.MODES[m] ? m : 'Dark');
   K.themeVars = function (name, mode) {
