@@ -1,6 +1,6 @@
 # Kipu
 
-Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza vacía, como recién instalada, y guarda tus datos solo en este navegador.
+Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién instalada. Puedes usarla solo en este navegador o iniciar sesión para sincronizar tus datos cifrados entre dispositivos.
 
 - **Teléfono:** pantalla completa, con barra inferior Home · Money · + · Plan · Stats
 - **Tablet y escritorio:** dashboard con barra lateral
@@ -25,9 +25,15 @@ Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza va
 
 En Settings → App lock puedes pedir un PIN de 6 dígitos (y Face ID, Touch ID o huella si tu dispositivo lo permite) al abrir Kipu y al volver después de un rato. El PIN no se guarda, solo una versión cifrada irreversible. El bloqueo no cifra los datos: mantén también el bloqueo de pantalla de tu teléfono o computadora.
 
-## Tus datos
+## Tus datos y sincronización
 
-Todo queda en `localStorage` de este navegador y dispositivo; nada se envía a un servidor. Si borras los datos del sitio o cambias de navegador, empiezas de cero. Haz una copia en **Settings → Data**.
+En modo local, todo queda en `localStorage` de este navegador. Si borras los datos del sitio o cambias de navegador, necesitas una copia de seguridad.
+
+En **Settings → Account & sync**, Kipu envía un enlace de acceso por correo. La persona crea una frase privada de al menos 12 caracteres. Kipu cifra el archivo de datos con AES-GCM y una clave derivada con PBKDF2 antes de enviarlo a Supabase. La frase no sale del dispositivo y no se puede recuperar. Supabase guarda un único archivo cifrado por usuario, protegido por políticas de acceso por fila. Una instalación nueva no tiene cuentas ni datos de ejemplo; los datos locales solo se suben si la persona elige **Move this device’s data to my account**.
+
+El correo de acceso y la sesión de autenticación los gestiona Supabase. Las exportaciones JSON son archivos legibles, así que guárdalas en un lugar seguro. El proyecto Kipu ya tiene `https://kipu-prototipo.vercel.app/` como **Site URL** y como redirección permitida. Para que familiares ajenos a la organización Supabase reciban correos de acceso hay que configurar un proveedor SMTP propio en **Authentication → Emails → SMTP Settings**. El servicio de correo incluido con Supabase solo llega a integrantes del proyecto y permite actualmente dos mensajes por hora. Añade los dominios de vista previa que uses como **Redirect URLs** antes de probar inicio de sesión en ellos.
+
+La sincronización comprueba cambios al volver a la pestaña y cada 30 segundos. Si otro dispositivo cambió el archivo mientras se editaba aquí, Kipu detiene la sobrescritura y avisa; exporta una copia antes de recargar. Un borrador cifrado de la última escritura pendiente queda en este navegador para reintentar después de recargar. El modo de cuenta necesita conexión fiable y aún no hay fusión automática de movimientos editados simultáneamente.
 
 ## Código
 
@@ -38,9 +44,10 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 - `ui.js`, `themes.js`, `currency.js`: componentes, paletas y monedas
 - `screens-*.js`, `flows.js`: pantallas y formularios
 - `lock.js`: bloqueo con PIN y desbloqueo biométrico
+- `cloud.js`: cifrado, acceso y sincronización con control de versión
 - `app.js`: navegación y layout
 
-Las pruebas de los cálculos financieros se ejecutan con `node --test tests/finance.test.js` (Node.js 18 o posterior). Cubren altas, ediciones y eliminaciones de movimientos; varias monedas; pagos; Safe to Spend; y el inicio vacío separado de los datos de demostración.
+Las pruebas se ejecutan con `node --test tests/*.test.js` (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío, cifrado, lectura entre dispositivos y conflictos de escritura.
 
 ## Prototipo
 
