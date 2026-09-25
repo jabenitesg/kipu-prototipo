@@ -81,6 +81,9 @@
 
     if (wide) {
       const nav = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
+      // Same menu as the rail's sections: what you can add, one tap each
+      const ADD = [['expense', 'expense', 'r', 'Add expense'], ['income', 'income', 'g', 'Add income'], ['receipt', 'scan', 'p', 'Scan receipt'], ['statement', 'upload', 'b', 'Upload statement'], ['transfer', 'transfer', 'n', 'Transfer']];
+      const addMenu = (cls) => html`<div class=${cls} role="menu" aria-label="Add" onClick=${(e) => e.stopPropagation()}><span class="fly-title">Add</span>${ADD.map(([k, ic, tone, l]) => html`<button key=${k} role="menuitem" class="fly-item" onClick=${() => { setFly(null); setSheet({ k }); }}><span class="row" style=${{ gap: '10px' }}><span class=${'ic ' + tone} style=${{ width: '30px', height: '30px', borderRadius: '10px' }}><${Icon} n=${ic} s=${15} /></span>${l}</span></button>`)}<span class="tiny muted" style=${{ padding: '6px 12px 4px', lineHeight: 1.4 }}>Accounts, cards and loans are in Money. Bills, goals and trips in Plan.</span></div>`;
       const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       const alerts = insights.filter((i) => i.kind === 'Priority').length;
@@ -90,7 +93,7 @@
       return html`<${Ctx.Provider} value=${value}><div class=${cls}><div class="d-shell">
         <aside class="rail" aria-label="Primary">
           <button class="rail-mark" aria-label="Kipu home" onClick=${() => go({ r: 'home' })}><span></span></button>
-          <button class="rail-add" aria-label="Add" title="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${22} w=${2.4} /></button>
+          <div class="rail-wrap"><button class=${'rail-add' + (fly === 'add' ? ' flying' : '')} aria-label="Add" aria-haspopup="menu" aria-expanded=${fly === 'add'} onClick=${(e) => { e.stopPropagation(); setFly(fly === 'add' ? null : 'add'); }}><${Icon} n="plus" s=${22} w=${2.4} /></button>${fly === 'add' && addMenu('fly')}</div>
           <nav class="rail-nav">${SIDE.map(([r, ic, l, subs]) => html`<div key=${r} class="rail-wrap">
             <button class=${'rail-btn' + (rootOf === r ? ' on' : '') + (fly === r ? ' flying' : '')} aria-label=${l} aria-current=${rootOf === r ? 'page' : null} aria-expanded=${subs ? fly === r : null} aria-haspopup=${subs ? 'menu' : null} onClick=${(e) => { e.stopPropagation(); if (subs) setFly(fly === r ? null : r); else { setFly(null); go({ r }); } }}><${Icon} n=${ic} s=${20} />${fly !== r && html`<span class="rail-tip">${l}</span>`}</button>
             ${subs && fly === r && html`<div class="fly" role="menu" aria-label=${l} onClick=${(e) => e.stopPropagation()}><span class="fly-title">${l}</span>${subs.map(([t, tl, badge]) => html`<button key=${t} role="menuitem" class=${'fly-item' + (rootOf === r && rootTab === t ? ' on' : '')} onClick=${() => { setFly(null); go(t === 'overview' ? { r } : { r, tab: t }); }}><span>${tl}</span>${badge ? html`<i class="side-badge">${badge}</i>` : null}</button>`)}</div>`}</div>`)}</nav>
@@ -104,7 +107,7 @@
             ${rootOf === 'home' && stack.length === 1 && html`<${K.ContextFilter} show=${['scope', 'currency']} />`}
             <span class="pill-soft"><${Icon} n="calendar" s=${16} c="var(--muted)" />${today}</span>
             <button class="circle-btn" aria-label=${alerts ? alerts + ' things need attention' : 'Insights'} onClick=${() => go({ r: 'stats', tab: 'insights' })} style=${{ position: 'relative' }}><${Icon} n="bell" s=${18} />${alerts > 0 && html`<i class="bell-dot"></i>`}</button>
-            <button class="btn pri sm pill" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${16} w=${2.4} />Add</button>
+            <div class="rail-wrap"><button class="btn pri sm pill" aria-haspopup="menu" aria-expanded=${fly === 'addTop'} onClick=${(e) => { e.stopPropagation(); setFly(fly === 'addTop' ? null : 'addTop'); }}><${Icon} n="plus" s=${16} w=${2.4} />Add</button>${fly === 'addTop' && addMenu('fly fly-down')}</div>
           </div>
           <div class="d-content">${content}</div></main></div>${sheetEl}${toastEl}</div></${Ctx.Provider}>`;
     }

@@ -101,12 +101,15 @@ p { margin: 0; }
 .wide .sec-h .link { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
 .pill-link { display: inline-flex; align-items: center; gap: 3px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--acc); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill-link:hover { background: var(--surface2); }
-.dock { position: fixed; right: 32px; bottom: 28px; z-index: 25; display: flex; gap: 6px; padding: 7px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.dock button { position: relative; width: 48px; height: 48px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
-.dock button:hover { background: var(--surface2); }
-.dock button.pri { background: var(--grad); color: #FFFFFF; box-shadow: var(--glow); }
+.dock { position: fixed; right: 32px; bottom: 28px; z-index: 25; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 32px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.dock-add { position: relative; width: 48px; height: 48px; border-radius: 17px; background: var(--grad); color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: var(--glow); }
+.dock-group { display: flex; gap: 8px; padding: 6px; border-radius: 999px; background: var(--surface2); }
+.dock-group button { position: relative; width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: background 0.15s, color 0.15s; }
+.dock-group button:hover { background: var(--surface); color: var(--ink); }
 .dock .tip { position: absolute; bottom: 58px; left: 50%; transform: translate(-50%, 4px); background: var(--ink); color: var(--bg); padding: 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
 .dock button:hover .tip, .dock button:focus-visible .tip { opacity: 1; transform: translate(-50%, 0); }
+.rail-add.flying { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--acc); }
+.fly.fly-down { left: auto; right: 0; top: 52px; }
 .wide .d-content { padding-bottom: 60px; }
 .d-bar .chip { height: 44px; border-radius: 999px; padding: 0 16px; }
 .kpis { display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-end; }
