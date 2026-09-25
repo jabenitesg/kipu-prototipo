@@ -79,16 +79,26 @@
 
     if (wide) {
       const nav = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
+      const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const alerts = insights.filter((i) => i.kind === 'Priority').length;
       return html`<${Ctx.Provider} value=${value}><div class=${cls}><div class="d-shell">
-        <aside class="d-side">
-          <div class="brand"><span style=${{ width: '30px', height: '30px', borderRadius: '10px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '19px', fontWeight: 800 }}>Kipu</span></div>
-          <button class="btn pri" style=${{ margin: '0 4px 14px', height: '44px' }} onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${17} w=${2.4} />Add</button>
-          ${nav.map(([r, ic, l]) => html`<button key=${r} class=${'nav' + (rootOf === r ? ' on' : '')} onClick=${() => go({ r })}><${Icon} n=${ic} s=${18} />${l}</button>`)}
-          <div style=${{ marginTop: 'auto' }}><button class="row" style=${{ width: '100%', padding: '10px', borderRadius: '14px', background: 'var(--surface2)', gap: '10px' }} onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${32} /><span class="stack-s" style=${{ gap: 0, textAlign: 'left', minWidth: 0 }}><span style=${{ fontWeight: 600, fontSize: '13px' }}>${data.profile.name || 'You'}</span><span class="tiny muted">${ctx.scope === 'household' ? 'Household view' : 'Personal view'}</span></span></button></div>
+        <aside class="rail" aria-label="Primary">
+          <button class="rail-mark" aria-label="Kipu home" onClick=${() => go({ r: 'home' })}><span></span></button>
+          <button class="rail-add" aria-label="Add" title="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${22} w=${2.4} /></button>
+          <nav class="rail-nav">${nav.slice(0, 4).map(([r, ic, l]) => html`<button key=${r} class=${'rail-btn' + (rootOf === r ? ' on' : '')} aria-label=${l} aria-current=${rootOf === r ? 'page' : null} onClick=${() => go({ r })}><${Icon} n=${ic} s=${20} /><span class="rail-tip">${l}</span></button>`)}</nav>
+          <div class="rail-foot"><button class=${'rail-btn' + (rootOf === 'settings' ? ' on' : '')} aria-label="Settings" onClick=${() => go({ r: 'settings' })}><${Icon} n="gear" s=${20} /><span class="rail-tip">Settings</span></button><button class="rail-face" aria-label="Profile" onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${40} /><span class="rail-tip">${data.profile.name || 'Profile'}</span></button></div>
         </aside>
-        <main class="d-main"><div class="d-content">
-          ${stack.length > 1 && html`<div class="d-top"><button class="chip" onClick=${back}><${Icon} n="back" s=${15} w=${2.2} />Back</button><span class="small muted">${TITLES[route.r] || ''}</span></div>`}
-          ${content}</div></main></div>${sheetEl}${toastEl}</div></${Ctx.Provider}>`;
+        <main class="d-main">
+          <div class="d-bar">
+            ${stack.length > 1 ? html`<button class="circle-btn" aria-label="Back" onClick=${back}><${Icon} n="back" s=${18} w=${2.2} /></button>` : null}
+            <span class="crumb"><span class="muted">Kipu</span><${Icon} n="next" s=${13} c="var(--muted)" /><span class=${stack.length > 1 ? 'muted' : ''}>${SECTION[rootOf] || 'Home'}</span>${stack.length > 1 && html`<${Icon} n="next" s=${13} c="var(--muted)" /><span>${TITLES[route.r] || ''}</span>`}</span>
+            <span class="grow"></span>
+            <span class="pill-soft"><${Icon} n="calendar" s=${16} c="var(--muted)" />${today}</span>
+            <button class="circle-btn" aria-label=${alerts ? alerts + ' things need attention' : 'Insights'} onClick=${() => go({ r: 'stats', tab: 'insights' })} style=${{ position: 'relative' }}><${Icon} n="bell" s=${18} />${alerts > 0 && html`<i class="bell-dot"></i>`}</button>
+            <button class="btn pri sm pill" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${16} w=${2.4} />Add</button>
+          </div>
+          <div class="d-content">${content}</div></main></div>${sheetEl}${toastEl}</div></${Ctx.Provider}>`;
     }
     const showTop = stack.length > 1;
     return html`<${Ctx.Provider} value=${value}><div class=${cls}>

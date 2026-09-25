@@ -53,8 +53,9 @@
   };
 
   const QuickRow = () => {
-    const { openSheet } = useApp();
+    const { openSheet, wide } = useApp();
     const items = [['expense', 'plus', 'Add expense', true], ['receipt', 'scan', 'Scan receipt'], ['statement', 'upload', 'Upload statement'], ['income', 'income', 'Add income']];
+    if (wide) return html`<div class="row" style=${{ gap: '10px', flexWrap: 'wrap' }}>${items.map(([k, ic, l, pri]) => html`<button key=${k} onClick=${() => openSheet({ k })} class=${pri ? 'btn pri pill' : 'pill-soft'} style=${pri ? null : { fontWeight: 600 }}><${Icon} n=${ic} s=${17} w=${2} />${l}</button>`)}</div>`;
     return html`<div class="stack-s"><h2 style=${{ fontSize: '18px', fontWeight: 700 }}>Quick add</h2><div class="grid g4" style=${{ gap: '8px' }}>${items.map(([k, ic, l, pri]) => html`<button key=${k} onClick=${() => openSheet({ k })} class="stack-s" style=${{ alignItems: 'center', gap: '8px' }}><span style=${{ width: '56px', height: '56px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: pri ? 'var(--grad)' : 'var(--surface)', color: pri ? 'var(--hero-ink)' : 'var(--ink)', border: pri ? 0 : '1px solid var(--line)', boxShadow: pri ? 'var(--glow)' : null }}><${Icon} n=${ic} s=${22} w=${2} /></span><span class="small" style=${{ fontWeight: 600, textAlign: 'center' }}>${l}</span></button>`)}</div></div>`;
   };
 
@@ -87,8 +88,20 @@
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
     const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${data.profile.name ? ', ' + data.profile.name.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
     const ctxChip = !wide && data.household.enabled && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
-    if (wide) return html`<div class="stack">${head}<${Setup} />
-      <div class="grid w3" style=${{ alignItems: 'start' }}><div class="stack span2"><${SafeHero} />${month}${goalCard}<${QuickRow} />${insight}</div><div class="stack">${upcoming}${credit}${tripCard}</div></div></div>`;
+    if (wide) {
+      const badge = (a, b, goodUp) => { if (!prev.count || !b) return null; const d = ((a - b) / Math.abs(b)) * 100; if (Math.abs(d) < 0.5) return null; return html`<span class=${'b ' + ((d > 0) === goodUp ? 'pos' : 'warn')}>${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(0)}%</span>`; };
+      const kpis = html`<div class="kpis">
+        <button class="kpi" onClick=${() => go({ r: 'stats', tab: 'overview' })}><span class="v">${fmt.ctx(D, m.income)}</span><span class="l">Income ${badge(m.income, prev.income, true)}</span></button>
+        <button class="kpi" onClick=${() => go({ r: 'stats', tab: 'overview' })}><span class="v">${fmt.ctx(D, m.spending)}</span><span class="l">Spent${D.plan.budgetPlan ? ' of ' + fmt(D.plan.budgetPlan) : ''} ${badge(m.spending, prev.spending, false)}</span></button>
+        <button class="kpi" onClick=${() => go({ r: 'stats', tab: 'overview' })}><span class="v">${fmt.ctx(D, m.saved)}</span><span class="l">Saved${D.plan.savingsPlanned ? ' of ' + fmt(D.plan.savingsPlanned) : ''}</span></button></div>`;
+      const featured = goal && html`<${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} />`;
+      return html`<div class="stack" style=${{ gap: '26px' }}>
+        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${data.profile.name ? ', ' + data.profile.name.split(' ')[0] : ''}</h1></div>${kpis}</header>
+        <${Setup} />
+        <div class="grid w3" style=${{ alignItems: 'start' }}>
+          <div class="stack span2"><${SafeHero} />${(featured || credit) && html`<div class=${featured && credit ? 'grid w2' : 'stack'} style=${{ alignItems: 'stretch' }}>${featured}${credit}</div>`}<div class="stack-s"><h2 style=${{ fontSize: '18px', fontWeight: 700 }}>Quick add</h2><${QuickRow} /></div>${insight}</div>
+          <div class="stack"><div><${ContextFilter} show=${['scope', 'currency']} /></div>${upcoming}${tripCard}</div></div></div>`;
+    }
     return html`<div class="stack">${head}${ctxChip}<${Setup} /><${SafeHero} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
