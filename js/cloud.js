@@ -97,5 +97,10 @@
     retry() { if (!this.latest) return; this.error = null; void this.flush(); }
   }
   K.CloudVault = CloudVault;
+  K.cloudProviders = async () => {
+    const response = await fetch(URL + '/auth/v1/settings', { headers: { apikey: KEY } });
+    if (!response.ok) throw new Error('Could not check sign-in providers');
+    return (await response.json()).external || {};
+  };
   K.cloudClient = window.supabase ? window.supabase.createClient(URL, KEY, { auth: { flowType: 'implicit', autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }) : null;
 })();

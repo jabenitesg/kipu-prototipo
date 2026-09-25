@@ -75,6 +75,8 @@
     const [confirmPassphrase, setConfirmPassphrase] = useState('');
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState('');
+    const [providers, setProviders] = useState({});
+    useEffect(() => { if (cloud.status !== 'login') return; K.cloudProviders().then(setProviders).catch(() => setProviders({})); }, [cloud.status]);
     const act = async (fn) => { setBusy(true); setMessage(''); try { await fn(); } catch (e) { setMessage(e.message || 'Could not connect'); } finally { setBusy(false); } };
     const sendLink = () => act(async () => {
       if (!K.cloudClient) throw new Error('Cloud sign-in is unavailable. Try again when online.');
@@ -84,16 +86,16 @@
     });
     const unlock = () => act(async () => { if (passphrase.length < 12) throw new Error('Use at least 12 characters.'); await cloudOpen(passphrase); });
     const create = (seed) => act(() => { if (passphrase !== confirmPassphrase) throw new Error('Passphrases do not match.'); return cloudCreate(seed); });
+    const social = (provider) => act(async () => { const options = { redirectTo: location.origin + location.pathname }; if (provider === 'azure') options.scopes = 'email'; const { error } = await K.cloudClient.auth.signInWithOAuth({ provider, options }); if (error) throw error; });
     const guest = K.load();
     const hasLocal = guest.onboarded || guest.accounts.length || guest.cards.length || guest.loans.length || guest.txns.length;
-    return html`<div class="onb"><div class="onb-card stack" style=${{ gap: '18px' }}>
-      <h1 style=${{ fontSize: '26px' }}>${cloud.status === 'login' ? 'Sign in to Kipu' : cloud.status === 'choose' ? 'Create your encrypted vault' : cloud.status === 'checking' ? 'Opening Kipu…' : 'Unlock your Kipu data'}</h1>
-      ${cloud.status === 'login' && html`<form class="stack-s" onSubmit=${(e) => { e.preventDefault(); sendLink(); }}><p class="muted">We’ll email you a one-time sign-in link. No password needed for the account.</p><${Field} label="Email"><input class="input" type="email" required value=${email} onInput=${(e) => setEmail(e.target.value)} autocomplete="email" /></${Field}><button class="btn pri block" disabled=${busy}>Email sign-in link</button><button type="button" class="link" onClick=${cloudCancel}>Back to this device</button></form>`}
+    return html`<div class="onb cloud-access"><div class="onb-card"><div class="cloud-hero"><span class="disp" style=${{ fontSize: '22px', fontWeight: 800 }}>Kipu</span><h1>${cloud.status === 'login' ? 'Your money, wherever life takes you.' : cloud.status === 'choose' ? 'Make this space yours.' : cloud.status === 'checking' ? 'Opening Kipu…' : 'Welcome back.'}</h1></div><div class="cloud-body stack-s">
+      ${cloud.status === 'login' && html`<div class="stack-s"><span style=${{ fontWeight: 700, fontSize: '18px' }}>Sign in or create your account</span><p class="small muted">Your numbers stay private, and your data follows you across devices.</p>${[['google', 'Google', 'G'], ['azure', 'Microsoft · Hotmail / Outlook', 'M'], ['apple', 'Apple', '●']].map(([provider, label, mark]) => html`<button key=${provider} class="btn sec cloud-provider" disabled=${busy || !providers[provider]} onClick=${() => social(provider)}><span class="cloud-provider-mark" aria-hidden="true">${mark}</span><span>Continue with ${label}</span></button>`)}<span class="tiny muted">Social sign-in becomes available as each provider is connected.</span><div class="cloud-divider">or use email</div><form class="stack-s" onSubmit=${(e) => { e.preventDefault(); sendLink(); }}><${Field} label="Email"><input class="input" type="email" required value=${email} onInput=${(e) => setEmail(e.target.value)} autocomplete="email" /></${Field}><button class="btn pri block" disabled=${busy}>Email sign-in link</button></form><button type="button" class="link" onClick=${cloudCancel}>Continue on this device</button></div>`}
       ${['locked', 'opening'].includes(cloud.status) && html`<form class="stack-s" onSubmit=${(e) => { e.preventDefault(); unlock(); }}><p class="muted">${cloud.user && cloud.user.email} · Enter your private passphrase to decrypt your data. It stays on this device.</p><${Field} label="Private passphrase"><input class="input" type="password" required minlength="12" value=${passphrase} onInput=${(e) => setPassphrase(e.target.value)} autocomplete="off" /></${Field}><button class="btn pri block" disabled=${busy || cloud.status === 'opening'}>Unlock</button><span class="tiny muted">Kipu cannot recover this passphrase. Keep a JSON backup somewhere safe.</span></form>`}
       ${cloud.status === 'choose' && html`<div class="stack-s"><p class="muted">This account has no Kipu data yet. Choose what to put in it.</p><${Field} label="Confirm private passphrase"><input class="input" type="password" value=${confirmPassphrase} onInput=${(e) => setConfirmPassphrase(e.target.value)} autocomplete="off" /></${Field}>${hasLocal && html`<button class="btn pri block" disabled=${busy} onClick=${() => create('local')}>Move this device’s data to my account</button>`}<button class=${'btn ' + (hasLocal ? 'sec' : 'pri') + ' block'} disabled=${busy} onClick=${() => create('empty')}>Start with zero data</button><span class="tiny muted">Only encrypted data is uploaded. Your passphrase never goes to Supabase.</span></div>`}
       ${cloud.user && cloud.status !== 'checking' && html`<button class="link" disabled=${busy} onClick=${() => act(cloudSignOut)}>Use this device without signing in</button>`}
       ${(message || cloud.error) && html`<p class="small" role="status" style=${{ color: 'var(--crit)' }}>${message || cloud.error}</p>`}
-    </div></div>`;
+    </div></div></div>`;
   };
 
   function CloudSettings() {
