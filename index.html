@@ -115,6 +115,9 @@ p { margin: 0; }
 .wide .d-content { padding-bottom: 60px; }
 .d-bar .chip { height: 44px; border-radius: 999px; padding: 0 16px; }
 .previews { display: grid; justify-content: center; gap: 16px 12px; padding: 14px 12px; border-radius: 18px; background: var(--surface); min-width: 0; overflow: hidden; }
+.mode-btn { height: 44px; padding: 0 12px; text-align: center; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; color: var(--ink2); }
+.mode-btn:hover { background: var(--surface2); }
+.mode-btn[aria-pressed="true"] { border-color: var(--acc); background: var(--accbg); color: var(--acc); font-weight: 700; }
 .set-me { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; }
 .set-tile { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-height: 124px; padding: 14px; text-align: left; width: 100%; }
 .set-tile.on, .set-me.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
