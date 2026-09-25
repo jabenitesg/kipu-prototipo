@@ -30,6 +30,7 @@
       const { data: listener } = K.cloudClient.auth.onAuthStateChange((event, session) => {
         if (event === 'TOKEN_REFRESHED') return;
         const user = session && session.user;
+        if (event === 'PASSWORD_RECOVERY' && user) { setCloud((c) => Object.assign({}, c, { status: 'reset-password', user, error: '' })); return; }
         const id = user ? user.id : null;
         if (cloudUserRef.current === id) return;
         cloudUserRef.current = id;
@@ -125,7 +126,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, cloud, cloudOpen, cloudCreate, cloudSignOut, cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, commit, cloud, cloudOpen, cloudCreate, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;
