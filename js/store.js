@@ -119,7 +119,8 @@
     return Object.assign({}, d, {
       base: nb, active: [nb].concat(d.active.filter((x) => x !== nb)),
       txns: d.txns.map((t) => Object.assign({}, t, { base: c(t.base), rate: t.rate != null ? t.rate * k : t.rate, principal: c(t.principal), interest: c(t.interest) })),
-      cards: d.cards.map((x) => Object.assign({}, x, { bal: c(x.bal), limit: c(x.limit), stmtBal: c(x.stmtBal), minPay: c(x.minPay) })),
+      // Legacy cards had no currency and were denominated in the old base.
+      cards: d.cards.map((x) => x.cur ? x : Object.assign({}, x, { cur: ob })),
       loans: d.loans.map((x) => Object.assign({}, x, { orig: c(x.orig), bal: c(x.bal), pay: c(x.pay) })),
       goals: d.goals.map((x) => Object.assign({}, x, { target: c(x.target), monthly: c(x.monthly), saved: c(x.saved) })),
       trips: d.trips.map((x) => Object.assign({}, x, { budget: c(x.budget) })),
@@ -147,6 +148,13 @@
     return out;
   };
   K.occurrences = occurrences;
+  // Loan `next` is an outstanding due date, not the original schedule anchor.
+  const futureOccurrences = (anchor, freq, from, to) => {
+    let d = parse(anchor); if (!d) return [];
+    const out = []; let guard = 0;
+    while (d <= to && guard++ < 600) { if (d >= from) out.push(new Date(d)); d = step(d, freq, 1); }
+    return out;
+  };
   K.perYear = (f) => ({ Weekly: 52, 'Bi-weekly': 26, 'Twice monthly': 24, Monthly: 12, Quarterly: 4, Yearly: 1, Annual: 1 }[f] || 12);
   const billAnchor = (b) => (b.kind === 'Annual' ? new Date(today().getFullYear(), (b.month || 1) - 1, b.day || 1) : new Date(today().getFullYear(), today().getMonth(), b.day || 1));
   const billFreq = (b) => (b.kind === 'Annual' ? 'Yearly' : 'Monthly');
@@ -176,41 +184,74 @@
   const moveBal = (d, where, delta) => {
     if (!where) return d;
     const [kind, id] = where.split(':');
-    if (kind === 'acct') return Object.assign({}, d, { accounts: upd(d.accounts, id, (a) => Object.assign({}, a, { bal: r2(a.bal + delta / K.rate(d, a.cur, d.base)) })) });
+    if (kind === 'acct') return Object.assign({}, d, { accounts: upd(d.accounts, id, (a) => Object.assign({}, a, { bal: r2(a.bal + delta) })) });
     if (kind === 'card') return Object.assign({}, d, { cards: upd(d.cards, id, (c) => Object.assign({}, c, { bal: r2(c.bal - delta) })) });
     return d;
   };
+  const postingAmount = (d, t, where, baseAmount) => {
+    const [kind, id] = (where || '').split(':');
+    const item = kind === 'acct' ? d.accounts.find((a) => a.id === id) : kind === 'card' ? d.cards.find((c) => c.id === id) : null;
+    if (!item) return 0;
+    const currency = item.cur || d.base;
+    if (currency === t.cur && t.amt != null) return r2(Math.sign(baseAmount) * t.amt);
+    return r2(baseAmount / K.rate(d, currency, d.base));
+  };
+  const postingsFor = (d, t) => {
+    const out = [];
+    const post = (where, amount) => { if (where && (where.startsWith('acct:') || where.startsWith('card:'))) out.push({ where, amount: postingAmount(d, t, where, amount) }); };
+    if (t.type === 'expense') post(t.from, -t.base);
+    if (t.type === 'income') post(t.from, t.base);
+    if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -t.base); post(t.to, t.base); }
+    return out;
+  };
   const effects = (d, t, sign) => {
     const s = sign || 1;
-    if (t.type === 'expense') d = moveBal(d, t.from, -t.base * s);
-    if (t.type === 'income') d = moveBal(d, t.from, t.base * s);
-    if (t.type === 'transfer' || t.type === 'saving' || t.type === 'debt') {
-      d = moveBal(d, t.from, -t.base * s);
-      if (t.to) d = moveBal(d, t.to, t.base * s);
-      if (t.type === 'saving' && t.goal && !(t.to && t.to.startsWith('acct:'))) d = Object.assign({}, d, { goals: upd(d.goals, t.goal, (g) => Object.assign({}, g, { saved: r2((g.saved || 0) + t.base * s) })) });
-      if (t.type === 'debt' && t.loan) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(Math.max(0, l.bal - (t.principal || 0) * s)) })) });
-    }
+    const postings = t.postings || postingsFor(d, t);
+    postings.forEach((p) => { d = moveBal(d, p.where, p.amount * s); });
+    if (t.type === 'saving' && t.goal && !(t.to && t.to.startsWith('acct:'))) d = Object.assign({}, d, { goals: upd(d.goals, t.goal, (g) => Object.assign({}, g, { saved: r2((g.saved || 0) + t.base * s) })) });
+    if (t.type === 'debt' && t.loan) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(l.bal - (t.principal || 0) * s), next: s > 0 ? (t.loanNextAfter || l.next) : (l.next === t.loanNextAfter ? t.loanNextBefore : l.next) })) });
     return d;
   };
   K.addTxn = (d, t) => {
     const cur = t.cur || d.base;
     const base = t.base != null ? t.base : K.toBase(d, t.amt, cur);
     t = Object.assign({ id: uid('t'), date: iso(today()), cur, base, rate: K.rate(d, cur, d.base), source: 'manual', shared: false }, t, { base });
+    t.postings = postingsFor(d, t);
     if (t.type === 'expense' && !t.trip) { const trip = K.activeTrip(d, parse(t.date)); if (trip && t.autoTrip !== false && cur !== d.base) t.trip = trip.id; }
     d = effects(d, t, 1);
     return K.snapshot(Object.assign({}, d, { txns: d.txns.concat([t]) }));
   };
   K.removeTxn = (d, id) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; d = effects(d, t, -1); return K.snapshot(Object.assign({}, d, { txns: d.txns.filter((x) => x.id !== id) })); };
-  K.editTxn = (d, id, patch) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; if (patch.amt != null || patch.from) { d = K.removeTxn(d, id); const n = Object.assign({}, t, patch); if (patch.amt != null) n.base = K.toBase(d, patch.amt, n.cur); return K.addTxn(d, n); } return Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) }); };
-  K.upsert = (d, coll, item) => { const exists = d[coll].some((x) => x.id === item.id); const next = Object.assign({}, d, { [coll]: exists ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) }); return K.snapshot(next); };
+  K.editTxn = (d, id, patch) => {
+    const t = d.txns.find((x) => x.id === id); if (!t) return d;
+    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
+    if (!financial) return Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) });
+    const next = Object.assign({}, t, patch);
+    delete next.postings;
+    if (patch.amt != null || patch.cur != null) { next.base = K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
+    else if (patch.base != null) next.rate = next.amt ? next.base / next.amt : 1;
+    d = K.removeTxn(d, id);
+    return K.addTxn(d, next);
+  };
+  K.upsert = (d, coll, item) => {
+    const old = d[coll].find((x) => x.id === item.id);
+    const next = Object.assign({}, d, { [coll]: old ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) });
+    if (old && ['accounts', 'cards'].includes(coll) && (old.cur || d.base) !== (item.cur || d.base)) {
+      const where = (coll === 'cards' ? 'card:' : 'acct:') + item.id;
+      const ratio = K.rate(d, old.cur || d.base, item.cur || d.base);
+      next.txns = d.txns.map((t) => t.postings ? Object.assign({}, t, { postings: t.postings.map((p) => p.where === where ? Object.assign({}, p, { amount: r2(p.amount * ratio) }) : p) }) : t);
+    }
+    return K.snapshot(next);
+  };
   K.remove = (d, coll, id) => K.snapshot(Object.assign({}, d, { [coll]: d[coll].filter((x) => x.id !== id) }));
   K.payLoan = (d, loanId, fromAcct, extra) => {
     const l = d.loans.find((x) => x.id === loanId); if (!l) return d;
     const { interest } = K.loanSplit(l);
     const amt = r2((l.pay || 0) + (extra || 0));
-    const principal = r2(Math.min(l.bal, amt - interest));
-    d = K.addTxn(d, { type: 'debt', cat: 'debt', merchant: l.name + ' payment', amt, cur: d.base, from: fromAcct, loan: l.id, principal, interest });
-    return Object.assign({}, d, { loans: upd(d.loans, l.id, (x) => Object.assign({}, x, { next: iso(step(K.nextDate(x.next || iso(today()), x.freq, today()), x.freq, 1)) })) });
+    const principal = r2(Math.min(l.bal, Math.max(0, amt - interest)));
+    const loanNextBefore = l.next;
+    const loanNextAfter = iso(step(K.nextDate(l.next || iso(today()), l.freq, today()), l.freq, 1));
+    return K.addTxn(d, { type: 'debt', cat: 'debt', merchant: l.name + ' payment', amt, cur: d.base, from: fromAcct, loan: l.id, principal, interest, loanNextBefore, loanNextAfter });
   };
   K.payBill = (d, billId, fromWhere) => {
     const b = d.bills.find((x) => x.id === billId); if (!b) return d;
@@ -225,7 +266,7 @@
     const invest = r2(sum(accts.filter((a) => a.kind === 'Investments'), (a) => a.baseBal));
     const property = r2(sum(accts.filter((a) => a.kind === 'Property'), (a) => a.baseBal));
     const cards = d.cards.filter(inS);
-    const cardBal = r2(sum(cards, (c) => c.bal)), cardLimit = sum(cards, (c) => c.limit || 0);
+    const cardBal = r2(sum(cards, (c) => K.toBase(d, c.bal, c.cur || d.base))), cardLimit = r2(sum(cards, (c) => K.toBase(d, c.limit || 0, c.cur || d.base)));
     const loans = d.loans.filter(inS);
     const loanBal = r2(sum(loans, (l) => l.bal));
     const debt = r2(cardBal + loanBal);
@@ -265,7 +306,7 @@
     const bills = data.bills.filter(inS);
     const billDates = (b) => occurrences(iso(billAnchor(b)), billFreq(b), monthStart, monthEnd);
     const commitments = r2(sum(bills, (b) => billDates(b).length * K.toBase(data, b.amt, b.cur || data.base)));
-    const loanPays = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: occurrences(l.next || iso(T), l.freq, monthStart, monthEnd).length }));
+    const loanPays = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: futureOccurrences(l.next || iso(T), l.freq, monthStart, monthEnd).length }));
     const debtPlanned = r2(sum(loanPays, (x) => x.n * x.l.pay));
     const goals0 = data.goals.filter(inS);
     const savingsPlanned = r2(sum(goals0, (g) => g.monthly || 0));
@@ -283,14 +324,24 @@
     const nextPay = nextPays.length ? nextPays.reduce((a, b) => (b < a ? b : a)) : null;
     const until = nextPay ? addDays(nextPay, -1) : monthEnd;
     const inWin = (d) => d >= T && d <= until;
-    const paidThisMonth0 = new Set(txAll.filter((t) => t.recurring && inMonth(t, T.getFullYear(), T.getMonth())).map((t) => t.recurring));
+    const paidThisMonth0 = (id) => txAll.filter((t) => t.recurring === id && inMonth(t, T.getFullYear(), T.getMonth())).length;
     const spendable = B.accts.filter((a) => a.kind === 'Everyday' || a.kind === 'Cash');
     const cashNow = r2(sum(spendable, (a) => a.baseBal));
-    const billsDue = bills.map((b) => ({ b, n: occurrences(iso(billAnchor(b)), billFreq(b), T, until).filter((d) => !(d.getMonth() === T.getMonth() && paidThisMonth0.has(b.id) && d <= T)).length })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
+    const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
-    const cardsDue = B.cards.filter((c) => c.dueDay && (c.stmtBal || 0) > 0 && inWin(K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T)));
-    const cardsDueAmt = r2(sum(cardsDue, (c) => c.stmtBal));
-    const loansDue = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: occurrences(l.next || iso(T), l.freq, T, until).length })).filter((x) => x.n);
+    const cardsDue = B.cards.map((c) => {
+      if (!c.dueDay || !(c.stmtBal > 0)) return null;
+      const due = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T);
+      if (!inWin(due)) return null;
+      const priorDue = addMonths(due, -1);
+      const paid = sum(txAll.filter((t) => t.to === 'card:' + c.id && parse(t.date) > priorDue && parse(t.date) <= T), (t) => {
+        const p = (t.postings || []).find((x) => x.where === 'card:' + c.id);
+        return p ? p.amount : t.base / K.rate(data, c.cur || data.base, data.base);
+      });
+      return Object.assign({}, c, { dueAmount: r2(Math.max(0, Math.min(c.bal, c.stmtBal - paid))) });
+    }).filter((c) => c && c.dueAmount > 0);
+    const cardsDueAmt = r2(sum(cardsDue, (c) => K.toBase(data, c.dueAmount, c.cur || data.base)));
+    const loansDue = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: futureOccurrences(l.next || iso(T), l.freq, T, until).length })).filter((x) => x.n);
     const loansDueAmt = r2(sum(loansDue, (x) => x.n * x.l.pay));
     const savingsLeft = r2(Math.max(0, savingsPlanned - monthAll.saved));
     const safe = r2(cashNow - billsDueAmt - cardsDueAmt - loansDueAmt - savingsLeft);
@@ -330,8 +381,8 @@
     // Upcoming (next 45 days)
     const horizon = addDays(T, 45), upcoming = [];
     bills.forEach((b) => occurrences(iso(billAnchor(b)), billFreq(b), addDays(T, 1), horizon).forEach((d) => upcoming.push({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' }, billId: b.id })));
-    B.loans.filter((l) => l.bal > 0 && l.pay).forEach((l) => occurrences(l.next || iso(T), l.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: l.name, amt: l.pay, kind: 'Loan payment', route: { r: 'loan', id: l.id } })));
-    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: c.stmtBal || c.bal, kind: 'Card due', route: { r: 'card', id: c.id } }); });
+    B.loans.filter((l) => l.bal > 0 && l.pay).forEach((l) => futureOccurrences(l.next || iso(T), l.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: l.name, amt: l.pay, kind: 'Loan payment', route: { r: 'loan', id: l.id } })));
+    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
     // Bills due this month and not paid yet
@@ -367,7 +418,7 @@
         let debtPay = 0, interest = 0;
         L.forEach((l, j) => {
           const i = l.rate / 100 / K.perYear(l.freq); let first = true;
-          occurrences(l.next, l.freq, ms, me).forEach(() => { if (l.bal <= 0) return; const int = l.bal * i; const p = Math.min(l.bal + int, l.pay + (j === 0 && first ? s.loan || 0 : 0)); l.bal = Math.max(0, l.bal + int - p); interest += int; debtPay += p; first = false; });
+          futureOccurrences(l.next, l.freq, ms, me).forEach(() => { if (l.bal <= 0) return; const int = l.bal * i; const p = Math.min(l.bal + int, l.pay + (j === 0 && first ? s.loan || 0 : 0)); l.bal = Math.max(0, l.bal + int - p); interest += int; debtPay += p; first = false; });
           if (l.bal <= 0 && !l.paidOff) l.paidOff = K.fmtMonth(ms);
         });
         D.goals.forEach((g, j) => { if (goalSaved[g.id] < g.target) { goalSaved[g.id] += (g.monthly || 0) + (j === 0 ? s.save || 0 : 0); if (goalSaved[g.id] >= g.target && !goalDone[g.id]) goalDone[g.id] = K.fmtMonth(ms); } });

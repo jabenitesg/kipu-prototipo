@@ -90,28 +90,54 @@
       <button class="btn pri block" disabled=${!v || !f.from} onClick=${save}>${item ? 'Save changes' : 'Add income'}</button></${Sheet}>`;
   };
 
-  const TransferSheet = ({ onClose, preset }) => {
+  const TransferSheet = ({ onClose, preset, item }) => {
     const { data, commit, fmt, toast } = useApp();
-    preset = preset || {};
+    preset = item || preset || {};
     const accts = K.whereOptions(data, { cashOnly: true, noCards: true });
     const goalOpts = data.goals.map((g) => ['goal:' + g.id, 'Goal · ' + g.name]);
     const toOpts = data.cards.map((c) => ['card:' + c.id, 'Pay ' + c.name]).concat(goalOpts, accts);
-    const [amt, setAmt] = useState(preset.amount ? String(preset.amount) : '');
+    const [amt, setAmt] = useState(preset.amt != null ? String(preset.amt) : preset.amount ? String(preset.amount) : '');
+    const [cur, setCur] = useState(preset.cur || data.base);
     const [from, setFrom] = useState(preset.from || (accts[0] || [])[0] || '');
-    const [to, setTo] = useState(preset.toWhere || (preset.goal ? 'goal:' + preset.goal : (toOpts.find((o) => o[0] !== from) || [])[0] || ''));
+    const [to, setTo] = useState(preset.toWhere || (preset.goal ? 'goal:' + preset.goal : preset.to || (toOpts.find((o) => o[0] !== from) || [])[0] || ''));
     const v = numv(amt);
     const save = () => {
-      let t = { amt: v, cur: data.base, from };
+      let t = { amt: v, cur, from };
       if (to.startsWith('goal:')) { const g = data.goals.find((x) => 'goal:' + x.id === to); t = Object.assign(t, { type: 'saving', cat: 'saving', goal: g.id, to: g.linked ? 'acct:' + g.linked : null, merchant: g.name, shared: !!g.shared }); }
       else t = Object.assign(t, { type: 'transfer', cat: 'transfer', to, merchant: (to.startsWith('card:') ? 'Payment to ' : 'Transfer to ') + K.whereName(data, to) });
-      commit(K.addTxn(data, t)); toast(to.startsWith('goal:') ? 'Saved to goal' : 'Transfer recorded · not counted as spending'); onClose();
+      commit(item ? K.editTxn(data, item.id, t) : K.addTxn(data, t)); toast(item ? 'Transfer updated' : to.startsWith('goal:') ? 'Saved to goal' : 'Transfer recorded · not counted as spending'); onClose();
     };
     if (!accts.length) return html`<${Sheet} title="Transfer" onClose=${onClose}><${NoPlace} /></${Sheet}>`;
     return html`<${Sheet} title="Transfer" sub="Transfers and card payments are never counted as spending." onClose=${onClose}>
-      <${Amount} value=${amt} onChange=${setAmt} cur=${data.base} />
+      <${Amount} value=${amt} onChange=${setAmt} cur=${cur} />
+      ${curOptions(data).length > 1 && html`<${Field} label="Transaction currency"><${Select} value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}>`}
       <${Field} label="From"><${Select} id="t-from" value=${from} onChange=${setFrom} options=${accts} /></${Field}>
       <${Field} label="To"><${Select} id="t-to" value=${to} onChange=${setTo} options=${toOpts.filter((o) => o[0] !== from)} placeholder="Choose where it goes" /></${Field}>
       <button class="btn pri block" disabled=${!v || !to} onClick=${save}>Move ${v ? fmt(v, { dec: 2 }) : 'money'}</button></${Sheet}>`;
+  };
+
+  const DebtSheet = ({ onClose, item }) => {
+    const { data, commit, toast, fmt } = useApp();
+    if (!item) return null;
+    const places = K.whereOptions(data, { cashOnly: true, noCards: true });
+    const [amt, setAmt] = useState(String(item.amt));
+    const [cur, setCur] = useState(item.cur || data.base);
+    const [from, setFrom] = useState(item.from || '');
+    const [principal, setPrincipal] = useState(String(item.principal || 0));
+    const baseAmount = K.toBase(data, numv(amt), cur);
+    const p = numv(principal);
+    const save = () => {
+      commit(K.editTxn(data, item.id, { amt: numv(amt), cur, from, principal: p, interest: K.r2(baseAmount - p) }));
+      toast('Loan payment updated'); onClose();
+    };
+    return html`<${Sheet} title="Edit loan payment" sub="Principal and interest are shown in your main currency. Check them against your lender’s statement." onClose=${onClose}>
+      <${Amount} value=${amt} onChange=${setAmt} cur=${cur} />
+      ${curOptions(data).length > 1 && html`<${Field} label="Payment currency"><${Select} value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}>`}
+      <${Field} label="Paid from"><${Select} value=${from} onChange=${setFrom} options=${places} /></${Field}>
+      <${In} label=${'Principal (' + data.base + ')'} value=${principal} onInput=${(e) => setPrincipal(e.target.value)} mode="decimal" />
+      <div class="card flat small">${fmt(baseAmount, { dec: 2 })} total · ${fmt(K.r2(baseAmount - p), { dec: 2 })} interest</div>
+      <button class="btn pri block" disabled=${!numv(amt) || !from || p > baseAmount} onClick=${save}>Save payment</button>
+    </${Sheet}>`;
   };
 
   // ---------------------------------------------------------------- receipt scan (real OCR on the device)
@@ -204,12 +230,13 @@
 
   const AddCard = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
-    const preview = { name: f.name || f.network + ' card', network: f.network, last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
-    const save = () => { commit(K.upsert(data, 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
+    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
+    const preview = { name: f.name || f.network + ' card', network: f.network, cur: f.cur, last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
+    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, cur: f.cur, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit card' : 'Add credit card'} sub="Only the last four digits are stored." onClose=${onClose} cta=${item ? 'Save' : 'Add card'} onSave=${save}>
       <div style=${{ maxWidth: '300px', width: '100%', alignSelf: 'center' }}><${K.CardPreview} c=${preview} /></div>
       <${Chips} options=${['Visa', 'Mastercard', 'Amex', 'Other']} value=${f.network} onChange=${on('network')} />
+      <${K.CurrencySelect} label="Card currency" value=${f.cur} onChange=${on('cur')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" ph="1234" /></div>
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" /><${In} id="ac-bal" label="Current balance" value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0" /></div>
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-stmt" label="Statement balance" value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" ph="0" /><${In} id="ac-min" label="Minimum payment" value=${f.minPay} onInput=${on('minPay')} mode="decimal" ph="0" /></div>
@@ -309,5 +336,5 @@
       <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
   };
 
-  K.SHEETS = { quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
+  K.SHEETS = { quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
 })();

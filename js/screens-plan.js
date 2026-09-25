@@ -27,12 +27,12 @@
       <div>
         ${step('Cash in everyday accounts', fmt(p.cashNow), 'Chequing and cash. Savings and investments aren’t counted.', 'var(--acc)', true)}
         ${step('Bills due', '−' + fmt(p.billsDueAmt), p.billsDue.length ? names(p.billsDue.map((x) => x.b.name)) : 'None before ' + K.fmtDate(p.until), '#8C7BE0', false, html`<button class="link" style=${{ fontSize: '12px' }} onClick=${() => openSheet({ k: 'addBill' })}>Add</button>`)}
-        ${step('Card payments due', '−' + fmt(p.cardsDueAmt), p.cardsDue.length ? names(p.cardsDue.map((c) => c.name)) : 'None in this window', 'var(--info2)')}
+        ${step('Card payments due', '−' + fmt(p.cardsDueAmt), p.cardsDue.length ? names(p.cardsDue.map((c) => c.name)) + ' · remaining statement amounts after recorded payments' : 'None in this window', 'var(--info2)')}
         ${step('Loan payments due', '−' + fmt(p.loansDueAmt), p.loansDue.length ? names(p.loansDue.map((x) => x.l.name)) : 'None in this window', 'var(--info2)')}
         ${step('Planned savings left this month', '−' + fmt(p.savingsLeft), p.savingsPlanned ? fmt(p.savedSoFar) + ' of ' + fmt(p.savingsPlanned) + ' already moved' : 'Set a monthly amount on a goal', 'var(--pos2)')}
         <div class="between" style=${{ padding: '14px 0 0', borderTop: '1.5px solid var(--ink)' }}><span style=${{ fontWeight: 700, fontSize: '16px' }}>Safe to Spend</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 800, color: p.safe < 0 ? 'var(--crit)' : 'var(--acc)' }}>${fmt(p.safe)}</span></div>
       </div>
-      <span class="tiny muted" style=${{ lineHeight: 1.5 }}>${p.nextPay ? 'Your next payday is ' + K.fmtDate(p.nextPay, true) + '.' : 'No income set, so this runs to the end of the month.'} Bills paid by card are covered by the card payment.</span></div>`;
+      <span class="tiny muted" style=${{ lineHeight: 1.5 }}>${p.nextPay ? 'Your next payday is ' + K.fmtDate(p.nextPay, true) + '.' : 'No income set, so this runs to the end of the month.'} Only entered accounts, bills, card statements, loan payments and goal amounts are included. Recorded payments reduce cash now and are not reserved again. Bills paid by card are covered by the card payment. All totals use ${data.base}; foreign amounts use the current rate.</span></div>`;
   };
 
   function PlanOverview() {

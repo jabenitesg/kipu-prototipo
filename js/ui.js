@@ -154,13 +154,13 @@
     return { label: K.pad(m) + '/' + String(y).slice(2), days, expired: days < 0, soon: days >= 0 && days <= 60, end };
   };
   const CardPreview = ({ c, selected, onClick, compact }) => {
-    const { fmt } = useApp();
+    const { fmt, data } = useApp();
     const util = c.limit ? (c.bal / c.limit) * 100 : 0;
     const ex = K.expiryInfo(c);
     return html`<button onClick=${onClick} aria-label=${c.name} style=${{ position: 'relative', overflow: 'hidden', width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: K.cardInk(c), background: K.cardBg(c), display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left' }}>
       <span aria-hidden="true" style=${{ position: 'absolute', right: '-50px', top: '-70px', width: '200px', height: '200px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)', pointerEvents: 'none' }}></span>
       <span class="between"><span style=${{ fontSize: '13px', fontWeight: 600, opacity: 0.92 }}>${c.name}</span><span style=${{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>${(c.network || '').toUpperCase()}</span></span>
-      <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt(c.bal)}</span></span>
+      <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt.native(c.bal, c.cur || data.base)}</span></span>
       <span class="between" style=${{ fontSize: '12px', opacity: 0.9 }}><span class="num">${c.last4 ? '•••• ' + c.last4 : ''}${ex ? '  ·  ' + ex.label : ''}</span><span class="num">${util.toFixed(0)}% used</span></span>
     </button>`;
   };
