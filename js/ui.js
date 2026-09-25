@@ -40,6 +40,9 @@
     alert: 'M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
     search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5', book: 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16', phone: 'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2',
     monitor: 'M3 5h18v11H3zM8 20h8M12 16v4', review: 'M4 4h16v16H4zM8 9h8M8 13h5M8 17h3', history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', copy: 'M9 9h11v11H9zM5 15V4h11', star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
+    gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C10.5 3.5 6 3.5 7 6.5c.4 1 2 .5 5 .5M12 7c1.5-3.5 6-3.5 5-.5-.4 1-2 .5-5 .5', music: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+    paw: 'M12 12c-3 0-5 3.5-5 5.5 0 1.5 1.5 2 3 1.5 1-.3 1.4-.5 2-.5s1 .2 2 .5c1.5.5 3 0 3-1.5 0-2-2-5.5-5-5.5zM9.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM17.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM6.5 11.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 11.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z',
+    tool: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z',
   };
   const Icon = ({ n, s = 18, w = 1.9, c = 'currentColor' }) => html`<svg width=${s} height=${s} viewBox="0 0 24 24" fill="none" stroke=${c} stroke-width=${w} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${P[n] || P.dots}></path></svg>`;
   K.Icon = Icon;
@@ -287,7 +290,7 @@
     if (data.household.enabled && show.includes('scope')) parts.push(ctx.scope === 'household' ? 'Household' : 'Personal');
     if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
     if (show.includes('period')) { const S = D.series; parts.push(ctx.period === 'ytd' ? 'Last 12 months' : S[ctx.period].m + ' ' + S[ctx.period].y); }
-    return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change scope, currency or period"><${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
+    return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change scope, currency or period"><${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
   };
   K.ContextFilter = ContextFilter;
 
@@ -299,6 +302,23 @@
 
   const PageHead = ({ eyebrow, title, sub, right }) => html`<header class="between" style=${{ alignItems: 'flex-end', paddingTop: '4px' }}><div class="stack-s" style=${{ gap: '6px' }}>${eyebrow && html`<span class="eyebrow">${eyebrow}</span>`}<h1 style=${{ fontSize: '30px', lineHeight: '36px', fontWeight: 800 }}>${title}</h1>${sub && html`<p class="muted" style=${{ fontSize: '15px', lineHeight: 1.45 }}>${sub}</p>`}</div>${right}</header>`;
   K.PageHead = PageHead;
+
+  // ---------------------------------------------------------------- make or edit a category
+  const CAT_ICONS = ['tag', 'basket', 'cup', 'bag', 'car', 'home', 'heart', 'plane', 'book', 'ticket', 'bolt', 'people', 'gift', 'paw', 'music', 'tool', 'target', 'spark'];
+  const CAT_TONES = [['p', 'Theme'], ['b', 'Blue'], ['g', 'Green'], ['a', 'Amber'], ['r', 'Rose'], ['n', 'Gray']];
+  K.CategoryForm = function CategoryForm({ initial, onSave, onCancel, saveLabel }) {
+    const { data } = useApp();
+    const [name, setName] = useState((initial && initial.name) || '');
+    const [icon, setIcon] = useState((initial && initial.icon) || 'tag');
+    const [tone, setTone] = useState((initial && initial.tone) || 'p');
+    const clash = name.trim() && Object.keys(K.CATS).some((k) => K.CATS[k].name.toLowerCase() === name.trim().toLowerCase() && (!initial || k !== initial.id));
+    return html`<div class="card flat stack-s" style=${{ gap: '12px' }}>
+      <div class="row" style=${{ gap: '10px' }}><${Tile} icon=${icon} tone=${tone} /><input class="input grow" aria-label="Category name" placeholder="e.g. Pets, Gifts, Kids" value=${name} maxlength="28" autofocus onInput=${(e) => setName(e.target.value)} style=${{ background: 'var(--surface)' }} /></div>
+      ${clash && html`<span class="tiny" style=${{ color: 'var(--warn)' }}>There’s already a category with that name.</span>`}
+      <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: '6px' }}>${CAT_ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${icon === ic} onClick=${() => setIcon(ic)} style=${{ height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: icon === ic ? 'var(--accbg)' : 'var(--surface)', color: icon === ic ? 'var(--acc)' : 'var(--ink2)', boxShadow: icon === ic ? 'inset 0 0 0 1.5px var(--acc)' : 'none' }}><${Icon} n=${ic} s=${18} /></button>`)}</div>
+      <div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}>${CAT_TONES.map(([t, l]) => html`<button key=${t} type="button" aria-label=${l} aria-pressed=${tone === t} onClick=${() => setTone(t)} class="ic" style=${{ width: '32px', height: '32px', borderRadius: '999px', color: '#FFFFFF', background: { p: 'var(--acc)', b: 'var(--info2)', g: 'var(--pos2)', a: 'var(--warn2)', r: 'var(--crit2)', n: 'var(--muted)' }[t], boxShadow: tone === t ? '0 0 0 2px var(--surface), 0 0 0 4px var(--ink)' : 'none' }}>${tone === t && html`<${Icon} n="check" s=${14} w=${2.6} />`}</button>`)}</div>
+      <div class="grid g2" style=${{ gap: '8px' }}><button type="button" class="btn sec sm" onClick=${onCancel}>Cancel</button><button type="button" class="btn pri sm" disabled=${!name.trim() || clash} onClick=${() => onSave({ name: name.trim(), icon, tone })}>${saveLabel || 'Add category'}</button></div></div>`;
+  };
 
   // ---------------------------------------------------------------- segmented progress (budget, utilization, goals, payoff, trips)
   // tone: a CSS color; mark: a target marker in percent
@@ -318,18 +338,28 @@
     <button type="button" class="input row" aria-expanded=${open} style=${{ gap: '10px', justifyContent: 'space-between', textAlign: 'left', borderColor: open ? 'var(--acc)' : null, background: open ? 'var(--surface)' : null }} onClick=${onToggle}><span style=${{ color: display ? null : 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${display || placeholder || 'Choose'}</span><${Icon} n=${icon || 'calendar'} s=${17} c="var(--muted)" /></button>
     ${open && html`<div class="picker">${children}</div>`}
     ${hint && html`<span class="tiny muted" style=${{ fontWeight: 400 }}>${hint}</span>`}</div>`;
-  const WD = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // A regular month calendar: selected date on top, full weeks with the neighbouring months' days, tap the month to jump
   const Calendar = ({ value, onPick, onClear, min, max }) => {
     const sel = value ? K.parse(value) : null;
     const [view, setView] = useState(() => { const d = sel || K.today(); return new Date(d.getFullYear(), d.getMonth(), 1); });
-    const nDays = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
-    const cells = Array.from({ length: view.getDay() }, () => null).concat(Array.from({ length: nDays }, (_, i) => i + 1));
+    const [jump, setJump] = useState(false);
+    const [jy, setJy] = useState(view.getFullYear());
     const T = K.iso(K.today());
+    const start = K.addDays(view, -view.getDay());
+    const weeks = Math.ceil((view.getDay() + new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate()) / 7);
+    const cells = Array.from({ length: weeks * 7 }, (_, i) => K.addDays(start, i));
     const move = (m) => setView(new Date(view.getFullYear(), view.getMonth() + m, 1));
-    return html`<div class="stack-s" style=${{ gap: '8px' }}>
-      <div class="between"><button type="button" class="ic n" aria-label="Previous month" onClick=${() => move(-1)}><${Icon} n="back" s=${16} w=${2.2} /></button><b>${K.MONTH_LONG[view.getMonth()]} ${view.getFullYear()}</b><button type="button" class="ic n" aria-label="Next month" onClick=${() => move(1)}><${Icon} n="next" s=${16} w=${2.2} /></button></div>
-      <div class="cal">${WD.map((w, i) => html`<span key=${'w' + i} class="wd">${w}</span>`)}${cells.map((d, i) => { if (!d) return html`<span key=${'b' + i}></span>`; const s = K.iso(new Date(view.getFullYear(), view.getMonth(), d)); const off = (min && s < min) || (max && s > max); return html`<button key=${s} type="button" disabled=${off} aria-pressed=${value === s} aria-label=${K.fmtDate(s, true)} class=${(value === s ? 'on' : '') + (s === T ? ' today' : '')} onClick=${() => onPick(s)}>${d}</button>`; })}</div>
-      <div class="between"><button type="button" class="link" onClick=${() => onPick(T)}>Today</button>${onClear && html`<button type="button" class="link" style=${{ color: 'var(--muted)' }} onClick=${onClear}>Clear</button>`}</div></div>`;
+    const pick = (s) => { const d = K.parse(s); setView(new Date(d.getFullYear(), d.getMonth(), 1)); onPick(s); };
+    return html`<div class="stack-s" style=${{ gap: '10px' }}>
+      <div class="cal-head"><span class="small" style=${{ opacity: 0.8 }}>${sel ? WEEKDAY[sel.getDay()] : 'No date chosen'}</span><span class="disp" style=${{ fontSize: '24px', fontWeight: 800 }}>${sel ? K.MONTH_LONG[sel.getMonth()] + ' ' + sel.getDate() + ', ' + sel.getFullYear() : 'Pick a day'}</span></div>
+      <div class="between"><button type="button" class="chip" aria-expanded=${jump} onClick=${() => { setJy(view.getFullYear()); setJump(!jump); }} style=${{ fontWeight: 700, color: 'var(--ink)' }}>${K.MONTH_LONG[view.getMonth()]} ${view.getFullYear()}<${Icon} n=${jump ? 'x' : 'down'} s=${14} w=${2.2} /></button>
+        ${!jump && html`<span class="row" style=${{ gap: '6px' }}><button type="button" class="ic n" aria-label="Previous month" onClick=${() => move(-1)}><${Icon} n="back" s=${16} w=${2.2} /></button><button type="button" class="ic n" aria-label="Next month" onClick=${() => move(1)}><${Icon} n="next" s=${16} w=${2.2} /></button></span>`}</div>
+      ${jump ? html`<div class="stack-s" style=${{ gap: '8px' }}><div class="between"><button type="button" class="ic n" aria-label="Previous year" onClick=${() => setJy(jy - 1)}><${Icon} n="back" s=${16} w=${2.2} /></button><b>${jy}</b><button type="button" class="ic n" aria-label="Next year" onClick=${() => setJy(jy + 1)}><${Icon} n="next" s=${16} w=${2.2} /></button></div>
+          <div class="cal months">${K.MON.map((m, i) => html`<button key=${m} type="button" aria-pressed=${jy === view.getFullYear() && i === view.getMonth()} class=${jy === view.getFullYear() && i === view.getMonth() ? 'on' : ''} onClick=${() => { setView(new Date(jy, i, 1)); setJump(false); }}>${m}</button>`)}</div></div>`
+        : html`<div class="cal">${WD.map((w) => html`<span key=${w} class="wd">${w}</span>`)}${cells.map((d) => { const s = K.iso(d); const out = d.getMonth() !== view.getMonth(); const off = (min && s < min) || (max && s > max); return html`<button key=${s} type="button" disabled=${off} aria-pressed=${value === s} aria-label=${WEEKDAY[d.getDay()] + ', ' + K.fmtDate(s, true)} class=${[value === s ? 'on' : '', s === T ? 'today' : '', out ? 'out' : ''].join(' ')} onClick=${() => pick(s)}>${d.getDate()}</button>`; })}</div>`}
+      <div class="between"><button type="button" class="link" onClick=${() => pick(T)}>Today</button>${onClear && html`<button type="button" class="link" style=${{ color: 'var(--muted)' }} onClick=${onClear}>Clear</button>`}</div></div>`;
   };
   K.Calendar = Calendar;
   K.DateInput = function DateInput({ label, value, onChange, hint, optional, min, max, placeholder }) {

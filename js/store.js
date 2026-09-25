@@ -32,6 +32,20 @@
     travel: { name: 'Travel', icon: 'plane', tone: 'b' }, education: { name: 'Education', icon: 'book', tone: 'p' }, family: { name: 'Family', icon: 'people', tone: 'g' }, other: { name: 'Other', icon: 'dots', tone: 'n' },
   };
   K.CATS = CATS; K.CAT_ORDER = Object.keys(CATS);
+  // Categories people add themselves live in data.customCats and join the built-in ones, before Other
+  const BUILT_IN = Object.assign({}, CATS);
+  K.isBuiltInCat = (k) => !!BUILT_IN[k];
+  K.syncCats = (data) => {
+    const custom = (data && data.customCats) || [];
+    Object.keys(CATS).forEach((k) => { if (!BUILT_IN[k]) delete CATS[k]; });
+    custom.forEach((c) => { CATS[c.id] = { name: c.name, icon: c.icon || 'tag', tone: c.tone || 'p', custom: true }; });
+    const order = Object.keys(BUILT_IN).filter((k) => k !== 'other').concat(custom.map((c) => c.id), ['other']);
+    K.CAT_ORDER.length = 0; order.forEach((k) => K.CAT_ORDER.push(k));
+  };
+  K.addCategory = (d, c) => { const id = 'c_' + uid(''); return [Object.assign({}, d, { customCats: (d.customCats || []).concat([{ id, name: c.name.trim(), icon: c.icon || 'tag', tone: c.tone || 'p' }]) }), id]; };
+  K.editCategory = (d, id, patch) => Object.assign({}, d, { customCats: (d.customCats || []).map((c) => (c.id === id ? Object.assign({}, c, patch) : c)) });
+  // Deleting moves its transactions, bills and rules to Other; nothing is lost
+  K.deleteCategory = (d, id) => { const budget = Object.assign({}, d.budget); delete budget[id]; return Object.assign({}, d, { customCats: (d.customCats || []).filter((c) => c.id !== id), txns: d.txns.map((t) => (t.cat === id ? Object.assign({}, t, { cat: 'other' }) : t)), bills: d.bills.map((b) => (b.cat === id ? Object.assign({}, b, { cat: 'other' }) : b)), rules: d.rules.filter((r) => r.cat !== id), budget }); };
   K.CURRENCIES = { CAD: ['CA$', 'Canadian dollar'], USD: ['US$', 'US dollar'], PEN: ['S/', 'Peruvian sol'], EUR: ['€', 'Euro'], GBP: ['£', 'British pound'], MXN: ['MX$', 'Mexican peso'], COP: ['COL$', 'Colombian peso'], CLP: ['CLP$', 'Chilean peso'], ARS: ['AR$', 'Argentine peso'], BRL: ['R$', 'Brazilian real'], JPY: ['¥', 'Japanese yen'], AUD: ['A$', 'Australian dollar'], CHF: ['Fr', 'Swiss franc'] };
   // Fallback rates per 1 USD, used until live rates arrive
   const USD_RATES = { USD: 1, CAD: 1.364, PEN: 3.72, EUR: 0.92, GBP: 0.79, MXN: 18.1, COP: 4150, CLP: 940, ARS: 980, BRL: 5.6, JPY: 148, AUD: 1.52, CHF: 0.88 };
@@ -67,11 +81,12 @@
     accounts: [], cards: [], loans: [], txns: [], bills: [], income: [], budget: {}, goals: [], trips: [], rules: [], imports: [],
     household: { enabled: false, name: '' },
     fxPairs: { fav: [], use: {} },
+    customCats: [],
     snapshots: {},
     prefs: { utilRef: 30, horizon: 12, assumption: 'Recent average', insightFreq: 'Balanced' },
   });
   K.load = () => {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === VERSION) return Object.assign(K.factory(), d); } } catch (e) {}
+    try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === VERSION) { const out = Object.assign(K.factory(), d); K.syncCats(out); return out; } } } catch (e) {}
     return K.factory();
   };
   K.save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } };

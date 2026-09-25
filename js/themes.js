@@ -13,24 +13,29 @@
       dark: P({ bg: '#0E0F17', surface: '#171824', surface2: '#1F2130', elev: '#212334', line: '#2A2C3D', acc: '#A393FF', acc2: '#7C83FF', acc3: '#5B9BFF', accbg: '#252049', tint: '#1C1A33', solid: '#5A3FE0', grad: ['#6A4BFF', '#5552F2', '#3F7BFF'], grad2: ['#4B45D8', '#3F7BFF'], chart: ['#8B74FF', '#4F8BFF', '#B7A8FF', '#7DB7FF', '#4A4670'] }),
     },
     Ocean: {
-      desc: 'Deep navy, blue and cyan. Cool and clear.',
-      light: P({ bg: '#F5F8FB', surface: '#FFFFFF', surface2: '#EDF3F8', elev: '#FFFFFF', line: '#E0E9F2', acc: '#1D5FD1', acc2: '#123E8C', acc3: '#0E97B8', accbg: '#E7F0FC', tint: '#EEF5FC', solid: '#1A56C0', grad: ['#123E8C', '#1D5FD1', '#1BA3C6'], grad2: ['#1D5FD1', '#1BA3C6'], chart: ['#1D5FD1', '#1BA3C6', '#7FA8E8', '#7ED3E3', '#BCCDE6'] }),
-      dark: P({ bg: '#07111F', surface: '#0F1B2D', surface2: '#16243A', elev: '#182841', line: '#213150', acc: '#6FB2FF', acc2: '#3B82F6', acc3: '#3CD3F0', accbg: '#12294A', tint: '#0F2440', solid: '#1E5BC6', grad: ['#1F4FB8', '#1F74D6', '#18B5D8'], grad2: ['#1F74D6', '#18B5D8'], chart: ['#5AA2FF', '#3CD3F0', '#2D5E9E', '#8FE6F5', '#34466A'] }),
+      desc: 'Ice blue, teal and slate. Cool, calm and clear.',
+      light: P({ bg: '#F4F6FB', surface: '#FFFFFF', surface2: '#EBEFF7', elev: '#FFFFFF', line: '#DEE4EF', acc: '#1F6F86', acc2: '#343844', acc3: '#5FB7C9', accbg: '#E3F4F8', tint: '#EEF6FA', solid: '#343844', grad: ['#0F1221', '#343844', '#3E8FA5'], grad2: ['#2E7F96', '#5FB7C9'], chart: ['#1F6F86', '#93D5E1', '#343844', '#5FB7C9', '#C9D3E3'] }),
+      dark: P({ bg: '#0F1221', surface: '#171B2B', surface2: '#1E2334', elev: '#222839', line: '#2A3042', acc: '#93D5E1', acc2: '#6FB9CB', acc3: '#5DB6C8', accbg: '#183241', tint: '#152536', solid: '#2E6F82', grad: ['#1D3B5C', '#2E6F82', '#5DB6C8'], grad2: ['#2E6F82', '#5DB6C8'], chart: ['#93D5E1', '#5DB6C8', '#6B7080', '#C6ECF2', '#343844'], accInk: '#0F1221' }),
     },
     Forest: {
       desc: 'Deep forest, emerald, sage and leaf. Grounded and fresh.',
       light: P({ bg: '#F5F8F3', surface: '#FFFFFF', surface2: '#EDF3EA', elev: '#FFFFFF', line: '#DFE8DA', acc: '#1E7A55', acc2: '#0F3D2E', acc3: '#5E8C3A', accbg: '#E3F1E7', tint: '#EEF5EC', solid: '#14553F', grad: ['#0F3D2E', '#1E7A55', '#5FA868'], grad2: ['#1E7A55', '#7FB77E'], chart: ['#1E7A55', '#7FB77E', '#0F3D2E', '#B7D9A8', '#4E8F6B'] }),
       dark: P({ bg: '#0A120E', surface: '#111C16', surface2: '#17251D', elev: '#1A2A21', line: '#22362A', acc: '#6FD9A0', acc2: '#2FB57A', acc3: '#A7D46F', accbg: '#15301F', tint: '#122419', solid: '#1B6B4A', grad: ['#0F4A35', '#1E8A5C', '#6BBF6E'], grad2: ['#1E8A5C', '#8CC46A'], chart: ['#5FD39A', '#A7D46F', '#2E7D5B', '#CDEBB0', '#34503F'] }),
     },
-    Ember: {
-      desc: 'Terracotta, orange and rose. Warm and lively.',
-      light: P({ bg: '#FCF7F3', surface: '#FFFFFF', surface2: '#F7EEE8', elev: '#FFFFFF', line: '#EFE2D9', acc: '#B8482A', acc2: '#D06A2A', acc3: '#C93F66', accbg: '#FBEDE6', tint: '#FCF0EA', solid: '#B0442A', grad: ['#B8482A', '#DC6A3A', '#D0466C'], grad2: ['#DC6A3A', '#D0466C'], chart: ['#C2502E', '#E68A3E', '#D9486F', '#EDB38F', '#EAD2C6'] }),
-      dark: P({ bg: '#16100E', surface: '#201816', surface2: '#2A201D', elev: '#2D221F', line: '#372B27', acc: '#FF9A73', acc2: '#F2A25A', acc3: '#FF7A9E', accbg: '#3A231C', tint: '#2C1C18', solid: '#B24A2C', grad: ['#B8482A', '#D8683A', '#C8466C'], grad2: ['#D8683A', '#C8466C'], chart: ['#FF8A5C', '#F2B25A', '#FF7A9E', '#8C5A48', '#4A3833'] }),
+    Coral: {
+      desc: 'Deep navy with a coral accent. Serious, with character.',
+      light: P({ bg: '#F6F6F5', surface: '#FFFFFF', surface2: '#EEEEEC', elev: '#FFFFFF', line: '#E2E2DF', acc: '#C73A1C', acc2: '#2C394B', acc3: '#FF4C29', accbg: '#FDEBE6', tint: '#F4F1EF', solid: '#2C394B', grad: ['#082032', '#2C394B', '#3F5A6E'], grad2: ['#FF4C29', '#B23A22'], chart: ['#FF4C29', '#334756', '#F29C85', '#8A9AAB', '#D2D2D2'] }),
+      dark: P({ bg: '#082032', surface: '#0F2A3F', surface2: '#16334A', elev: '#1A3850', line: '#22405A', acc: '#FF7A5C', acc2: '#8FA3B5', acc3: '#FF4C29', accbg: '#33262F', tint: '#0F2D44', solid: '#2C394B', grad: ['#FF4C29', '#D63B22', '#7A2A22'], grad2: ['#334756', '#4F6C82'], chart: ['#FF6B4D', '#8FA3B5', '#F2A28C', '#4F6C82', '#2C394B'] }),
     },
     Sand: {
       desc: 'Cream, taupe, warm brown and muted gold. Quiet and elegant.',
       light: P({ bg: '#FAF7F2', surface: '#FFFFFF', surface2: '#F3EEE6', elev: '#FFFFFF', line: '#E8E1D6', acc: '#7A5A3A', acc2: '#8C7760', acc3: '#9C7A2E', accbg: '#F3ECE2', tint: '#F6F0E7', solid: '#6E5236', grad: ['#6E5236', '#8C6B48', '#B08A3C'], grad2: ['#8C6B48', '#B08A3C'], chart: ['#7A5A3A', '#B8913D', '#A08A70', '#D4BE92', '#E5DBCB'] }),
       dark: P({ bg: '#14110E', surface: '#1D1915', surface2: '#26211C', elev: '#29231E', line: '#332C25', acc: '#D9B77E', acc2: '#B59C80', acc3: '#E0BE6A', accbg: '#2E271E', tint: '#231E18', solid: '#6A5036', grad: ['#5E4630', '#7E6040', '#A8843A'], grad2: ['#7E6040', '#A8843A'], chart: ['#D9B77E', '#B59C80', '#E0BE6A', '#7A6650', '#453B31'] }),
+    },
+    Graphite: {
+      desc: 'Graphite and gray with an orange spark. Modern and warm.',
+      light: P({ bg: '#F6F6F6', surface: '#FFFFFF', surface2: '#EEEEEF', elev: '#FFFFFF', line: '#E3E3E5', acc: '#C8481F', acc2: '#2C2D31', acc3: '#F76C43', accbg: '#FEEDE6', tint: '#F3F1F0', solid: '#2C2D31', grad: ['#222327', '#2C2D31', '#3A3B40'], grad2: ['#F76C43', '#D9502A'], chart: ['#F76C43', '#2C2D31', '#BFC0C4', '#F9A688', '#7A7B80'] }),
+      dark: P({ bg: '#1B1C1F', surface: '#222327', surface2: '#2C2D31', elev: '#303136', line: '#36373C', acc: '#F9885F', acc2: '#BFC0C4', acc3: '#F76C43', accbg: '#3A2A24', tint: '#26272B', solid: '#3A3B40', grad: ['#F76C43', '#E4572E', '#C2431F'], grad2: ['#3A3B40', '#55565C'], chart: ['#F76C43', '#BFC0C4', '#F9A688', '#6E6F75', '#3A3B40'] }),
     },
     Mono: {
       desc: 'Black, graphite, gray and silver. As minimal as it gets.',
@@ -39,7 +44,7 @@
     },
   };
   // Earlier theme names keep working
-  K.THEME_ALIAS = { 'Kipu Purple': 'Kipu', Aurora: 'Ocean', Sunset: 'Ember', 'Warm Sand': 'Sand', Indigo: 'Kipu', Midnight: 'Kipu' };
+  K.THEME_ALIAS = { 'Kipu Purple': 'Kipu', Aurora: 'Ocean', Sunset: 'Coral', Ember: 'Coral', 'Warm Sand': 'Sand', Indigo: 'Kipu', Midnight: 'Kipu' };
   K.themeName = (n) => (K.THEMES[n] ? n : K.THEME_ALIAS[n] || 'Kipu');
 
   const SEM = {

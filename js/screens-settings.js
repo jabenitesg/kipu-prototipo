@@ -32,7 +32,7 @@
 
   // ---------------------------------------------------------------- Settings
   const SECTIONS = [
-    ['Money', [['household', 'people', 'p', 'Household'], ['currencies', 'globe', 'g', 'Currencies & exchange rates'], ['categories', 'tag', 'a', 'Category rules'], ['finance', 'sliders', 'b', 'Financial preferences']]],
+    ['Money', [['household', 'people', 'p', 'Household'], ['currencies', 'globe', 'g', 'Currencies & exchange rates'], ['categories', 'tag', 'a', 'Categories & rules'], ['finance', 'sliders', 'b', 'Financial preferences']]],
     ['Experience', [['appearance', 'palette', 'p', 'Appearance & theme'], ['ai', 'spark', 'p', 'Insights'], ['profile', 'user', 'b', 'Profile']]],
     ['Protection', [['privacy', 'eye', 'b', 'Privacy'], ['data', 'upload', 'n', 'Data, backup & reset']]],
   ];
@@ -46,7 +46,7 @@
   function Index({ active }) {
     const { data, go, settings, wide } = useApp();
     const T = K.THEMES[K.themeName(settings.theme)];
-    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length + ' active', appearance: K.themeName(settings.theme), ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Amounts hidden' : 'Amounts shown', categories: data.rules.length + ' rules', finance: data.prefs.utilRef + '% reference' };
+    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length + ' active', appearance: K.themeName(settings.theme), ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Amounts hidden' : 'Amounts shown', categories: (data.customCats || []).length ? (data.customCats || []).length + ' yours · ' + data.rules.length + ' rules' : data.rules.length + ' rules', finance: data.prefs.utilRef + '% reference' };
     return html`<div class="stack">
       <header class="between" style=${{ paddingTop: wide ? 0 : '8px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Preferences</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Settings</h1><p class="muted">Make Kipu work the way you do.</p></div><${K.Avatar} s=${46} /></header>
       <button class="hero" style=${{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', width: '100%' }} onClick=${() => go({ r: 'settings', s: 'appearance' }, wide)}><span class="soft eyebrow" style=${{ color: 'inherit' }}>Appearance & theme</span><span class="disp" style=${{ fontSize: '20px', fontWeight: 800 }}>${K.themeName(settings.theme)}</span><span class="soft small">${settings.mode === 'System' ? 'Follows your device' : settings.mode + ' mode'} · ${T.desc}</span><span class="row" style=${{ gap: '6px' }}>${Object.keys(K.THEMES).map((n) => html`<span key=${n} style=${{ width: '18px', height: '18px', borderRadius: '999px', background: K.gradCss(K.THEMES[n].light.grad), boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}></span>`)}</span></button>
@@ -140,9 +140,24 @@
 
   function Categories() {
     const { data, commit, toast } = useApp();
-    return html`<${SubHead} title="Category rules" sub="When a merchant matches a rule, new expenses get that category. Create a rule from any transaction." />
-      ${data.rules.length ? html`<div class="card tight list">${data.rules.map((r) => html`<div key=${r.id} class="lrow"><${Tile} icon=${K.CATS[r.cat].icon} tone=${K.CATS[r.cat].tone} /><span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${r.merchant}</span><span class="t2">${K.CATS[r.cat].name}</span></span><button class="link" onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((x) => x.id !== r.id) })); toast('Rule removed'); }}>Remove</button></div>`)}</div>` : html`<div class="card"><${EmptyState} icon="tag" title="No rules yet" text="Open any expense and choose “Always use this category”." /></div>`}
-      <span class="tiny muted">Without a rule, Kipu suggests a category from the merchant name and your past choices.</span>`;
+    const [adding, setAdding] = useState(false);
+    const [editing, setEditing] = useState(null);
+    const [confirmDel, setConfirmDel] = useState(null);
+    const custom = data.customCats || [];
+    const uses = (id) => data.txns.filter((t) => t.cat === id).length;
+    const save = (d, msg) => { K.syncCats(d); commit(d); toast(msg); };
+    return html`<${SubHead} title="Categories & rules" sub="Add the categories that fit your life. They work everywhere: expenses, budget, statistics and imports." />
+      <div class="stack-s"><span class="eyebrow">Your categories</span>
+        <div class="card tight list">${custom.map((c) => editing === c.id ? html`<div key=${c.id} style=${{ padding: '8px' }}><${K.CategoryForm} initial=${c} saveLabel="Save" onCancel=${() => setEditing(null)} onSave=${(v) => { save(K.editCategory(data, c.id, v), 'Category updated'); setEditing(null); }} />
+            ${confirmDel === c.id ? html`<div class="card stack-s" style=${{ marginTop: '8px', borderColor: 'var(--crit2)' }}><span style=${{ fontWeight: 600 }}>Delete ${c.name}?</span><span class="small muted">${uses(c.id) ? uses(c.id) + ' transactions move to Other. ' : ''}Rules for it are removed.</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => setConfirmDel(null)}>Keep it</button><button class="btn dan sm" onClick=${() => { save(K.deleteCategory(data, c.id), c.name + ' deleted'); setConfirmDel(null); setEditing(null); }}>Delete</button></div></div>` : html`<button class="link" style=${{ color: 'var(--crit)', marginTop: '8px' }} onClick=${() => setConfirmDel(c.id)}>Delete category</button>`}</div>`
+          : html`<button key=${c.id} class="lrow" onClick=${() => { setEditing(c.id); setConfirmDel(null); setAdding(false); }}><${Tile} icon=${c.icon} tone=${c.tone} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${c.name}</span><span class="t2">${uses(c.id)} ${uses(c.id) === 1 ? 'transaction' : 'transactions'}</span></span><${Icon} n="sliders" s=${15} c="var(--muted)" /></button>`)}
+          ${!adding && html`<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => { setAdding(true); setEditing(null); }}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>Add a category</button>`}</div>
+        ${adding && html`<${K.CategoryForm} onCancel=${() => setAdding(false)} onSave=${(v) => { save(K.addCategory(data, v)[0], v.name + ' added'); setAdding(false); }} />`}
+        ${!custom.length && !adding && html`<span class="tiny muted">For example Pets, Gifts, Kids or Church. You can also add one while recording an expense.</span>`}</div>
+      <div class="stack-s"><span class="eyebrow">Built in</span><div class="chips">${K.CAT_ORDER.filter((k) => K.isBuiltInCat(k)).map((k) => html`<span key=${k} class="chip" style=${{ cursor: 'default' }}><${Icon} n=${K.CATS[k].icon} s=${13} />${K.CATS[k].name}</span>`)}</div></div>
+      <div class="stack-s"><span class="eyebrow">Rules</span>
+      ${data.rules.length ? html`<div class="card tight list">${data.rules.filter((r) => K.CATS[r.cat]).map((r) => html`<div key=${r.id} class="lrow"><${Tile} icon=${K.CATS[r.cat].icon} tone=${K.CATS[r.cat].tone} /><span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${r.merchant}</span><span class="t2">${K.CATS[r.cat].name}</span></span><button class="link" onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((x) => x.id !== r.id) })); toast('Rule removed'); }}>Remove</button></div>`)}</div>` : html`<div class="card"><${EmptyState} icon="tag" title="No rules yet" text="Open any expense and choose “Always use this category”." /></div>`}
+      <span class="tiny muted">When a merchant matches a rule, new expenses get that category. Without a rule, Kipu suggests one from the merchant name and your past choices.</span></div>`;
   }
 
   function AI() {

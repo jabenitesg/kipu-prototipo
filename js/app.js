@@ -57,6 +57,7 @@
     useEffect(() => { const on = () => { setSheet(null); setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)); }; window.addEventListener('popstate', on); return () => window.removeEventListener('popstate', on); }, []);
     useEffect(() => { window.scrollTo(0, 0); }, [stack.length, route.r, route.id, route.tab]);
 
+    K.syncCats(data);
     const D = useMemo(() => K.derive(data, ctx), [data, ctx]);
     const fmt = useMemo(() => K.makeFmt(settings, data), [settings.hide, data.base]);
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);

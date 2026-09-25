@@ -26,7 +26,7 @@
     const curs = ['Combined'].concat(curOptions(data));
     return html`<${Sheet} title="View" sub="Scope, currency and period apply across Kipu." onClose=${onClose}>
       ${data.household.enabled && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
-      ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? 'All · ' + K.sym(data.base) : c + ' only'))} /></div>`}
+      ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
       ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${ctx.period == null ? 11 : ctx.period} onChange=${(v) => setCtx({ period: v })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
       <button class="btn pri block" onClick=${onClose}>Done</button></${Sheet}>`;
   };
@@ -41,6 +41,7 @@
     const [cur, setCur] = useState(src.cur || data.base);
     const [merchant, setMerchant] = useState(src.merchant || '');
     const [cat, setCat] = useState(src.cat || '');
+    const [newCat, setNewCat] = useState(false);
     const [date, setDate] = useState(src.date || K.iso(K.today()));
     const [from, setFrom] = useState(src.from || (places[0] || [])[0] || '');
     const [note, setNote] = useState(src.note || '');
@@ -62,10 +63,11 @@
     return html`<${Sheet} title=${item ? 'Edit expense' : preset.source === 'receipt' ? 'Check the receipt' : 'Add expense'} sub=${preset.source === 'receipt' ? 'Kipu read these from the photo. Fix anything that looks wrong.' : null} onClose=${onClose}>
       ${preset.image && html`<img src=${preset.image} alt="Receipt" style=${{ maxHeight: '160px', objectFit: 'contain', borderRadius: '14px', background: 'var(--surface2)' }} />`}
       <${Amount} value=${amt} onChange=${setAmt} cur=${cur} />
-      ${curs.length > 1 && html`<${Seg} options=${curs} value=${cur} onChange=${setCur} />`}
+      ${curs.length > 1 && html`<${Seg} options=${curs} value=${cur} onChange=${setCur} labels=${curs.map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       ${cur !== data.base && v > 0 && html`<div class="card flat" style=${{ padding: '12px 14px' }}><div class="between small"><span class="muted">In ${data.base} at today’s rate</span><b class="num">${fmt(K.toBase(data, v, cur), { dec: 2 })}</b></div><span class="tiny muted">The rate is locked when you save.</span></div>`}
       <${In} id="e-merchant" label="Merchant" value=${merchant} onInput=${(e) => setMerchant(e.target.value)} ph="Where did you spend?" />
-      <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].name}</button>`)}</div></div>
+      <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].custom && html`<${Icon} n=${K.CATS[c].icon} s=${13} />`}${K.CATS[c].name}</button>`)}${!newCat && html`<button type="button" class="chip" style=${{ color: 'var(--acc)', background: 'var(--accbg)' }} onClick=${() => setNewCat(true)}><${Icon} n="plus" s=${13} w=${2.4} />New category</button>`}</div>
+        ${newCat && html`<${K.CategoryForm} onCancel=${() => setNewCat(false)} onSave=${(c) => { const [d, id] = K.addCategory(data, c); K.syncCats(d); commit(d); setCat(id); setNewCat(false); toast(c.name + ' added'); }} />`}</div>
       ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
       <${K.DateInput} label="Date" value=${date} onChange=${setDate} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" />
       ${(D.trips.length > 0 || data.household.enabled) && html`<div class="card tight list">${D.trips.length > 0 && html`<div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div>`}${data.household.enabled && html`<${ToggleRow} title="Share with Household" on=${shared} onChange=${setShared} icon="people" tone="p" />`}</div>`}
@@ -79,7 +81,7 @@
     const v = numv(f.amt);
     const save = () => { const t = { type: 'income', cat: 'income', merchant: f.merchant || 'Income', amt: v, cur: f.cur, from: f.from, date: f.date }; commit(item ? K.editTxn(K.editTxn(data, item.id, t), item.id, { merchant: t.merchant, date: t.date }) : K.addTxn(data, t)); toast(item ? 'Income updated' : 'Income added'); onClose(); };
     return html`<${Sheet} title=${item ? 'Edit income' : 'Add income'} sub="For a one-off payment. Regular pay goes in Plan › income sources." onClose=${onClose}>
-      <${Amount} value=${f.amt} onChange=${on('amt')} cur=${f.cur} />${curOptions(data).length > 1 && html`<${Seg} options=${curOptions(data)} value=${f.cur} onChange=${on('cur')} />`}
+      <${Amount} value=${f.amt} onChange=${on('amt')} cur=${f.cur} />${curOptions(data).length > 1 && html`<${Seg} options=${curOptions(data)} value=${f.cur} onChange=${on('cur')} labels=${curOptions(data).map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       <${In} id="i-src" label="From" value=${f.merchant} onInput=${on('merchant')} ph="Employer, client or refund" />
       ${places.length ? html`<${Field} label="Into"><${Select} id="i-to" value=${f.from} onChange=${on('from')} options=${places} /></${Field}>` : html`<${NoPlace} />`}
       <${K.DateInput} label="Date" value=${f.date} onChange=${on('date')} />
