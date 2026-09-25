@@ -20,6 +20,25 @@
 
   function App() {
     const [data, setData] = useState(() => K.load());
+    const dataRef = useRef(data);
+    const vaultRef = useRef(null);
+    const cloudUserRef = useRef(undefined);
+    const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '' });
+    if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
+    useEffect(() => {
+      if (!K.cloudClient) { setCloud({ status: 'guest', user: null, error: 'Cloud sign-in is unavailable.' }); return; }
+      const { data: listener } = K.cloudClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'TOKEN_REFRESHED') return;
+        const user = session && session.user;
+        const id = user ? user.id : null;
+        if (cloudUserRef.current === id) return;
+        cloudUserRef.current = id;
+        if (vaultRef.current) vaultRef.current.clear();
+        const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
+        setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '' });
+      });
+      return () => listener.subscription.unsubscribe();
+    }, []);
     const [ctx, setCtxRaw] = useState({ scope: 'personal', currency: 'Combined', period: 11 });
     const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Graphite', 'Dark', 'Midnight', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
     const [stack, setStack] = useState([{ r: 'home' }]);
@@ -35,7 +54,39 @@
     const wideRef = useRef(false);
 
     useEffect(() => { const on = () => setVw(window.innerWidth); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
-    const commit = useCallback((next) => { setData(next); if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.'); }, []);
+    const commit = useCallback((next) => {
+      dataRef.current = next;
+      setData(next);
+      if (vaultRef.current && vaultRef.current.key && vaultRef.current.revision) vaultRef.current.enqueue(next);
+      else if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.');
+    }, []);
+    const cloudOpen = useCallback(async (passphrase, seed) => {
+      if (!cloud.user) throw new Error('Sign in first');
+      setCloud((c) => Object.assign({}, c, { status: 'opening', error: '' }));
+      try {
+        const remote = await vaultRef.current.open(cloud.user.id, passphrase);
+        if (remote) { dataRef.current = remote; setData(remote); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: vaultRef.current.error ? 'error' : 'synced', error: vaultRef.current.error ? vaultRef.current.error.message : '' })); return 'opened'; }
+        if (!seed) { setCloud((c) => Object.assign({}, c, { status: 'choose' })); return 'choose'; }
+        const initial = seed === 'local' ? K.load() : K.factory();
+        await vaultRef.current.create(initial);
+        if (seed === 'local') K.wipe();
+        dataRef.current = initial; setData(initial);
+        setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced' }));
+        return 'created';
+      } catch (e) { vaultRef.current.clear(); setCloud((c) => Object.assign({}, c, { status: 'locked', error: e.message })); throw e; }
+    }, [cloud.user]);
+    const cloudCreate = useCallback(async (seed) => {
+      try { const initial = seed === 'local' ? K.load() : K.factory(); await vaultRef.current.create(initial); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
+      catch (e) { setCloud((c) => Object.assign({}, c, { error: e.message })); throw e; }
+    }, []);
+    const cloudSignOut = useCallback(async () => { if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync or export a backup before signing out.'); const { error } = await K.cloudClient.auth.signOut(); if (error) throw error; }, []);
+    useEffect(() => {
+      if (cloud.status !== 'ready') return;
+      const check = async () => { if (document.hidden) return; try { const fresh = await vaultRef.current.refresh(); if (fresh) { dataRef.current = fresh; setData(fresh); setCloud((c) => Object.assign({}, c, { sync: 'synced' })); } } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); } };
+      const timer = setInterval(check, 30000);
+      window.addEventListener('focus', check);
+      return () => { clearInterval(timer); window.removeEventListener('focus', check); };
+    }, [cloud.status]);
     const setCtx = useCallback((o) => setCtxRaw((c) => Object.assign({}, c, o)), []);
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
     const effectiveMode = settings.mode === 'System' ? (sysDark ? 'Dark' : 'Light') : K.modeName(settings.mode);
@@ -46,13 +97,13 @@
 
     // Live exchange rates, at most twice a day
     useEffect(() => {
-      if (!data.onboarded) return;
+      if (!data.onboarded || !['guest', 'ready'].includes(cloud.status)) return;
       const age = data.fx.updated ? Date.now() - new Date(data.fx.updated).getTime() : Infinity;
       if (age < 12 * 3600 * 1000 && Object.keys(data.fx.usd).length > 40) return;
-      K.refreshFx(data).then((fx) => setData((d) => { const n = Object.assign({}, d, { fx }); K.save(n); return n; })).catch(() => {});
-    }, [data.onboarded, data.active.join()]);
+      K.refreshFx(data).then((fx) => commit(Object.assign({}, dataRef.current, { fx }))).catch(() => {});
+    }, [data.onboarded, data.active.join(), cloud.status]);
     // Month change: record this month’s balances even without new activity
-    useEffect(() => { if (data.onboarded && !data.snapshots[K.monthKey(K.today())]) commit(K.snapshot(data)); }, [data.onboarded]);
+    useEffect(() => { if (['guest', 'ready'].includes(cloud.status) && data.onboarded && !data.snapshots[K.monthKey(K.today())]) commit(K.snapshot(dataRef.current)); }, [data.onboarded, cloud.status]);
 
     const route = stack[stack.length - 1];
     const go = useCallback((r, replace) => {
@@ -70,13 +121,14 @@
     const fmt = useMemo(() => K.makeFmt(settings, data), [settings.hide, data.base]);
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);
     const toast = useCallback((m) => { setToast(m); clearTimeout(window.__kt); window.__kt = setTimeout(() => setToast(null), 2800); }, []);
-    const resetAll = useCallback(() => { K.wipe(); setData(K.factory()); setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null); }, []);
+    const resetAll = useCallback(() => { if (vaultRef.current && vaultRef.current.key) commit(K.factory()); else { K.wipe(); const next = K.factory(); dataRef.current = next; setData(next); } setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null); }, []);
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, commit, cloud, cloudOpen, cloudCreate, cloudSignOut, cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
+    if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;
     if (!data.onboarded) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.Onboarding} /></div></${Ctx.Provider}>`;
     if (locked && K.lockCfg().enabled) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.LockScreen} onUnlock=${() => setLocked(false)} wide=${wide} vw=${vw} /></div></${Ctx.Provider}>`;
 

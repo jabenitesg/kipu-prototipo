@@ -6,7 +6,7 @@
 
   // ---------------------------------------------------------------- first run
   K.Onboarding = function Onboarding() {
-    const { data, commit, setSettings } = useApp();
+    const { data, commit, setSettings, cloudLogin } = useApp();
     const [step, setStep] = useState(0);
     const [name, setName] = useState('');
     const [base, setBase] = useState('CAD');
@@ -20,7 +20,7 @@
     return html`<div class="onb"><div class="onb-card stack" style=${{ gap: '22px' }}>
       <div class="row" style=${{ gap: '10px' }}><span style=${{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '22px', fontWeight: 800 }}>Kipu</span><span class="grow"></span><div class="row" style=${{ gap: '6px' }}>${[0, 1, 2].map((i) => html`<${Dot} key=${i} i=${i} />`)}</div></div>
       ${step === 0 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '32px', lineHeight: '38px', fontWeight: 800 }}>Money, calmly.</h1><p class="muted" style=${{ fontSize: '16px', lineHeight: 1.5 }}>Kipu keeps your accounts, bills, goals and trips in one place and tells you what’s safe to spend. Everything stays on this device.</p>
-        <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button><button class="btn sec block" onClick=${() => finish(true)}>Explore with sample data</button></div>`}
+        <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button><button class="btn sec block" onClick=${cloudLogin}>Sign in to sync</button><button class="link" onClick=${() => finish(true)}>Explore with sample data</button></div>`}
       ${step === 1 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>What should we call you?</h1><${Field} label="First name"><input id="onb-name" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Your name" autofocus /></${Field}><button class="btn pri block" onClick=${() => setStep(2)}>Continue</button></div>`}
       ${step === 2 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>Your main currency</h1><p class="muted">Totals, Safe to Spend and net worth use it. You can still record anything in other currencies.</p>
         <${K.CurrencySelect} label="Main currency" value=${base} onChange=${setBase} />
@@ -34,7 +34,7 @@
   // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
     ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
-    ['Security & data', [['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
+    ['Security & data', [['cloud', 'cloud', 'Account & sync'], ['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
   ];
   K.Settings = function Settings({ route }) {
     const { wide, go } = useApp();
@@ -46,11 +46,11 @@
     return html`<${Index} active=${wide ? null : undefined} />`;
   };
   function Index({ active }) {
-    const { data, go, settings, setSettings, wide } = useApp();
+    const { data, go, settings, setSettings, wide, cloud } = useApp();
     const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
     const pal = K.palette(theme, settings.effectiveDark);
     const open = (k) => go({ r: 'settings', s: k }, wide);
-    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off' };
+    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off' };
     const on = (k) => active === k;
     const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
     const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
@@ -64,11 +64,48 @@
         <${ToggleTile} label="Insights" sub=${settings.ai.insights ? 'On' : 'Off'} icon="spark" value=${settings.ai.insights} onChange=${(v) => setSettings({ ai: Object.assign({}, settings.ai, { insights: v }) })} />
       </div>
       ${SECTIONS.map(([g, items]) => html`<div key=${g} class="stack-s"><span class="eyebrow">${g}</span><div class="card tight list">${items.map(([k, ic, l]) => html`<button key=${k} class=${'lrow set-row' + (on(k) ? ' on' : '')} onClick=${() => open(k)}><span class="set-ic"><${Icon} n=${ic} s=${17} /></span><span class="grow t1" style=${{ textAlign: 'left' }}>${l}</span>${val[k] && html`<span class="set-val">${val[k]}</span>`}<${Icon} n="next" s=${15} c="var(--muted)" /></button>`)}</div></div>`)}
-      <span class="tiny muted" style=${{ textAlign: 'center' }}>Kipu · your data stays on this device</span></div>`;
+      <span class="tiny muted" style=${{ textAlign: 'center' }}>Kipu · ${cloud.status === 'ready' ? 'encrypted sync is on' : 'local on this device'}</span></div>`;
   }
   const SubHead = ({ title, sub }) => html`<div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Settings</span><h2 class="set-title">${title}</h2>${sub && html`<p class="muted" style=${{ lineHeight: 1.5, maxWidth: '60ch' }}>${sub}</p>`}</div>`;
+
+  K.CloudAccess = function CloudAccess() {
+    const { cloud, cloudOpen, cloudCreate, cloudCancel, cloudSignOut } = useApp();
+    const [email, setEmail] = useState('');
+    const [passphrase, setPassphrase] = useState('');
+    const [confirmPassphrase, setConfirmPassphrase] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [message, setMessage] = useState('');
+    const act = async (fn) => { setBusy(true); setMessage(''); try { await fn(); } catch (e) { setMessage(e.message || 'Could not connect'); } finally { setBusy(false); } };
+    const sendLink = () => act(async () => {
+      if (!K.cloudClient) throw new Error('Cloud sign-in is unavailable. Try again when online.');
+      const { error } = await K.cloudClient.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      setMessage('Check your email for a one-time sign-in link. Open it on this device.');
+    });
+    const unlock = () => act(async () => { if (passphrase.length < 12) throw new Error('Use at least 12 characters.'); await cloudOpen(passphrase); });
+    const create = (seed) => act(() => { if (passphrase !== confirmPassphrase) throw new Error('Passphrases do not match.'); return cloudCreate(seed); });
+    const guest = K.load();
+    const hasLocal = guest.onboarded || guest.accounts.length || guest.cards.length || guest.loans.length || guest.txns.length;
+    return html`<div class="onb"><div class="onb-card stack" style=${{ gap: '18px' }}>
+      <h1 style=${{ fontSize: '26px' }}>${cloud.status === 'login' ? 'Sign in to Kipu' : cloud.status === 'choose' ? 'Create your encrypted vault' : cloud.status === 'checking' ? 'Opening Kipu…' : 'Unlock your Kipu data'}</h1>
+      ${cloud.status === 'login' && html`<form class="stack-s" onSubmit=${(e) => { e.preventDefault(); sendLink(); }}><p class="muted">We’ll email you a one-time sign-in link. No password needed for the account.</p><${Field} label="Email"><input class="input" type="email" required value=${email} onInput=${(e) => setEmail(e.target.value)} autocomplete="email" /></${Field}><button class="btn pri block" disabled=${busy}>Email sign-in link</button><button type="button" class="link" onClick=${cloudCancel}>Back to this device</button></form>`}
+      ${['locked', 'opening'].includes(cloud.status) && html`<form class="stack-s" onSubmit=${(e) => { e.preventDefault(); unlock(); }}><p class="muted">${cloud.user && cloud.user.email} · Enter your private passphrase to decrypt your data. It stays on this device.</p><${Field} label="Private passphrase"><input class="input" type="password" required minlength="12" value=${passphrase} onInput=${(e) => setPassphrase(e.target.value)} autocomplete="off" /></${Field}><button class="btn pri block" disabled=${busy || cloud.status === 'opening'}>Unlock</button><span class="tiny muted">Kipu cannot recover this passphrase. Keep a JSON backup somewhere safe.</span></form>`}
+      ${cloud.status === 'choose' && html`<div class="stack-s"><p class="muted">This account has no Kipu data yet. Choose what to put in it.</p><${Field} label="Confirm private passphrase"><input class="input" type="password" value=${confirmPassphrase} onInput=${(e) => setConfirmPassphrase(e.target.value)} autocomplete="off" /></${Field}>${hasLocal && html`<button class="btn pri block" disabled=${busy} onClick=${() => create('local')}>Move this device’s data to my account</button>`}<button class=${'btn ' + (hasLocal ? 'sec' : 'pri') + ' block'} disabled=${busy} onClick=${() => create('empty')}>Start with zero data</button><span class="tiny muted">Only encrypted data is uploaded. Your passphrase never goes to Supabase.</span></div>`}
+      ${cloud.user && cloud.status !== 'checking' && html`<button class="link" disabled=${busy} onClick=${() => act(cloudSignOut)}>Use this device without signing in</button>`}
+      ${(message || cloud.error) && html`<p class="small" role="status" style=${{ color: 'var(--crit)' }}>${message || cloud.error}</p>`}
+    </div></div>`;
+  };
+
+  function CloudSettings() {
+    const { cloud, cloudLogin, cloudSignOut, cloudRetry, data } = useApp();
+    const [message, setMessage] = useState('');
+    const signOut = async () => { try { await cloudSignOut(); } catch (e) { setMessage(e.message); } };
+    return html`<${SubHead} title="Account & sync" sub="Use your Kipu data on another device with an email link and your private passphrase." />
+      <div class="card stack-s">${cloud.status === 'ready' ? html`<span style=${{ fontWeight: 700 }}>${cloud.user.email}</span><span class="small muted">Sync: ${cloud.sync || 'synced'}</span>${cloud.error && html`<span class="small" style=${{ color: 'var(--crit)' }}>${cloud.error}</span>`}${cloud.sync === 'error' && html`<button class="btn sec" onClick=${cloudRetry}>Retry sync</button>`}<button class="btn sec" onClick=${signOut}>Sign out</button>` : html`<span class="small muted">Your data currently stays in this browser.</span><button class="btn pri" onClick=${cloudLogin}>Sign in or create account</button>`}${message && html`<span class="small" role="alert">${message}</span>`}</div>
+      <p class="tiny muted">Cloud data is encrypted before upload. Your email and login details are managed by Supabase. Browser backups exported as JSON are readable files; store them safely. If you forget your private passphrase, Kipu cannot decrypt your cloud data.</p>`;
+  }
   function Section({ s }) {
-    const C = { security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
+    const C = { cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
   }
 
@@ -126,7 +163,7 @@
     const upd = (k) => (e) => setP({ [k]: e.target.value });
     const choose = async (file) => { if (!file) return; try { setP({ photo: await shrinkPhoto(file) }); toast('Photo updated'); } catch (e) { toast('That image couldn’t be read'); } };
     return html`<${SubHead} title="Profile" sub="Used for the greeting and your avatar." />
-      <div class="card row" style=${{ gap: '16px' }}><${K.Face} s=${72} /><div class="stack-s" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${15} />${data.profile.photo ? 'Change photo' : 'Add a photo'}</button>${data.profile.photo && html`<button class="link" style=${{ color: 'var(--muted)' }} onClick=${() => { setP({ photo: '' }); toast('Photo removed'); }}>Remove photo</button>`}<span class="tiny muted">Stays on this device.</span></div><input ref=${fileRef} type="file" accept="image/*" style=${{ display: 'none' }} onChange=${(e) => { choose(e.target.files[0]); e.target.value = ''; }} /></div>
+      <div class="card row" style=${{ gap: '16px' }}><${K.Face} s=${72} /><div class="stack-s" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${15} />${data.profile.photo ? 'Change photo' : 'Add a photo'}</button>${data.profile.photo && html`<button class="link" style=${{ color: 'var(--muted)' }} onClick=${() => { setP({ photo: '' }); toast('Photo removed'); }}>Remove photo</button>`}<span class="tiny muted">Part of your encrypted backup when sync is on.</span></div><input ref=${fileRef} type="file" accept="image/*" style=${{ display: 'none' }} onChange=${(e) => { choose(e.target.files[0]); e.target.value = ''; }} /></div>
       <${Field} label="Name"><input id="p-name" class="input" value=${data.profile.name} onInput=${upd('name')} /></${Field}><${Field} label="Email" hint="Optional. Kept on this device."><input id="p-email" class="input" type="email" value=${data.profile.email} onInput=${upd('email')} /></${Field}>`;
   }
 
@@ -230,7 +267,7 @@
 
   function Privacy() {
     const { settings, setSettings } = useApp();
-    return html`<${SubHead} title="Privacy" sub="Your data never leaves this device unless you export it." /><div class="card tight"><${ToggleRow} title="Hide amounts" sub="Shows •••••• instead of numbers. Useful in public." on=${settings.hide} onChange=${(v) => setSettings({ hide: v })} icon="eyeoff" tone="b" /></div>`;
+    return html`<${SubHead} title="Privacy" sub="Local mode stays on this device. Account mode uploads encrypted data for sync." /><div class="card tight"><${ToggleRow} title="Hide amounts" sub="Shows •••••• instead of numbers. Useful in public." on=${settings.hide} onChange=${(v) => setSettings({ hide: v })} icon="eyeoff" tone="b" /></div>`;
   }
 
   function Finance() {
@@ -247,14 +284,14 @@
   };
 
   function DataSec() {
-    const { data, commit, toast, resetAll } = useApp();
+    const { data, commit, toast, resetAll, cloud } = useApp();
     const fileRef = useRef(null);
     const stamp = K.iso(K.today());
     const restore = async (file) => { try { const d = JSON.parse(await file.text()); if (!d || d.v !== 1 || !Array.isArray(d.txns)) throw new Error('format'); commit(Object.assign(K.factory(), d)); toast('Backup restored'); } catch (e) { toast('That file isn’t a Kipu backup'); } };
-    return html`<${SubHead} title="Data, backup & reset" sub="Everything is stored in this browser on this device." />
+    return html`<${SubHead} title="Data, backup & reset" sub=${cloud.status === 'ready' ? 'Your encrypted data syncs with your account.' : 'Your data is stored in this browser on this device.'} />
       <${Facts} rows=${[['Transactions', String(data.txns.length)], ['Accounts, cards and loans', String(data.accounts.length + data.cards.length + data.loans.length)], ['Bills and goals', String(data.bills.length + data.goals.length)], ['Imports', String(data.imports.length)]]} />
       <div class="stack-s"><span class="eyebrow">Export</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => K.download('kipu-backup-' + stamp + '.json', JSON.stringify(data, null, 1), 'application/json')}><${Icon} n="download" s=${16} />Backup (JSON)</button><button class="btn sec" disabled=${!data.txns.length} onClick=${() => K.download('kipu-transactions-' + stamp + '.csv', K.toCSV(data), 'text/csv')}><${Icon} n="download" s=${16} />Transactions (CSV)</button></div><span class="tiny muted">Keep a backup before clearing your browser or changing phones.</span></div>
       <div class="stack-s"><span class="eyebrow">Restore</span><button class="btn sec" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${16} />Restore a backup</button><input ref=${fileRef} id="restore-file" type="file" accept="application/json,.json" style=${{ display: 'none' }} onChange=${(e) => e.target.files[0] && restore(e.target.files[0])} /></div>
-      <div class="stack-s"><span class="eyebrow">Start over</span><${DangerButton} label="Erase everything and reset" onConfirm=${resetAll} /><span class="tiny muted">Returns Kipu to factory state and shows the welcome again. Export a backup first if you might need it.</span></div>`;
+      <div class="stack-s"><span class="eyebrow">Start over</span><${DangerButton} label="Erase everything and reset" onConfirm=${resetAll} /><span class="tiny muted">${cloud.status === 'ready' ? 'Replaces your cloud data with an empty Kipu vault on every device.' : 'Returns Kipu to factory state and shows the welcome again.'} Export a backup first if you might need it.</span></div>`;
   }
 })();
