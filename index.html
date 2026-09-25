@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kipu</title>
-<meta name="description" content="Kipu: a calm personal finance app. Your data stays on your device.">
+<meta name="description" content="Kipu: a calm personal finance app with optional encrypted sync.">
 <meta name="theme-color" content="#F7F6FB">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -175,7 +175,26 @@ p { margin: 0; }
 .kpi .b.pos { background: var(--posbg); color: var(--pos); } .kpi .b.warn { background: var(--warnbg); color: var(--warn); }
 .onb { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px); }
 .onb-card { width: 100%; max-width: 440px; }
+.cloud-access .onb-card { max-width: 480px; overflow: hidden; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); box-shadow: var(--shadow); }
+.cloud-hero { min-height: 220px; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; background: radial-gradient(circle at 80% 10%, color-mix(in srgb, var(--acc3) 75%, transparent), transparent 48%), var(--grad); color: var(--hero-ink); }
+.cloud-hero h1 { font-size: 30px; line-height: 1.12; max-width: 12ch; }
+.cloud-body { padding: 24px 28px 30px; }
+.cloud-provider { width: 100%; justify-content: flex-start; gap: 12px; }
+.cloud-provider-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--surface2); font-weight: 800; font-size: 17px; }
+.cloud-provider:disabled { opacity: .48; }
+.cloud-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.cloud-divider::before, .cloud-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.activity-calendar { gap: 14px; }
+.activity-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.activity-day { min-width: 0; min-height: 74px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); }
+.activity-day strong { display: grid; place-items: center; width: min(100%, 46px); aspect-ratio: 1; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 16px; font-weight: 600; }
+.activity-day.on { color: var(--ink); }
+.activity-day.on strong { background: var(--grad); border-color: transparent; color: var(--hero-ink); box-shadow: var(--glow); }
+.activity-day i { width: 4px; height: 4px; border-radius: 50%; }
+.activity-day i.has-tx { background: var(--acc); }
+.activity-day.on i.has-tx { background: var(--acc); }
 .wide .onb-card { background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 32px; box-shadow: var(--shadow); }
+.wide .cloud-access .onb-card { padding: 0; max-width: 480px; }
 /* ---------- building blocks ---------- */
 .stack { display: flex; flex-direction: column; gap: 20px; }
 .stack-s { display: flex; flex-direction: column; gap: 10px; }
