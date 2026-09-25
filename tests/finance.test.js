@@ -296,3 +296,23 @@ test('a balance remembers the day it was typed; statement lines up to then are h
   d = K.upsert(d, 'accounts', Object.assign({}, d.accounts[0], { bal: 1200 }));
   assert.equal(K.balDate(d, 'acct:chq'), K.iso(K.today()));
 });
+
+test('purchases read with the wrong sign are recognized and can become expenses', () => {
+  // Card exports that list purchases as negative
+  assert.equal(K.spendSign([{ amt: -11.09, desc: 'APPLE.COM/BILL' }, { amt: -40, desc: 'SHELL' }, { amt: 300, desc: 'PAYMENT THANK YOU' }], true), -1);
+  assert.equal(K.spendSign([{ amt: 11.09, desc: 'APPLE.COM/BILL' }, { amt: 40, desc: 'SHELL' }, { amt: -300, desc: 'PAYMENT THANK YOU' }], true), 1);
+  let d = K.factory();
+  d.cards = [{ id: 'visa', name: 'Visa', cur: 'CAD', bal: 0, limit: 5000 }];
+  d = K.addTxn(d, { type: 'transfer', merchant: 'APPLE.COM/BILL TORONTO', amt: 11.09, cur: 'CAD', from: null, to: 'card:visa', date: '2026-08-19', source: 'statement', settled: true });
+  d = K.addTxn(d, { type: 'transfer', merchant: 'PAYMENT - THANK YOU', amt: 300, cur: 'CAD', from: null, to: 'card:visa', date: '2026-08-20', source: 'statement', settled: true });
+  assert.equal(K.likelyPurchases(d).length, 1);
+  d = K.fixLikelyPurchases(d);
+  const apple = d.txns.find((t) => t.merchant.startsWith('APPLE'));
+  assert.equal(apple.type, 'expense');
+  assert.equal(apple.from, 'card:visa');
+  assert.equal(apple.settled, true);
+  assert.equal(d.cards[0].bal, 0);
+  // Back to a transfer by hand, then to income
+  d = K.changeType(d, apple.id, 'income');
+  assert.equal(d.txns.find((t) => t.id === apple.id).type, 'income');
+});

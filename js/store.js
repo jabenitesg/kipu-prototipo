@@ -342,6 +342,27 @@
   K.misfiledCardPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && (t.from || '').startsWith('acct:') && K.cardPaymentFor(d, t.merchant));
   // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
   K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d);
+  // Payment wording on a card statement ("PAYMENT - THANK YOU", "PAGO RECIBIDO", "ABONO")
+  K.looksLikePayment = (desc) => { const m = norm(desc); return PAY.test(m) || /\b(thank you|gracias|recibido|received)\b/.test(m); };
+  // On a statement most lines are purchases, so the sign most lines share is spending
+  K.spendSign = (rows, isCard) => {
+    const r = rows.filter((x) => x.amt && !K.looksLikePayment(x.desc));
+    const neg = r.filter((x) => x.amt < 0).length, pos = r.length - neg;
+    return neg === pos ? (isCard ? 1 : -1) : neg > pos ? -1 : 1;
+  };
+  // Change a movement between spending, income and transfer, keeping the account or card it belongs to
+  K.changeType = (d, id, type, place) => {
+    const t = d.txns.find((x) => x.id === id); if (!t || t.type === type) return d;
+    const imp = t.imp && (d.imports || []).find((i) => i.id === t.imp);
+    const where = place || [t.from, t.to, imp && imp.where].find((w) => w && K.whereItem(d, w)) || null;
+    if (type === 'expense') return K.editTxn(d, id, { type, from: where, to: null, cat: t.cat && !['transfer', 'income'].includes(t.cat) ? t.cat : K.guessCat(d, t.merchant), recurring: null });
+    if (type === 'income') return K.editTxn(d, id, { type, from: where, to: null, cat: 'income', recurring: null });
+    const pays = (where || '').startsWith('acct:') ? K.cardPaymentFor(d, t.merchant) : null;
+    return (where || '').startsWith('card:') ? K.editTxn(d, id, { type, from: null, to: where, cat: 'transfer', recurring: null }) : K.editTxn(d, id, { type, from: where, to: pays && pays.card ? 'card:' + pays.card.id : null, cat: 'transfer', recurring: null });
+  };
+  // Imported as a payment to a card, but without payment wording: most likely a purchase read with the wrong sign
+  K.likelyPurchases = (d) => d.txns.filter((t) => t.source === 'statement' && t.type === 'transfer' && !t.from && (t.to || '').startsWith('card:') && K.whereItem(d, t.to) && !K.looksLikePayment(t.merchant));
+  K.fixLikelyPurchases = (d) => K.likelyPurchases(d).reduce((acc, t) => K.changeType(acc, t.id, 'expense', t.to), d);
   // The day a balance was typed in: movements up to then are already inside it
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {
@@ -479,6 +500,8 @@
     const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
+      // Without a statement balance typed in, reserve what's owed on the card
+      if (!(c.stmtBal > 0 || c.stmtBal2 > 0)) c = Object.assign({}, c, { stmtBal: Math.max(0, c.bal || 0), stmtBal2: Math.max(0, c.bal2 || 0) });
       if (!c.dueDay || !(c.stmtBal > 0 || c.stmtBal2 > 0)) return null;
       const due = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T);
       if (!inWin(due)) return null;

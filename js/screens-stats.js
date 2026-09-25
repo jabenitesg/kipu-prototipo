@@ -13,7 +13,7 @@
     return html`<div class="stack">
       <div class="between" style=${{ paddingTop: wide ? 0 : '8px', flexWrap: 'wrap' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Financial performance</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Stats</h1></div><${ContextFilter} show=${tab === 'overview' || tab === 'spending' || tab === 'income' ? ['scope', 'currency', 'period'] : ['scope']} /></div>
       <${Tabs} tabs=${STATS_TABS} value=${['spending', 'income'].includes(tab) ? 'overview' : tab} onChange=${(t) => go({ r: 'stats', tab: t }, true)} />
-      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${K.CardPayNote} />
+      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${K.CardPayNote} /><${K.PurchaseNote} />
       <${Body} route=${route} /></div>`;
   };
 

@@ -318,6 +318,13 @@
     const total = list.reduce((a, t) => a + (t.base || 0), 0);
     return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${(list.length === 1 ? '1 card payment from your bank (' + fmt(total) + ') counts' : list.length + ' card payments from your bank (' + fmt(total) + ') count') + ' as spending, so those purchases are counted twice.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixCardPayments(data)); toast(list.length === 1 ? '1 card payment no longer counts as spending' : list.length + ' card payments no longer count as spending'); }}>Fix</button></div>`;
   };
+  K.PurchaseNote = function PurchaseNote({ card }) {
+    const { data, commit, toast, fmt } = useApp();
+    const list = K.likelyPurchases(data).filter((t) => !card || t.to === card);
+    if (!list.length) return null;
+    const total = list.reduce((a, t) => a + (t.base || 0), 0);
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${(list.length === 1 ? '1 imported movement (' + fmt(total) + ') was saved as a card payment but looks like a purchase.' : list.length + ' imported movements (' + fmt(total) + ') were saved as card payments but look like purchases.')}</span><button class="btn sec sm" onClick=${() => { commit(K.fixLikelyPurchases(data)); toast(list.length === 1 ? '1 movement is now an expense' : list.length + ' movements are now expenses'); }}>Make expenses</button></div>`;
+  };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

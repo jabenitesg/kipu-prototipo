@@ -290,6 +290,8 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 .switch.on i { transform: translateX(18px); }
 .sheet-bg { position: fixed; inset: 0; z-index: 60; background: rgba(12, 10, 24, 0.4); display: flex; align-items: flex-end; justify-content: center; animation: fadein 0.18s ease; }
 .sheet { width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; background: var(--surface); border-radius: 28px 28px 0 0; padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 28px); display: flex; flex-direction: column; gap: 16px; animation: up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* A long sheet scrolls; its rows keep their height instead of squeezing */
+.sheet > * { flex-shrink: 0; }
 .wide .sheet-bg { align-items: center; }
 .wide .sheet { border-radius: 24px; max-height: 86vh; padding-bottom: 24px; }
 .grab { width: 36px; height: 5px; border-radius: 999px; background: var(--neutral); margin: 0 auto; }
@@ -322,7 +324,7 @@ input[type="date"], input[type="month"] { min-height: 48px; }
 .cal .wd { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 2px 0; letter-spacing: 0.02em; }
 .cal button.out { color: var(--muted); opacity: 0.55; }
 .cal-head { margin: -12px -12px 0; padding: 14px 16px; border-radius: 18px 18px 0 0; background: var(--grad); color: var(--hero-ink); display: flex; flex-direction: column; gap: 2px; }
-.cal button { height: 40px; border-radius: 12px; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.cal button { height: 40px; width: 100%; max-width: 44px; justify-self: center; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 12px; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .cal button:hover:not(:disabled) { background: var(--surface2); }
 .cal button.today { box-shadow: inset 0 0 0 1.5px var(--acc); }
 .cal button.on { background: var(--acc); color: var(--acc-ink); font-weight: 700; }
