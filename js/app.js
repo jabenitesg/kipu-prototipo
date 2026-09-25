@@ -82,11 +82,11 @@
     const toastEl = toastMsg && html`<div class="toast" role="status"><${Icon} n="check" s=${15} w=${2.6} />${toastMsg}</div>`;
     const rootOf = stack[0].r;
 
+    // Same menu as the rail's sections: what you can add, one tap each
+    const ADD = [['expense', 'expense', 'r', 'Add expense'], ['income', 'income', 'g', 'Add income'], ['receipt', 'scan', 'p', 'Scan receipt'], ['statement', 'upload', 'b', 'Upload statement'], ['transfer', 'transfer', 'n', 'Transfer']];
+    const addMenu = (cls) => html`<div class=${cls} role="menu" aria-label="Add" onClick=${(e) => e.stopPropagation()}><span class="fly-title">Add</span>${ADD.map(([k, ic, tone, l]) => html`<button key=${k} role="menuitem" class="fly-item" onClick=${() => { setFly(null); setSheet({ k }); }}><span class="row" style=${{ gap: '10px' }}><span class=${'ic ' + tone} style=${{ width: '30px', height: '30px', borderRadius: '10px' }}><${Icon} n=${ic} s=${15} /></span>${l}</span></button>`)}<span class="tiny muted" style=${{ padding: '6px 12px 4px', lineHeight: 1.4 }}>Accounts, cards and loans are in Money. Bills, goals and trips in Plan.</span></div>`;
     if (wide) {
       const nav = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
-      // Same menu as the rail's sections: what you can add, one tap each
-      const ADD = [['expense', 'expense', 'r', 'Add expense'], ['income', 'income', 'g', 'Add income'], ['receipt', 'scan', 'p', 'Scan receipt'], ['statement', 'upload', 'b', 'Upload statement'], ['transfer', 'transfer', 'n', 'Transfer']];
-      const addMenu = (cls) => html`<div class=${cls} role="menu" aria-label="Add" onClick=${(e) => e.stopPropagation()}><span class="fly-title">Add</span>${ADD.map(([k, ic, tone, l]) => html`<button key=${k} role="menuitem" class="fly-item" onClick=${() => { setFly(null); setSheet({ k }); }}><span class="row" style=${{ gap: '10px' }}><span class=${'ic ' + tone} style=${{ width: '30px', height: '30px', borderRadius: '10px' }}><${Icon} n=${ic} s=${15} /></span>${l}</span></button>`)}<span class="tiny muted" style=${{ padding: '6px 12px 4px', lineHeight: 1.4 }}>Accounts, cards and loans are in Money. Bills, goals and trips in Plan.</span></div>`;
       const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       const alerts = insights.filter((i) => i.kind === 'Priority').length;
@@ -121,7 +121,7 @@
         ${content}
       </div>
       <nav class="bnav" aria-label="Primary">
-        ${[['home', 'home', 'Home'], ['money', 'wallet', 'Money'], null, ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats']].map((it) => it ? html`<button key=${it[0]} class=${rootOf === it[0] ? 'on' : ''} aria-current=${rootOf === it[0] ? 'page' : null} onClick=${() => go({ r: it[0] })}><${Icon} n=${it[1]} s=${20} w=${rootOf === it[0] ? 2.2 : 1.9} /><span>${it[2]}</span></button>` : html`<button key="add" class="add" aria-label="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${24} w=${2.4} /></button>`)}
+        ${[['home', 'home', 'Home'], ['money', 'wallet', 'Money'], null, ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats']].map((it) => it ? html`<button key=${it[0]} class=${rootOf === it[0] ? 'on' : ''} aria-current=${rootOf === it[0] ? 'page' : null} onClick=${() => go({ r: it[0] })}><${Icon} n=${it[1]} s=${20} w=${rootOf === it[0] ? 2.2 : 1.9} /><span>${it[2]}</span></button>` : html`<div key="add" class="rail-wrap"><button class=${'add' + (fly === 'addBottom' ? ' flying' : '')} aria-label="Add" aria-haspopup="menu" aria-expanded=${fly === 'addBottom'} onClick=${(e) => { e.stopPropagation(); setFly(fly === 'addBottom' ? null : 'addBottom'); }}><${Icon} n=${fly === 'addBottom' ? 'x' : 'plus'} s=${24} w=${2.4} /></button>${fly === 'addBottom' && addMenu('fly fly-up')}</div>`)}
       </nav>${sheetEl}${toastEl}</div></${Ctx.Provider}>`;
   }
 

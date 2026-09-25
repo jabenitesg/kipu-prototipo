@@ -67,7 +67,9 @@
     if (isCustom) K.THEMES._draft = K.buildCustom(draft);
     const previewName = isCustom ? '_draft' : pick;
     const T = K.THEMES[previewName];
-    const pw = wide ? 210 : 128;
+    // Previews fit the space they have: 2 per row, 4 when the panel is wide enough
+    const panel = wide ? window.innerWidth - 108 - 48 - 348 - 48 - 28 : window.innerWidth - 40 - 36 - 16;
+    const pw = Math.max(96, Math.min(190, Math.floor((panel - 12) / 2)));
     const darkPreview = settings.effectiveMode === 'Light' ? 'Dark' : settings.effectiveMode;
     const dirty = isCustom ? current !== 'Custom' || JSON.stringify(draft) !== JSON.stringify(Object.assign({}, K.DEFAULT_CUSTOM, settings.custom || {})) : pick !== current;
     const setD = (o) => setDraft(Object.assign({}, draft, o));
@@ -87,7 +89,7 @@
         ${draft.style === 'gradient' && html`<div class="stack-s"><div class="between"><span style=${{ fontWeight: 700 }}>Second color</span><button class="link" onClick=${() => setD({ color2: K.suggestSecond(draft.color) })}>Suggest one</button></div><${Swatches} value=${draft.color2} onPick=${(c) => setD({ color2: c })} /></div>`}
         ${T.adjusted && html`<div class="row small" style=${{ gap: '8px', padding: '10px 12px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="info" s=${16} c="var(--muted)" /><span class="muted" style=${{ lineHeight: 1.45 }}>${T.light.onInk !== '#FFFFFF' ? 'Your color is light, so text on it will be dark. ' : ''}${T.light.acc !== draft.color ? 'Links and labels use a slightly deeper shade so they stay readable.' : ''}</span></div>`}</div>`}
       <div class="card flat stack" style=${{ gap: '14px' }}><div class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${pick}</span><span class="tiny muted">${T.desc}</span></div>
-        <div class="row" style=${{ justifyContent: 'center', gap: wide ? '20px' : '10px', padding: wide ? '18px' : '12px 6px', borderRadius: '18px', background: 'var(--surface)' }}><div class="stack-s" style=${{ alignItems: 'center', gap: '6px' }}><${ThemePreview} name=${previewName} mode="Light" w=${pw} /><span class="tiny muted">Light</span></div><div class="stack-s" style=${{ alignItems: 'center', gap: '6px' }}><${ThemePreview} name=${previewName} mode=${darkPreview} w=${pw} /><span class="tiny muted">${darkPreview}</span></div></div>
+        <div class="previews">${Object.keys(K.MODES).map((m) => html`<div key=${m} class="stack-s" style=${{ alignItems: 'center', gap: '6px', minWidth: 0 }}><${ThemePreview} name=${previewName} mode=${m} w=${pw} /><span class="tiny" style=${{ fontWeight: m === settings.effectiveMode ? 700 : 500, color: m === settings.effectiveMode ? 'var(--ink)' : 'var(--muted)' }}>${m}${m === settings.effectiveMode ? ' · in use' : ''}</span></div>`)}</div>
         <button class="btn block" disabled=${!dirty} onClick=${() => { setSettings(isCustom ? { theme: 'Custom', custom: draft } : { theme: pick }); toast(pick + ' applied'); }} style=${{ background: K.gradCss(T.light.grad), color: T.light.onInk || '#FFFFFF' }}>${!dirty ? '✓ Current theme' : 'Apply ' + pick}</button></div>
       <div class="card tight"><${ToggleRow} title="Reduce motion" on=${settings.reduce} onChange=${(v) => setSettings({ reduce: v })} /></div>`;
   }

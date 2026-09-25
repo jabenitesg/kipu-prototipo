@@ -159,7 +159,7 @@
   function Accounts() {
     const { D, fmt, wide } = useApp();
     const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'];
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>${groups.map((g) => {
+    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>${groups.map((g) => {
       const list = D.accts.filter((a) => a.kind === g);
       if (!list.length) return null;
       return html`<div class="stack-s" key=${g}><div class="between"><span class="eyebrow">${g}</span><span class="small muted num">${fmt(K.sum(list, (a) => a.baseBal))}</span></div><div class="card tight list">${list.map((a) => html`<${AccountRow} key=${a.id} a=${a} />`)}</div></div>`;

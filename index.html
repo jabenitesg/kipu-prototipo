@@ -47,9 +47,9 @@ p { margin: 0; }
 .m-top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; min-height: 52px; padding-top: env(safe-area-inset-top, 0px); margin: 0 -20px 8px; padding-left: 10px; padding-right: 16px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .m-top .t { flex: 1; font-weight: 600; font-size: 15px; text-align: center; margin-right: 36px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bnav { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); max-width: 560px; margin: 0 auto; height: 72px; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 30px; box-shadow: var(--shadow); }
-.bnav button { flex: 1; height: 54px; border-radius: 999px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 10.5px; font-weight: 600; transition: background 0.15s, color 0.15s; }
-.bnav button.on { background: var(--acc); color: var(--acc-ink); box-shadow: 0 6px 16px color-mix(in srgb, var(--acc) 30%, transparent); }
-.bnav .add { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 20px; background: var(--grad); color: var(--hero-ink); box-shadow: var(--glow); }
+.bnav > button { flex: 1; height: 54px; border-radius: 999px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 10.5px; font-weight: 600; transition: background 0.15s, color 0.15s; }
+.bnav > button.on { background: var(--acc); color: var(--acc-ink); box-shadow: 0 6px 16px color-mix(in srgb, var(--acc) 30%, transparent); }
+.bnav .add { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: var(--grad); color: var(--hero-ink); box-shadow: var(--glow); }
 .d-shell { display: grid; grid-template-columns: 108px minmax(0, 1fr); min-height: 100vh; }
 .rail { position: sticky; top: 16px; margin: 16px 0 16px 16px; height: calc(100vh - 32px); width: 76px; border-radius: 32px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--card-shadow); display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 0; z-index: 30; }
 .rail-mark span { display: block; width: 38px; height: 38px; border-radius: 13px; background: var(--grad); box-shadow: var(--glow); }
@@ -108,8 +108,14 @@ p { margin: 0; }
 .dock button:hover .tip, .dock button:focus-visible .tip { opacity: 1; transform: translate(-50%, 0); }
 .rail-add.flying { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--acc); }
 .fly.fly-down { left: auto; right: 0; top: 52px; }
+.fly.fly-up { left: 50%; top: auto; bottom: 70px; width: min(290px, calc(100vw - 32px)); animation: flyup 0.16s ease; transform: translateX(-50%); }
+@keyframes flyup { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.bnav .add.flying { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--acc); }
+.bnav .rail-wrap { flex: 0 0 56px; display: flex; justify-content: center; }
 .wide .d-content { padding-bottom: 60px; }
 .d-bar .chip { height: 44px; border-radius: 999px; padding: 0 16px; }
+.previews { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 16px 12px; padding: 14px 8px; border-radius: 18px; background: var(--surface); }
+@media (min-width: 1180px) { .wide .previews { grid-template-columns: repeat(4, max-content); gap: 18px; } }
 .kpis.m { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 4px 2px; width: 100%; text-align: left; }
 .kpis.m .v { font-size: clamp(18px, 5.6vw, 24px); }
 .kpis.m .l { font-size: 12px; }

@@ -93,7 +93,7 @@
     const p = periodTotals(D, ctx);
     const left = p.income - p.spending - p.saved - p.debtPaid;
     const S = D.activeSeries;
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
+    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>Where income went · ${p.label}</h3>
         ${p.income > 0 && html`<${Stripe} h=${16} parts=${[[p.spending, 'var(--c1)'], [p.saved, 'var(--c2)'], [p.debtPaid, 'var(--c3)'], [Math.max(0, left), 'var(--neutral)']]} />`}
         <${KeyRow} color="transparent" label="Income" value=${fmt(p.income)} bold=${true} /><${KeyRow} color="var(--c1)" label="Spending" value=${'−' + fmt(p.spending)} /><${KeyRow} color="var(--c2)" label="Saved to goals" value=${'−' + fmt(p.saved)} /><${KeyRow} color="var(--c3)" label="Loan payments" value=${'−' + fmt(p.debtPaid)} />
@@ -105,7 +105,7 @@
   function SNW() {
     const { D, fmt, wide } = useApp();
     const S = D.series.filter((s) => s.netWorth != null);
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
+    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Net worth" question="Is what you own growing faster than what you owe?">
         <div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.netWorth)} />${S.length > 1 && html`<${Metric} label=${'Since ' + S[0].m} value=${fmt(D.netWorth - S[0].netWorth, { sign: true })} tone=${D.netWorth >= S[0].netWorth ? 'pos' : 'warn'} />`}</div>
         ${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.netWorth), color: 'var(--c1)', area: true }]} fmtY=${fmt.k} />` : html`<span class="small muted">Kipu records net worth once a month. The chart appears after your second month.</span>`}</${ChartBox}>
@@ -118,7 +118,7 @@
     if (!D.loans.length && !D.cards.length) return html`<div class="card"><${EmptyState} icon="loan" title="No debt tracked" text="Add loans or credit cards in Money to see progress here." /></div>`;
     const S = D.series.filter((s) => s.debt != null);
     const interest = K.sum(D.series, (s) => s.interest);
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
+    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Total debt" question="Is debt actually going down?" legend=${[['var(--c1)', 'Loans'], ['var(--c3)', 'Cards']]}><div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.debt)} />${S.length > 1 && html`<${Metric} label=${'Change since ' + S[0].m} value=${fmt(D.debt - S[0].debt, { sign: true })} tone=${D.debt <= S[0].debt ? 'pos' : 'warn'} />`}</div>
         ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--c1)', 'var(--c3)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
       <div class="stack">${D.loans.length > 0 && html`<div class="card tight list">${D.loans.map((l) => html`<${K.LoanRow} key=${l.id} l=${l} />`)}</div>`}<div class="card stack-s"><div class="between"><span class="muted">Loan interest paid (12 months)</span><span class="amt">${fmt(interest)}</span></div></div></div></div>`;
@@ -129,7 +129,7 @@
     if (!D.cards.length) return html`<div class="card"><${EmptyState} icon="card" title="No cards tracked" text="Add credit cards in Money to follow utilization." /></div>`;
     const ref = data.prefs.utilRef;
     const S = D.series.filter((s) => s.util != null);
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
+    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Card utilization" question="How much of your available credit are you using?"><${Metric} label="Now" value=${D.util.toFixed(1) + '%'} />${S.length > 1 ? html`<${LineChart} labels=${S.map((s) => s.m)} series=${[{ values: S.map((s) => s.util), color: 'var(--c1)', area: true }]} ref=${{ value: ref, label: ref + '% reference' }} min=${0} fmtY=${(v) => Math.round(v) + '%'} />` : html`<${K.Segs} pct=${D.util} color=${D.util > ref ? 'var(--warn2)' : 'var(--acc)'} mark=${ref} h=${10} />`}<span class="tiny muted">The reference is your own threshold from Settings. Kipu doesn’t estimate credit scores.</span></${ChartBox}>
       <div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>By card</h3>${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span>${c.name}</span><span class="num"><b>${c.limit ? ((c.bal / c.limit) * 100).toFixed(1) : 0}%</b> <span class="muted">${fmt(c.bal)} of ${fmt(c.limit || 0)}</span></span></div><${K.Segs} pct=${c.limit ? (c.bal / c.limit) * 100 : 0} color=${c.limit && (c.bal / c.limit) * 100 > ref ? 'var(--warn2)' : 'var(--acc)'} mark=${ref} h=${6} /></div>`)}</div></div>`;
   }
@@ -163,7 +163,7 @@
       <div class="hero stack" style=${{ gap: '14px' }}><span class="soft eyebrow" style=${{ color: 'inherit' }}>Monthly review</span><h1 style=${{ fontSize: '32px', fontWeight: 800 }}>${K.MONTH_LONG[c.mi]} ${c.y}</h1>
         <div class="grid g2" style=${{ gap: '12px' }}>${[['Income', fmt(c.income)], ['Spending', fmt(c.spending)], ['Saved', fmt(c.saved) + ' · ' + c.rate.toFixed(1) + '%'], ['Left over', fmt(c.net, { sign: true })]].map(([l, v]) => html`<span key=${l} class="stack-s" style=${{ gap: '2px' }}><span class="soft small">${l}</span><span class="disp num" style=${{ fontSize: '20px', fontWeight: 700 }}>${v}</span></span>`)}</div>
         <p style=${{ fontSize: '15px', lineHeight: 1.5, paddingTop: '12px', borderTop: '1px solid color-mix(in srgb, var(--hero-ink) 20%, transparent)' }}>${sentence}</p></div>
-      <div class=${wide ? 'grid w2' : 'stack'} style=${{ alignItems: 'start' }}>
+      <div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
         ${p && html`<${RSection} title=${'Compared with ' + K.MONTH_LONG[p.mi]}><${CompareRow} label="Income" a=${fmt(p.income)} b=${fmt(c.income)} d=${c.income - p.income} good=${c.income >= p.income} text=${(pctCh(c.income, p.income) > 0 ? '+' : '') + pctCh(c.income, p.income).toFixed(1) + '%'} /><${CompareRow} label="Spending" a=${fmt(p.spending)} b=${fmt(c.spending)} d=${c.spending - p.spending} good=${c.spending <= p.spending} text=${(pctCh(c.spending, p.spending) > 0 ? '+' : '') + pctCh(c.spending, p.spending).toFixed(1) + '%'} /><${CompareRow} label="Savings rate" a=${p.rate.toFixed(1) + '%'} b=${c.rate.toFixed(1) + '%'} d=${c.rate - p.rate} good=${c.rate >= p.rate} text=${(c.rate - p.rate > 0 ? '+' : '') + (c.rate - p.rate).toFixed(1) + ' pts'} />${c.netWorth != null && p.netWorth != null && html`<${CompareRow} label="Net worth" a=${fmt(p.netWorth)} b=${fmt(c.netWorth)} d=${c.netWorth - p.netWorth} good=${c.netWorth >= p.netWorth} text=${fmt(c.netWorth - p.netWorth, { sign: true })} />`}</${RSection}>`}
         ${diffs.length > 0 && html`<${RSection} title="Biggest spending changes">${diffs.map(([k, d]) => html`<div key=${k} class="between" style=${{ padding: '6px 0' }}><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${K.CATS[k].icon} tone=${K.CATS[k].tone} s=${30} />${K.CATS[k].name}</span><span class="amt" style=${{ color: d > 0 ? 'var(--warn)' : 'var(--pos)' }}>${d > 0 ? '▲ ' : '▼ '}${fmt(Math.abs(d))}</span></div>`)}</${RSection}>`}
         <${RSection} title="Savings and debt"><div class="grid g2" style=${{ gap: '12px' }}><${Metric} label="Saved" value=${fmt(c.saved)} sub=${c.rate.toFixed(1) + '% of income'} /><${Metric} label="Loan payments" value=${fmt(c.debtPaid)} sub=${c.interest ? fmt(c.interest) + ' interest' : null} /></div></${RSection}>
