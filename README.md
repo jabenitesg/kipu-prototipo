@@ -1,20 +1,36 @@
-# Kipu · prototipo
+# Kipu
 
-Prototipo navegable de Kipu, una app de finanzas personales tranquila. Son 202 pantallas conectadas que se adaptan a cualquier teléfono. En pantallas grandes se muestran dentro de un marco de teléfono.
+Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza vacía, como recién instalada, y guarda tus datos solo en este navegador.
 
-**Empieza en Home:** `Main.dc.html` (la página principal redirige ahí).
+- **Teléfono:** pantalla completa, con barra inferior Home · Money · + · Plan · Stats
+- **Tablet y escritorio:** dashboard con barra lateral
+- **Agregar a la pantalla de inicio:** en iPhone, Compartir → Agregar a inicio; en Android, menú → Instalar app
 
-## Navegación
+## Qué hace
 
-- Barra inferior: Home · Money · + · Plan · Stats
-- **+** abre acciones rápidas: gasto, ingreso, escanear recibo, subir estado de cuenta, transferir
-- **Money:** Cuentas · Tarjetas · Préstamos · Actividad · Household
-- **Plan:** Resumen · Presupuesto · Facturas y recurrentes · Metas · Viajes
-- **Stats:** Estadísticas · Insights · Revisiones · Forecast
-- **Settings:** desde el avatar en Home
+- Cuentas, tarjetas, préstamos y efectivo, en varias monedas, con tipos de cambio en vivo
+- **Safe to Spend:** tu efectivo menos las facturas, pagos de tarjeta, cuotas de préstamos y ahorro que vencen antes del próximo pago
+- Gastos, ingresos y transferencias; cada uno mueve el saldo de su cuenta
+- **Escanear recibo:** lee comercio, total, fecha y moneda con OCR dentro del navegador. La primera vez descarga unos 10 MB.
+- **Subir estado de cuenta:** CSV o PDF; detecta duplicados y sugiere categorías
+- Presupuesto, facturas y suscripciones, metas, viajes
+- Estadísticas, insights, revisiones mensuales y forecast con escenarios
+- Settings: 7 temas, claro u oscuro, ocultar montos, reglas de categorías, copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
 
-## Cómo funciona
+## Tus datos
 
-Cada pantalla es un archivo `.dc.html` con su plantilla y su lógica. `support.js` es un motor ligero que las renderiza en el navegador: rellena los datos, repite listas, muestra u oculta bloques y maneja los botones. No necesita compilación ni servidor; basta con cualquier hosting estático, como GitHub Pages.
+Todo queda en `localStorage` de este navegador y dispositivo; nada se envía a un servidor. Si borras los datos del sitio o cambias de navegador, empiezas de cero. Haz una copia en **Settings → Data**.
 
-Los datos son de ejemplo.
+## Código
+
+Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/`:
+
+- `store.js`: modelo de datos y cálculos
+- `readers.js`: lectura de recibos y estados de cuenta
+- `ui.js`, `themes.js`: componentes y temas
+- `screens-*.js`, `flows.js`: pantallas y formularios
+- `app.js`: navegación y layout
+
+## Prototipo
+
+Las 202 pantallas de diseño originales siguen en [`/prototipo`](prototipo/).
