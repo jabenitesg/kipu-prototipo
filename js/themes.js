@@ -32,7 +32,7 @@
       light: P({ bg: '#FAF7F2', surface: '#FFFFFF', surface2: '#F3EEE6', elev: '#FFFFFF', line: '#E8E1D6', acc: '#7A5A3A', acc2: '#8C7760', acc3: '#9C7A2E', accbg: '#F3ECE2', tint: '#F6F0E7', solid: '#6E5236', grad: ['#6E5236', '#8C6B48', '#B08A3C'], grad2: ['#8C6B48', '#B08A3C'], chart: ['#7A5A3A', '#B8913D', '#A08A70', '#D4BE92', '#E5DBCB'] }),
       dark: P({ bg: '#14110E', surface: '#1D1915', surface2: '#26211C', elev: '#29231E', line: '#332C25', acc: '#D9B77E', acc2: '#B59C80', acc3: '#E0BE6A', accbg: '#2E271E', tint: '#231E18', solid: '#6A5036', grad: ['#5E4630', '#7E6040', '#A8843A'], grad2: ['#7E6040', '#A8843A'], chart: ['#D9B77E', '#B59C80', '#E0BE6A', '#7A6650', '#453B31'] }),
     },
-    Graphite: {
+    Ember: {
       desc: 'Graphite and gray with an orange spark. Modern and warm.',
       light: P({ bg: '#F6F6F6', surface: '#FFFFFF', surface2: '#EEEEEF', elev: '#FFFFFF', line: '#E3E3E5', acc: '#C8481F', acc2: '#2C2D31', acc3: '#F76C43', accbg: '#FEEDE6', tint: '#F3F1F0', solid: '#2C2D31', grad: ['#222327', '#2C2D31', '#3A3B40'], grad2: ['#F76C43', '#D9502A'], chart: ['#F76C43', '#2C2D31', '#BFC0C4', '#F9A688', '#7A7B80'] }),
       dark: P({ bg: '#1B1C1F', surface: '#222327', surface2: '#2C2D31', elev: '#303136', line: '#36373C', acc: '#F9885F', acc2: '#BFC0C4', acc3: '#F76C43', accbg: '#3A2A24', tint: '#26272B', solid: '#3A3B40', grad: ['#F76C43', '#E4572E', '#C2431F'], grad2: ['#3A3B40', '#55565C'], chart: ['#F76C43', '#BFC0C4', '#F9A688', '#6E6F75', '#3A3B40'] }),
@@ -44,7 +44,7 @@
     },
   };
   // Earlier theme names keep working
-  K.THEME_ALIAS = { 'Kipu Purple': 'Kipu', Aurora: 'Ocean', Sunset: 'Coral', Ember: 'Coral', 'Warm Sand': 'Sand', Indigo: 'Kipu', Midnight: 'Kipu' };
+  K.THEME_ALIAS = { 'Kipu Purple': 'Kipu', Aurora: 'Ocean', Sunset: 'Coral', Graphite: 'Ember', 'Warm Sand': 'Sand', Indigo: 'Kipu', Midnight: 'Kipu' };
   K.themeName = (n) => (K.THEMES[n] ? n : K.THEME_ALIAS[n] || 'Kipu');
 
   const SEM = {
@@ -54,19 +54,32 @@
   const gradCss = (stops, deg) => 'linear-gradient(' + (deg || 135) + 'deg, ' + stops.map((c, i) => c + ' ' + Math.round((i / (stops.length - 1)) * 100) + '%').join(', ') + ')';
   K.gradCss = gradCss;
   K.palette = (name, dark) => { const T = K.THEMES[K.themeName(name)]; return dark ? T.dark : T.light; };
-  K.themeVars = function (name, dark) {
+  // Appearance sets the background family; the theme sets the colors on top of it
+  K.MODES = {
+    Light: { desc: 'White and bright', base: { bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F3F3F6', elev: '#FFFFFF', line: '#E9E9EE' } },
+    Graphite: { desc: 'Soft graphite gray', base: { bg: '#202124', surface: '#2A2B2F', surface2: '#34353A', elev: '#303136', line: '#3C3D43' } },
+    Dark: { desc: 'Deep black', base: { bg: '#09090B', surface: '#141416', surface2: '#1C1C1F', elev: '#1E1E22', line: '#27272B' } },
+    Midnight: { desc: 'Night blue', base: { bg: '#0A1224', surface: '#111D36', surface2: '#182845', elev: '#1B2C4C', line: '#243758' } },
+  };
+  K.modeName = (m) => (m === true ? 'Dark' : !m ? 'Light' : K.MODES[m] ? m : 'Dark');
+  K.themeVars = function (name, mode) {
+    mode = K.modeName(mode);
+    const dark = mode !== 'Light';
     const v = K.palette(name, dark);
+    const b = K.MODES[mode].base;
     const s = dark ? SEM.dark : SEM.light;
     const mono = K.themeName(name) === 'Mono';
     return {
-      '--bg': v.bg, '--surface': v.surface, '--surface2': v.surface2, '--elev': v.elev, '--line': v.line,
-      '--acc': v.acc, '--acc2': v.acc2, '--acc3': v.acc3, '--accbg': v.accbg, '--acc-ink': v.accInk || '#FFFFFF', '--tint': v.tint, '--solid': v.solid,
+      '--bg': b.bg, '--surface': b.surface, '--surface2': b.surface2, '--elev': b.elev, '--line': b.line,
+      '--acc': v.acc, '--acc2': v.acc2, '--acc3': v.acc3, '--acc-ink': v.accInk || '#FFFFFF', '--solid': v.solid,
+      '--accbg': dark ? 'color-mix(in srgb, ' + v.acc + ' 20%, ' + b.surface + ')' : v.accbg,
+      '--tint': dark ? 'color-mix(in srgb, ' + v.acc + ' 9%, ' + b.surface + ')' : v.tint,
       '--grad': gradCss(v.grad), '--grad2': gradCss(v.grad2, 150), '--hero-ink': '#FFFFFF',
       '--c1': v.chart[0], '--c2': v.chart[1], '--c3': v.chart[2], '--c4': v.chart[3], '--c5': v.chart[4], '--chart2': v.chart[1],
-      '--page-glow': dark && !mono ? 'radial-gradient(120% 420px at 50% -120px, ' + v.grad[0] + '2E, transparent 70%)' : dark ? 'none' : 'radial-gradient(120% 380px at 50% -140px, ' + v.grad[0] + '14, transparent 70%)',
+      '--page-glow': mono ? 'none' : 'radial-gradient(120% 420px at 50% -120px, ' + v.grad[0] + (dark ? '2A' : '10') + ', transparent 70%)',
       '--glow': dark ? '0 16px 40px ' + v.grad[0] + '40' : '0 14px 32px ' + v.grad[0] + '2E',
-      '--shadow': dark ? '0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.35)' : '0 1px 2px rgba(20, 16, 50, 0.04), 0 8px 24px rgba(20, 16, 50, 0.06)',
-      '--card-shadow': dark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.03)' : '0 1px 2px rgba(20, 16, 50, 0.03), 0 6px 18px rgba(20, 16, 50, 0.04)',
+      '--shadow': dark ? '0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.35)' : '0 1px 2px rgba(20, 16, 50, 0.05), 0 10px 28px rgba(20, 16, 50, 0.08)',
+      '--card-shadow': dark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.03)' : '0 1px 2px rgba(20, 16, 50, 0.04), 0 6px 18px rgba(20, 16, 50, 0.05)',
       '--ink': s.ink, '--ink2': s.ink2, '--muted': s.muted, '--pos': s.pos, '--pos2': s.pos2, '--posbg': s.posbg, '--warn': s.warn, '--warn2': s.warn2, '--warnbg': s.warnbg, '--crit': s.crit, '--crit2': s.crit2, '--critbg': s.critbg, '--info': s.info, '--info2': s.info2, '--infobg': s.infobg, '--neutral': s.neutral,
       'color-scheme': dark ? 'dark' : 'light',
     };
@@ -95,13 +108,14 @@
   };
 
   // Miniature app used for theme previews. Tokens are scoped to the preview element.
-  const ThemePreview = ({ name, dark, w }) => {
-    const vars = K.themeVars(name, dark);
+  const ThemePreview = ({ name, dark, mode, w }) => {
+    mode = K.modeName(mode || !!dark); dark = mode !== 'Light';
+    const vars = K.themeVars(name, mode);
     const v = K.palette(name, dark);
     const width = w || 190, k = width / 190;
     const st = Object.assign({}, vars, { width: width + 'px', borderRadius: 22 * k + 'px', padding: 12 * k + 'px ' + 10 * k + 'px ' + 8 * k + 'px', background: 'var(--page-glow), var(--bg)', color: 'var(--ink)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 7 * k + 'px', boxShadow: dark ? '0 14px 40px rgba(0,0,0,0.45)' : '0 12px 30px rgba(20,16,50,0.10)', fontFamily: 'var(--body)', flexShrink: 0 });
     const fz = (n) => n * k + 'px';
-    return html`<div style=${st} aria-label=${K.themeName(name) + (dark ? ' dark' : ' light') + ' preview'}>
+    return html`<div style=${st} aria-label=${K.themeName(name) + ' ' + mode + ' preview'}>
       <div class="between" style=${{ fontSize: fz(8), color: 'var(--muted)' }}><span>Good morning</span><span style=${{ width: fz(14), height: fz(14), borderRadius: '999px', background: 'var(--grad)' }}></span></div>
       <div style=${{ padding: fz(9), borderRadius: fz(13), background: 'var(--grad)', color: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: fz(3), boxShadow: 'var(--glow)' }}><span style=${{ fontSize: fz(7), opacity: 0.8 }}>Safe to Spend</span><b style=${{ fontSize: fz(17), fontFamily: 'var(--display)' }}>CA$1,250</b><span style=${{ display: 'flex', gap: fz(1.5) }}>${Array.from({ length: 12 }, (_, i) => html`<i key=${i} style=${{ flex: 1, height: fz(3), borderRadius: '2px', background: i < 7 ? '#FFFFFF' : 'rgba(255,255,255,0.3)' }}></i>`)}</span></div>
       <div style=${{ display: 'flex', gap: fz(5) }}>

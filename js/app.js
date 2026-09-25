@@ -21,7 +21,7 @@
   function App() {
     const [data, setData] = useState(() => K.load());
     const [ctx, setCtxRaw] = useState({ scope: 'personal', currency: 'Combined', period: 11 });
-    const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Dark', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
+    const [settings, setSettingsRaw] = useState(() => { const s = Object.assign({}, DEFAULT_SETTINGS, loadSettings()); s.theme = K.themeName(s.theme); if (!['Light', 'Graphite', 'Dark', 'Midnight', 'System'].includes(s.mode)) s.mode = 'Dark'; return s; });
     const [stack, setStack] = useState([{ r: 'home' }]);
     const [sheet, setSheet] = useState(null);
     const [fly, setFly] = useState(null);
@@ -35,8 +35,9 @@
     const commit = useCallback((next) => { setData(next); if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.'); }, []);
     const setCtx = useCallback((o) => setCtxRaw((c) => Object.assign({}, c, o)), []);
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
-    const effectiveDark = settings.mode === 'Dark' || (settings.mode !== 'Light' && sysDark);
-    useEffect(() => { const v = K.themeVars(settings.theme, effectiveDark); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, effectiveDark]);
+    const effectiveMode = settings.mode === 'System' ? (sysDark ? 'Dark' : 'Light') : K.modeName(settings.mode);
+    const effectiveDark = effectiveMode !== 'Light';
+    useEffect(() => { const v = K.themeVars(settings.theme, effectiveMode); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, effectiveMode]);
 
     // Live exchange rates, at most twice a day
     useEffect(() => {
@@ -68,7 +69,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark }), setSettings, wide, insights, resetAll };
+    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!data.onboarded) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.Onboarding} /></div></${Ctx.Provider}>`;
