@@ -37,7 +37,9 @@
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
     const effectiveMode = settings.mode === 'System' ? (sysDark ? 'Dark' : 'Light') : K.modeName(settings.mode);
     const effectiveDark = effectiveMode !== 'Light';
-    useEffect(() => { const v = K.themeVars(settings.theme, effectiveMode); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, effectiveMode]);
+    K.setCustom(settings.custom);
+    const customKey = JSON.stringify(settings.custom || null);
+    useEffect(() => { const v = K.themeVars(settings.theme, effectiveMode); const st = document.documentElement.style; Object.keys(v).forEach((k) => st.setProperty(k, v[k])); const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', v['--bg']); }, [settings.theme, effectiveMode, customKey]);
 
     // Live exchange rates, at most twice a day
     useEffect(() => {
@@ -119,7 +121,7 @@
         ${content}
       </div>
       <nav class="bnav" aria-label="Primary">
-        ${[['home', 'home', 'Home'], ['money', 'wallet', 'Money'], null, ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats']].map((it) => it ? html`<button key=${it[0]} class=${rootOf === it[0] ? 'on' : ''} aria-current=${rootOf === it[0] ? 'page' : null} onClick=${() => go({ r: it[0] })}><${Icon} n=${it[1]} s=${21} w=${rootOf === it[0] ? 2.1 : 1.8} />${it[2]}<span class="dot"></span></button>` : html`<div key="add"><button class="add" aria-label="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${26} w=${2.4} /></button></div>`)}
+        ${[['home', 'home', 'Home'], ['money', 'wallet', 'Money'], null, ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats']].map((it) => it ? html`<button key=${it[0]} class=${rootOf === it[0] ? 'on' : ''} aria-current=${rootOf === it[0] ? 'page' : null} onClick=${() => go({ r: it[0] })}><${Icon} n=${it[1]} s=${20} w=${rootOf === it[0] ? 2.2 : 1.9} /><span>${it[2]}</span></button>` : html`<button key="add" class="add" aria-label="Add" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${24} w=${2.4} /></button>`)}
       </nav>${sheetEl}${toastEl}</div></${Ctx.Provider}>`;
   }
 

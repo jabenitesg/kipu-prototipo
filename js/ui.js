@@ -142,6 +142,7 @@
 
   // Default card looks when the person hasn't chosen one: theme gradient, theme solid, graphite
   const CARD_DEFAULTS = ['var(--grad)', 'var(--solid)', 'linear-gradient(140deg, #1C1C1E 0%, #48484C 100%)'];
+  K.cardInk = (c) => (c.look && c.look.kind && c.look.kind !== 'theme' ? K.inkFor(c.look) : (c.style != null ? c.style : [...String(c.id || '')].reduce((n, ch) => n + ch.charCodeAt(0), 0)) % 3 === 2 ? '#FFFFFF' : 'var(--hero-ink)');
   K.cardBg = (c) => K.lookBg(c.look, CARD_DEFAULTS[(c.style != null ? c.style : [...String(c.id || '')].reduce((n, ch) => n + ch.charCodeAt(0), 0)) % 3]);
   K.expiryInfo = (c) => {
     if (!c.expiry) return null;
@@ -154,7 +155,7 @@
     const { fmt } = useApp();
     const util = c.limit ? (c.bal / c.limit) * 100 : 0;
     const ex = K.expiryInfo(c);
-    return html`<button onClick=${onClick} aria-label=${c.name} style=${{ position: 'relative', overflow: 'hidden', width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: '#FFFFFF', background: K.cardBg(c), display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left' }}>
+    return html`<button onClick=${onClick} aria-label=${c.name} style=${{ position: 'relative', overflow: 'hidden', width: compact ? '220px' : '100%', flexShrink: 0, aspectRatio: '1.6', maxWidth: '100%', borderRadius: '20px', padding: '16px', color: K.cardInk(c), background: K.cardBg(c), display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: selected ? 'var(--glow)' : '0 8px 20px rgba(10, 8, 30, 0.18)', textAlign: 'left' }}>
       <span aria-hidden="true" style=${{ position: 'absolute', right: '-50px', top: '-70px', width: '200px', height: '200px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)', pointerEvents: 'none' }}></span>
       <span class="between"><span style=${{ fontSize: '13px', fontWeight: 600, opacity: 0.92 }}>${c.name}</span><span style=${{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>${(c.network || '').toUpperCase()}</span></span>
       <span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontSize: '11px', opacity: 0.75 }}>Balance</span><span class="disp num" style=${{ fontSize: '24px', fontWeight: 700 }}>${fmt(c.bal)}</span></span>
@@ -178,11 +179,12 @@
     const { fmt } = useApp();
     const styled = featured || (g.look && g.look.kind && g.look.kind !== 'theme');
     const sub = g.pct >= 100 ? 'Funded' : g.monthly ? 'On track for ' + g.etaLabel : 'No monthly amount yet';
-    if (styled) return html`<button class="card" style=${{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', background: K.lookBg(g.look, 'var(--grad2)'), color: '#FFFFFF', border: 0, boxShadow: 'var(--glow)' }} onClick=${onClick}>
+    const ink = K.inkFor(g.look);
+    if (styled) return html`<button class="card" style=${{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', background: K.lookBg(g.look, 'var(--grad2)'), color: ink, border: 0, boxShadow: 'var(--glow)' }} onClick=${onClick}>
       <span aria-hidden="true" style=${{ position: 'absolute', right: '-60px', top: '-80px', width: '220px', height: '220px', borderRadius: '999px', background: 'radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%)' }}></span>
-      <span class="between"><span class="row" style=${{ gap: '10px' }}><span class="ic" style=${{ background: 'rgba(255,255,255,0.18)', color: '#FFFFFF' }}><${Icon} n=${g.trip ? 'plane' : 'target'} s=${17} /></span><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1" style=${{ fontWeight: 600 }}>${g.name}</span><span class="t2" style=${{ color: 'rgba(255,255,255,0.78)' }}>${sub}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 800, fontSize: '22px' }}>${g.pct}%</span></span>
-      <${K.Segs} pct=${g.pct} color="#FFFFFF" track="rgba(255,255,255,0.25)" />
-      <span class="between tiny num" style=${{ color: 'rgba(255,255,255,0.82)' }}><span>${fmt(g.savedNow)} of ${fmt(g.target)}</span><span>${g.monthly ? fmt(g.monthly) + ' a month' : 'No monthly amount'}</span></span>
+      <span class="between"><span class="row" style=${{ gap: '10px' }}><span class="ic" style=${{ background: 'color-mix(in srgb, ' + ink + ' 18%, transparent)', color: ink }}><${Icon} n=${g.trip ? 'plane' : 'target'} s=${17} /></span><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1" style=${{ fontWeight: 600 }}>${g.name}</span><span class="t2" style=${{ color: 'color-mix(in srgb, ' + ink + ' 78%, transparent)' }}>${sub}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 800, fontSize: '22px' }}>${g.pct}%</span></span>
+      <${K.Segs} pct=${g.pct} color=${ink} track=${'color-mix(in srgb, ' + ink + ' 25%, transparent)'} />
+      <span class="between tiny num" style=${{ color: 'color-mix(in srgb, ' + ink + ' 82%, transparent)' }}><span>${fmt(g.savedNow)} of ${fmt(g.target)}</span><span>${g.monthly ? fmt(g.monthly) + ' a month' : 'No monthly amount'}</span></span>
     </button>`;
     return html`<button class="card" style=${{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }} onClick=${onClick}>
       <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${g.trip ? 'plane' : 'target'} tone="p" /><span class="stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${g.name}</span><span class="t2">${sub}${g.shared ? ' · Shared' : ''}</span></span></span><span class="disp num" style=${{ fontWeight: 700, fontSize: '17px' }}>${g.pct}%</span></span>
