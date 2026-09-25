@@ -115,6 +115,36 @@ p { margin: 0; }
 .wide .d-content { padding-bottom: 60px; }
 .d-bar .chip { height: 44px; border-radius: 999px; padding: 0 16px; }
 .previews { display: grid; justify-content: center; gap: 16px 12px; padding: 14px 12px; border-radius: 18px; background: var(--surface); min-width: 0; overflow: hidden; }
+.preview-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border-radius: 26px; border: 2px solid transparent; min-width: 0; transition: border-color 0.15s, background 0.15s; }
+.preview-pick:hover { background: var(--surface2); }
+.preview-pick.on { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.lock { position: fixed; inset: 0; z-index: 100; background: var(--page-glow), var(--bg); background-repeat: no-repeat; color: var(--ink); overflow-y: auto; }
+.lock-mark { width: 36px; height: 36px; border-radius: 12px; background: var(--grad); box-shadow: var(--glow); flex-shrink: 0; }
+.lock-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.lock-phone { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: calc(env(safe-area-inset-top, 0px) + 22px) 20px calc(env(safe-area-inset-bottom, 0px) + 22px); }
+.lock-phone .lock-top, .lock-tablet .lock-top { display: flex; justify-content: center; }
+.lock-tablet { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 32px; background: var(--grad); color: var(--ink); }
+.lock-tablet .lock-top { color: var(--hero-ink); }
+.lock-tablet .lock-mark { background: color-mix(in srgb, var(--hero-ink) 92%, transparent); box-shadow: none; }
+.lock-tablet .lock-card { max-width: 440px; padding: 36px 32px; border-radius: 34px; background: var(--surface); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3); }
+.lock-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.lock-brand { position: relative; overflow: hidden; background: var(--grad); color: var(--hero-ink); padding: 48px 56px; display: flex; flex-direction: column; justify-content: space-between; min-height: 100vh; }
+.lock-brand::after { content: ''; position: absolute; right: -120px; top: -160px; width: 520px; height: 520px; border-radius: 999px; background: radial-gradient(circle, color-mix(in srgb, var(--hero-ink) 18%, transparent), transparent 70%); pointer-events: none; }
+.lock-brand .lock-mark { background: color-mix(in srgb, var(--hero-ink) 92%, transparent); box-shadow: none; }
+.lock-h { font-size: clamp(48px, 5.4vw, 84px); font-weight: 500; line-height: 1.02; letter-spacing: -0.045em; }
+.lock-panel { display: flex; align-items: center; justify-content: center; padding: 40px; }
+.pinpad { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.pin-dots { display: flex; gap: 14px; }
+.pin-dots i { width: 14px; height: 14px; border-radius: 999px; border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); transition: background 0.12s, border-color 0.12s; }
+.pin-dots i.on { background: var(--acc); border-color: var(--acc); }
+.pin-dots.shake { animation: shake 0.42s ease; }
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-9px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+.pin-keys { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px 24px; justify-content: center; }
+.pin-key { width: 72px; height: 72px; border-radius: 999px; background: var(--surface2); color: var(--ink); font-family: var(--display); font-size: 28px; font-weight: 500; display: flex; align-items: center; justify-content: center; transition: background 0.1s, transform 0.1s; }
+.pin-key:active:not(:disabled) { background: var(--accbg); transform: scale(0.96); }
+.pin-key.ghost { background: transparent; color: var(--muted); }
+.pin-key:disabled { opacity: 0.4; }
+@media (max-height: 720px) { .pin-keys { grid-template-columns: repeat(3, 62px); gap: 10px 20px; } .pin-key { width: 62px; height: 62px; font-size: 24px; } .lock-card { gap: 14px; } }
 .mode-btn { height: 44px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; color: var(--ink2); }
 .mode-btn svg { flex-shrink: 0; }
 .mode-btn:hover { background: var(--surface2); }
@@ -295,6 +325,7 @@ select.input { appearance: none; -webkit-appearance: none; background-image: lin
 <script src="js/ui.js"></script>
 <script src="js/themes.js"></script>
 <script src="js/currency.js"></script>
+<script src="js/lock.js"></script>
 <script src="js/screens-home-money.js"></script>
 <script src="js/screens-plan.js"></script>
 <script src="js/screens-stats.js"></script>

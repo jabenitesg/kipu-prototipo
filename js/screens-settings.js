@@ -34,7 +34,7 @@
   // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
     ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
-    ['Data', [['data', 'upload', 'Data, backup & reset']]],
+    ['Security & data', [['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
   ];
   K.Settings = function Settings({ route }) {
     const { wide, go } = useApp();
@@ -50,7 +50,7 @@
     const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
     const pal = K.palette(theme, settings.effectiveDark);
     const open = (k) => go({ r: 'settings', s: k }, wide);
-    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '' };
+    const val = { household: data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off' };
     const on = (k) => active === k;
     const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
     const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
@@ -68,7 +68,7 @@
   }
   const SubHead = ({ title, sub }) => html`<div class="stack-s" style=${{ gap: '6px' }}><span class="eyebrow">Settings</span><h2 class="set-title">${title}</h2>${sub && html`<p class="muted" style=${{ lineHeight: 1.5, maxWidth: '60ch' }}>${sub}</p>`}</div>`;
   function Section({ s }) {
-    const C = { profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
+    const C = { security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
   }
 
@@ -87,17 +87,14 @@
     const [boxW, setBoxW] = useState(0);
     useEffect(() => { const el = boxRef.current; if (!el) return; const on = () => setBoxW(el.clientWidth); on(); const ro = window.ResizeObserver ? new ResizeObserver(on) : null; if (ro) ro.observe(el); else window.addEventListener('resize', on); return () => (ro ? ro.disconnect() : window.removeEventListener('resize', on)); }, []);
     const inner = Math.max(0, boxW - 24), gap = 12;
-    const cols = inner >= 4 * 130 + 3 * gap ? 4 : inner >= 2 * 86 + gap ? 2 : 1;
-    const pw = boxW ? Math.max(84, Math.min(200, Math.floor((inner - gap * (cols - 1)) / cols))) : 120;
+    const cols = inner >= 4 * 146 + 3 * gap ? 4 : inner >= 2 * 100 + gap ? 2 : 1;
+    const pw = boxW ? Math.max(80, Math.min(200, Math.floor((inner - gap * (cols - 1)) / cols) - 16)) : 120;
     const darkPreview = settings.effectiveMode === 'Light' ? 'Dark' : settings.effectiveMode;
     const dirty = isCustom ? current !== 'Custom' || JSON.stringify(draft) !== JSON.stringify(Object.assign({}, K.DEFAULT_CUSTOM, settings.custom || {})) : pick !== current;
     const setD = (o) => setDraft(Object.assign({}, draft, o));
     const Swatches = ({ value, onPick }) => html`<div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}>${K.CUSTOM_COLORS.map(([n, c]) => html`<button key=${c} type="button" aria-label=${n} title=${n} aria-pressed=${value === c} onClick=${() => onPick(c)} style=${{ width: '34px', height: '34px', borderRadius: '999px', background: c, boxShadow: value === c ? '0 0 0 2px var(--surface), 0 0 0 4px var(--ink)' : 'inset 0 0 0 1px rgba(0,0,0,0.08)' }}></button>`)}
       <label class="row" title="Any color" style=${{ gap: '6px', height: '34px', padding: '0 10px 0 4px', borderRadius: '999px', background: 'var(--surface2)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}><input type="color" aria-label="Pick any color" value=${value || '#000000'} onInput=${(e) => onPick(e.target.value.toUpperCase())} style=${{ width: '26px', height: '26px', border: 0, padding: 0, background: 'none', borderRadius: '999px' }} />Any</label></div>`;
-    return html`<${SubHead} title="Appearance & theme" sub="Appearance sets the background. The theme sets the colors on top of it." />
-      <div class="stack-s"><span class="eyebrow">Appearance</span>
-        <div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>${Object.keys(K.MODES).concat(['System']).map((m) => { const on = (settings.mode || 'System') === m; return html`<button key=${m} aria-pressed=${on} onClick=${() => setSettings({ mode: m })} class="mode-btn"><${Icon} n=${{ Light: 'sun', Graphite: 'cloud', Midnight: 'moonstar', Dark: 'moon', System: 'monitor' }[m]} s=${17} w=${2} />${m}</button>`; })}</div>
-        <span class="tiny muted">${(settings.mode || 'System') === 'System' ? 'System follows your device: now ' + (settings.effectiveDark ? 'Dark' : 'Light') + '.' : K.MODES[settings.mode].desc + '.'}</span></div>
+    return html`<${SubHead} title="Appearance & theme" sub="Pick a theme for the colors, then tap the background you like." />
       <div class="stack-s"><span class="eyebrow">Theme</span><div class="grid" style=${{ gridTemplateColumns: 'repeat(auto-fill, minmax(' + (wide ? 170 : 140) + 'px, 1fr))', gap: '10px' }}>${K.themeList().map((n) => { const th = n === 'Custom' ? K.buildCustom(isCustom ? draft : settings.custom) : K.THEMES[n]; const L = th.light, Dk = th.dark, on = n === pick; return html`<button key=${n} aria-pressed=${on} onClick=${() => setPick(n)} class="card" style=${{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', borderColor: on ? 'var(--acc)' : null, boxShadow: on ? '0 0 0 1px var(--acc)' : null }}>
         <span class="between"><span style=${{ fontWeight: 700 }}>${n === 'Custom' ? 'Custom' : n}</span>${n === current && html`<span class="pill acc" style=${{ height: '20px', fontSize: '10px' }}>Current</span>`}</span>
         <span class="row" style=${{ gap: '5px' }}>${n === 'Custom' && !settings.custom && !isCustom ? html`<span class="tiny muted">Pick your own colors</span>` : [K.gradCss(L.grad)].concat(L.chart.slice(0, 4)).map((c, i) => html`<i key=${i} style=${{ width: i === 0 ? '30px' : '18px', height: '18px', borderRadius: '999px', background: c, boxShadow: 'inset 0 0 0 1px rgba(128,128,128,0.2)' }}></i>`)}</span></button>`; })}</div></div>
@@ -108,7 +105,9 @@
         ${draft.style === 'gradient' && html`<div class="stack-s"><div class="between"><span style=${{ fontWeight: 700 }}>Second color</span><button class="link" onClick=${() => setD({ color2: K.suggestSecond(draft.color) })}>Suggest one</button></div><${Swatches} value=${draft.color2} onPick=${(c) => setD({ color2: c })} /></div>`}
         ${T.adjusted && html`<div class="row small" style=${{ gap: '8px', padding: '10px 12px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="info" s=${16} c="var(--muted)" /><span class="muted" style=${{ lineHeight: 1.45 }}>${T.light.onInk !== '#FFFFFF' ? 'Your color is light, so text on it will be dark. ' : ''}${T.light.acc !== draft.color ? 'Links and labels use a slightly deeper shade so they stay readable.' : ''}</span></div>`}</div>`}
       <div class="card flat stack" style=${{ gap: '14px' }}><div class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${pick}</span><span class="tiny muted">${T.desc}</span></div>
-        <div class="previews" ref=${boxRef} style=${{ gridTemplateColumns: 'repeat(' + cols + ', max-content)' }}>${Object.keys(K.MODES).map((m) => html`<div key=${m} class="stack-s" style=${{ alignItems: 'center', gap: '6px', minWidth: 0 }}><${ThemePreview} name=${previewName} mode=${m} w=${pw} /><span class="tiny" style=${{ fontWeight: m === settings.effectiveMode ? 700 : 500, color: m === settings.effectiveMode ? 'var(--ink)' : 'var(--muted)' }}>${m}${m === settings.effectiveMode ? ' · in use' : ''}</span></div>`)}</div>
+        <span class="small muted">Tap a background to use it.</span>
+        <div class="previews" ref=${boxRef} role="radiogroup" aria-label="Background" style=${{ gridTemplateColumns: 'repeat(' + cols + ', max-content)' }}>${Object.keys(K.MODES).map((m) => { const on = settings.mode === m || (settings.mode === 'System' && settings.effectiveMode === m); return html`<button key=${m} type="button" role="radio" aria-checked=${settings.mode === m} class=${'preview-pick' + (on ? ' on' : '')} onClick=${() => setSettings({ mode: m })}><${ThemePreview} name=${previewName} mode=${m} w=${pw} /><span class="row" style=${{ gap: '6px', justifyContent: 'center', fontSize: '13px', fontWeight: on ? 700 : 500, color: on ? 'var(--ink)' : 'var(--muted)' }}><${Icon} n=${{ Light: 'sun', Graphite: 'cloud', Midnight: 'moonstar', Dark: 'moon' }[m]} s=${15} w=${2} />${m}${on && html`<${Icon} n="check" s=${14} w=${2.6} c="var(--acc)" />`}</span></button>`; })}</div>
+        <div class="card tight"><${ToggleRow} title="Match my device" sub=${settings.mode === 'System' ? 'Light or Dark with your device. Now ' + settings.effectiveMode + '.' : 'Switch between Light and Dark with your device'} icon="monitor" tone="n" on=${settings.mode === 'System'} onChange=${(v) => setSettings({ mode: v ? 'System' : settings.effectiveMode })} /></div>
         <button class="btn block" disabled=${!dirty} onClick=${() => { setSettings(isCustom ? { theme: 'Custom', custom: draft } : { theme: pick }); toast(pick + ' applied'); }} style=${{ background: K.gradCss(T.light.grad), color: T.light.onInk || '#FFFFFF' }}>${!dirty ? '✓ Current theme' : 'Apply ' + pick}</button></div>
       <div class="card tight"><${ToggleRow} title="Reduce motion" on=${settings.reduce} onChange=${(v) => setSettings({ reduce: v })} /></div>`;
   }
@@ -172,6 +171,34 @@
         <span class="tiny muted">Starred currencies come first when you add expenses. Removing one hides it from pickers; transactions already recorded in it stay as they are.</span></div>
       <div class="stack-s"><span class="eyebrow">Exchange rates</span><${Facts} rows=${[['Status', status[0], status[1]], ['Source', data.fx.source], ['Last updated', data.fx.updated ? new Date(data.fx.updated).toLocaleString() : 'Never']]} /><button class="btn sec" disabled=${busy} onClick=${() => refresh()}>${busy ? 'Updating…' : 'Update rates now'}</button><span class="tiny muted">Rates update by themselves when you open Kipu. Past transactions keep their stored rate.</span></div>
       <${K.Converter} />`;
+  }
+
+  function Security() {
+    const { data, toast, lockNow } = useApp();
+    const [cfg, setCfg] = useState(K.lockCfg());
+    const [step, setStep] = useState(null);
+    const [first, setFirst] = useState('');
+    const [err, setErr] = useState('');
+    const [bioOk, setBioOk] = useState(false);
+    useEffect(() => { K.bioAvailable().then(setBioOk); }, []);
+    const refresh = () => setCfg(K.lockCfg());
+    const cancel = () => { setStep(null); setErr(''); setFirst(''); };
+    const verify = async (pin, next) => { const r = await K.checkPin(pin); if (r.ok) { setErr(''); next(); } else setErr(r.wait ? 'Too many tries. Wait ' + r.wait + 's.' : 'Wrong PIN'); };
+    const pad = (title, sub, onDone) => html`<div class="card stack" style=${{ gap: '14px', alignItems: 'center', padding: '24px 16px' }}><${K.PinPad} key=${step} title=${title} sub=${sub} error=${err} onDone=${onDone} /><button class="link" style=${{ color: 'var(--muted)' }} onClick=${cancel}>Cancel</button></div>`;
+    const bioToggle = async (v) => { try { if (v) { await K.enrollBio(data.profile.name); toast(K.bioLabel() + ' is on'); } else { K.saveLock(Object.assign(K.lockCfg(), { bio: null })); toast(K.bioLabel() + ' is off'); } } catch (e) { toast('That didn’t work. You can try again.'); } refresh(); };
+    return html`<${SubHead} title="App lock" sub="Ask for a PIN or your device’s face or fingerprint unlock when Kipu opens. It keeps people out of Kipu on this device." />
+      ${step === 'new' && pad('Choose a 6-digit PIN', 'Avoid birthdays and 123456.', (p) => { if (/^(\d)\1{5}$/.test(p) || '0123456789'.includes(p) || '9876543210'.includes(p)) { setErr('That one is too easy to guess'); return; } setFirst(p); setErr(''); setStep('confirm'); })}
+      ${step === 'confirm' && pad('Enter it again', 'To make sure it’s right.', async (p) => { if (p !== first) { setErr('The PINs didn’t match. Start again.'); setFirst(''); setStep('new'); return; } await K.setPin(p); refresh(); cancel(); toast('App lock is on'); })}
+      ${step === 'verify-change' && pad('Enter your current PIN', null, (p) => verify(p, () => setStep('new')))}
+      ${step === 'verify-off' && pad('Enter your PIN to turn off', null, (p) => verify(p, () => { K.clearLock(); refresh(); cancel(); toast('App lock is off'); }))}
+      ${!step && !cfg.enabled && html`<div class="card stack" style=${{ gap: '14px', alignItems: 'flex-start' }}><span class="set-ic" style=${{ width: '48px', height: '48px', background: 'var(--accbg)', color: 'var(--acc)' }}><${Icon} n="lock" s=${22} /></span><span style=${{ fontWeight: 700, fontSize: '17px' }}>Lock Kipu with a PIN</span><span class="small muted" style=${{ lineHeight: 1.5 }}>You’ll choose a 6-digit PIN. ${bioOk ? 'Then you can also unlock with ' + K.bioLabel() + '.' : ''}</span><button class="btn pri" onClick=${() => { setErr(''); setStep('new'); }}><${Icon} n="lock" s=${16} />Set up a PIN</button></div>`}
+      ${!step && cfg.enabled && html`<div class="stack">
+        <div class="card tight list"><div class="lrow"><span class="set-ic" style=${{ background: 'var(--accbg)', color: 'var(--acc)' }}><${Icon} n="lock" s=${17} /></span><span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">App lock is on</span><span class="t2">6-digit PIN</span></span><span class="pill pos">On</span></div>
+          ${bioOk && html`<${ToggleRow} title=${'Unlock with ' + K.bioLabel()} sub="Faster than typing your PIN" icon="scan" tone="n" on=${!!cfg.bio} onChange=${bioToggle} />`}</div>
+        <div class="stack-s"><span class="eyebrow">Lock again after</span><${Chips} options=${[0, 60, 300, 900]} labels=${['Right away', '1 minute', '5 minutes', '15 minutes']} value=${cfg.auto} onChange=${(v) => { K.saveLock(Object.assign(K.lockCfg(), { auto: v })); refresh(); }} /><span class="tiny muted">Counted from when you leave Kipu or switch apps.</span></div>
+        <div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${lockNow}><${Icon} n="lock" s=${16} />Lock now</button><button class="btn sec" onClick=${() => { setErr(''); setStep('verify-change'); }}>Change PIN</button></div>
+        <button class="btn sec block" style=${{ color: 'var(--crit)' }} onClick=${() => { setErr(''); setStep('verify-off'); }}>Turn off app lock</button></div>`}
+      <div class="row small" style=${{ gap: '8px', padding: '12px 14px', borderRadius: '14px', background: 'var(--surface2)', alignItems: 'flex-start' }}><${Icon} n="info" s=${16} c="var(--muted)" /><span class="muted" style=${{ lineHeight: 1.5 }}>Your PIN is never saved, only a scrambled check of it. The lock doesn’t encrypt your data, so keep your phone or computer’s own screen lock on too. If you forget the PIN, you can erase Kipu on this device and restore a backup.</span></div>`;
   }
 
   function Categories() {

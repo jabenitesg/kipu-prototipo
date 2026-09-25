@@ -21,6 +21,10 @@ Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza va
 - Calendario al tocar cualquier fecha
 - Categorías propias: créalas al agregar un gasto o en Settings → Categories
 
+## Bloqueo
+
+En Settings → App lock puedes pedir un PIN de 6 dígitos (y Face ID, Touch ID o huella si tu dispositivo lo permite) al abrir Kipu y al volver después de un rato. El PIN no se guarda, solo una versión cifrada irreversible. El bloqueo no cifra los datos: mantén también el bloqueo de pantalla de tu teléfono o computadora.
+
 ## Tus datos
 
 Todo queda en `localStorage` de este navegador y dispositivo; nada se envía a un servidor. Si borras los datos del sitio o cambias de navegador, empiezas de cero. Haz una copia en **Settings → Data**.
@@ -33,6 +37,7 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 - `readers.js`: lectura de recibos y estados de cuenta
 - `ui.js`, `themes.js`, `currency.js`: componentes, paletas y monedas
 - `screens-*.js`, `flows.js`: pantallas y formularios
+- `lock.js`: bloqueo con PIN y desbloqueo biométrico
 - `app.js`: navegación y layout
 
 ## Prototipo

@@ -25,6 +25,9 @@
     const [stack, setStack] = useState([{ r: 'home' }]);
     const [sheet, setSheet] = useState(null);
     const [fly, setFly] = useState(null);
+    // App lock: locked on open, and again after the chosen time away
+    const [locked, setLocked] = useState(() => K.lockCfg().enabled);
+    useEffect(() => { let hiddenAt = 0; const on = () => { const c = K.lockCfg(); if (!c.enabled) return; if (document.hidden) hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt >= (c.auto || 0) * 1000) { setSheet(null); setLocked(true); } }; document.addEventListener('visibilitychange', on); return () => document.removeEventListener('visibilitychange', on); }, []);
     useEffect(() => { if (!fly) return; const off = () => setFly(null); const esc = (e) => e.key === 'Escape' && setFly(null); document.addEventListener('click', off); document.addEventListener('keydown', esc); return () => { document.removeEventListener('click', off); document.removeEventListener('keydown', esc); }; }, [fly]);
     const [toastMsg, setToast] = useState(null);
     const [vw, setVw] = useState(window.innerWidth);
@@ -71,10 +74,11 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, wide, insights, resetAll };
+    const value = { data, commit, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!data.onboarded) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.Onboarding} /></div></${Ctx.Provider}>`;
+    if (locked && K.lockCfg().enabled) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.LockScreen} onUnlock=${() => setLocked(false)} wide=${wide} vw=${vw} /></div></${Ctx.Provider}>`;
 
     const Screen = SCREENS()[route.r] || K.Home;
     const content = html`<${Screen} key=${JSON.stringify(route)} route=${route} />`;
@@ -109,6 +113,7 @@
             <span class="grow"></span>
             ${rootOf === 'home' && stack.length === 1 && html`<${K.ContextFilter} show=${['scope', 'currency']} />`}
             <span class="pill-soft"><${Icon} n="calendar" s=${16} c="var(--muted)" />${today}</span>
+            ${K.lockCfg().enabled && html`<button class="circle-btn" aria-label="Lock Kipu" title="Lock" onClick=${() => { setFly(null); setLocked(true); }}><${Icon} n="lock" s=${17} /></button>`}
             <button class="circle-btn" aria-label=${alerts ? alerts + ' things need attention' : 'Insights'} onClick=${() => go({ r: 'stats', tab: 'insights' })} style=${{ position: 'relative' }}><${Icon} n="bell" s=${18} />${alerts > 0 && html`<i class="bell-dot"></i>`}</button>
             <div class="rail-wrap"><button class="btn pri sm pill" aria-haspopup="menu" aria-expanded=${fly === 'addTop'} onClick=${(e) => { e.stopPropagation(); setFly(fly === 'addTop' ? null : 'addTop'); }}><${Icon} n="plus" s=${16} w=${2.4} />Add</button>${fly === 'addTop' && addMenu('fly fly-down')}</div>
           </div>
