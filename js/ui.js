@@ -380,7 +380,7 @@
   K.DateInput = function DateInput({ label, value, onChange, hint, optional, min, max, placeholder }) {
     const [open, setOpen] = useState(false);
     const d = value ? K.parse(value) : null;
-    const display = d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const display = d ? d.toLocaleDateString(K.loc(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
     return html`<${PickerField} label=${label} hint=${hint} open=${open} onToggle=${() => setOpen(!open)} display=${display} placeholder=${placeholder || 'Choose a date'}><${Calendar} value=${value} min=${min} max=${max} onPick=${(s) => { onChange(s); setOpen(false); }} onClear=${optional ? () => { onChange(''); setOpen(false); } : null} /></${PickerField}>`;
   };
   // Day of the month, for due dates, closing dates and bills

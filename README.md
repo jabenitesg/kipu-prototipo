@@ -20,6 +20,11 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - Settings: 4 fondos (Light blanco, Graphite, Dark negro, Midnight azul) más System, y 7 temas de color (Kipu, Ocean, Forest, Sand, Ember, Coral, Dusk, Mono) y uno Custom con tus propios colores que combinan con cualquier fondo; foto de perfil; ocultar montos; reglas de categorías; copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
 - Actividad con calendario semanal de fechas individuales y detalle de gastos e ingresos del día
 - Categorías propias: créalas al agregar un gasto o en Settings → Categories
+- **Idioma:** español o inglés. Se elige solo según el idioma del teléfono y se cambia en la bienvenida o en Ajustes → Idioma. Los nombres que escribiste no se traducen.
+- **Vista por país:** si tienes cuentas en varios países (por ejemplo Canadá y Perú), Inicio muestra lo disponible para gastar en cada uno, en su propia moneda, y puedes ver solo ese país. Las cuentas en dólares, euros o libras sin país se cuentan en tu país principal.
+- **Tarjetas bimoneda:** una tarjeta puede llevar saldo en dos monedas (soles y dólares) con un solo límite, y pagarse por separado. Los préstamos se pagan en su propia moneda.
+- **Sin conversiones inventadas:** si falta el tipo de cambio de una moneda, Kipu no la convierte 1 a 1. Esos montos quedan fuera de los totales con un aviso y se suman cuando llega la tasa.
+- **Recibos pagados:** un gasto escrito o importado que coincide con un recibo (nombre parecido, monto dentro del 3 % y ±7 días) lo marca como pagado, así no se descuenta dos veces. Se puede vincular o desvincular a mano en el detalle del gasto.
 
 ## Bloqueo
 
@@ -35,7 +40,7 @@ El **Household conjunto** es opcional y separado del archivo personal. Quien lo 
 
 El correo de confirmación y recuperación de contraseña y la sesión de autenticación los gestiona Supabase. Las exportaciones JSON son archivos legibles, así que guárdalas en un lugar seguro. El proyecto Kipu ya tiene `https://kipu-prototipo.vercel.app/` como **Site URL** y como redirección permitida. Para que familiares ajenos a la organización Supabase reciban correos de confirmación o recuperación hay que configurar un proveedor SMTP propio en **Authentication → Emails → SMTP Settings**. El servicio de correo incluido con Supabase solo llega a integrantes del proyecto y permite actualmente dos mensajes por hora. Google está conectado, pero la aplicación OAuth aún está en modo de prueba: cada familiar que use Google necesita añadirse como usuario de prueba en Google Cloud hasta publicar la aplicación. Añade los dominios de vista previa que uses como **Redirect URLs** antes de probar inicio de sesión en ellos.
 
-La sincronización comprueba cambios al volver a la pestaña y cada 30 segundos. Si otro dispositivo cambió el archivo mientras se editaba aquí, Kipu detiene la sobrescritura y avisa; exporta una copia antes de recargar. Un borrador cifrado de la última escritura pendiente queda en este navegador para reintentar después de recargar. En un Household, las dos personas pueden editar, pero todavía no hay fusión automática de movimientos editados simultáneamente. El modo de cuenta necesita conexión fiable.
+La sincronización comprueba cambios al volver a la pestaña y cada 30 segundos. Si otro dispositivo guardó mientras se editaba aquí, Kipu combina los dos cambios: junta los movimientos, cuentas y metas nuevos de ambos lados y suma las diferencias de saldo, en vez de sobrescribir. Si los dos editan el mismo movimiento a la vez, queda la última versión guardada. Un borrador cifrado de la última escritura pendiente queda en este navegador y se combina igual al reabrir. El modo de cuenta necesita conexión fiable.
 
 ## Código
 
@@ -47,9 +52,10 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 - `screens-*.js`, `flows.js`: pantallas y formularios
 - `lock.js`: bloqueo con PIN y desbloqueo biométrico
 - `cloud.js`: cifrado, acceso y sincronización con control de versión
+- `i18n.js`, `i18n-es.js`: idioma; las pantallas están escritas en inglés y el texto se reemplaza por su traducción al mostrarse
 - `app.js`: navegación y layout
 
-Las pruebas se ejecutan con `node --test tests/*.test.js` (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío y demo explícita, cifrado de archivos privados y conjuntos, lectura entre dispositivos y conflictos de escritura. Las políticas de Household se verificaron en Supabase con identidades simuladas de dueño, invitado y tercero; la prueba real con dos cuentas de Google debe completarse antes de considerarlo validado para uso habitual.
+Las pruebas se ejecutan con `node --test tests/*.test.js` (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío y demo explícita, cifrado de archivos privados y conjuntos, lectura entre dispositivos, fusión de cambios simultáneos, monedas sin tasa, recibos pagados por gastos importados, vista por país y tarjetas bimoneda. Las políticas de Household se verificaron en Supabase con identidades simuladas de dueño, invitado y tercero; la prueba real con dos cuentas de Google debe completarse antes de considerarlo validado para uso habitual.
 
 ## Prototipo
 

@@ -12,8 +12,10 @@
     USD: 'America Ecuador El Salvador Panama Puerto Rico', XOF: 'CFA Senegal Ivory Coast Côte d’Ivoire Mali Burkina Faso Benin Togo Niger', XAF: 'CFA Cameroon Gabon Chad Congo Equatorial Guinea',
     XCD: 'Antigua Dominica Grenada Saint Lucia Saint Kitts Saint Vincent Anguilla Montserrat', AUD: 'Kiribati Nauru Tuvalu', CHF: 'Liechtenstein', NZD: 'Cook Islands', GBP: 'England Scotland Wales Britain UK',
   };
-  let curNames, regNames;
-  try { curNames = new Intl.DisplayNames(['en'], { type: 'currency' }); regNames = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' }); } catch (e) {}
+  // Country and currency names come from the browser, in the app's language
+  const names = {};
+  const namesFor = (type) => { const l = K.lang ? K.lang() : 'en', k = type + l; if (!(k in names)) { try { names[k] = new Intl.DisplayNames([l], { type, fallback: type === 'region' ? 'none' : 'code' }); } catch (e) { names[k] = null; } } return names[k]; };
+  const curNames = { of: (c) => namesFor('currency') && namesFor('currency').of(c) }, regNames = { of: (c) => namesFor('region') && namesFor('region').of(c) };
   const country = (code) => {
     if (REGION[code]) return REGION[code];
     const cc = code.slice(0, 2);

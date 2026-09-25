@@ -12,6 +12,7 @@
     const [base, setBase] = useState('CAD');
     const [extra, setExtra] = useState([]);
     const [more, setMore] = useState(false);
+    const [lang, setLang] = useState(K.lang());
     const finish = (sample) => {
       if (sample) { commit(K.sampleData()); return; }
       commit(K.snapshot(Object.assign({}, data, { onboarded: true, profile: { name: name.trim(), email: '' }, base, active: [base].concat(extra.filter((c) => c !== base)) })));
@@ -20,7 +21,8 @@
     return html`<div class="onb"><div class="onb-card stack" style=${{ gap: '22px' }}>
       <div class="row" style=${{ gap: '10px' }}><span style=${{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '22px', fontWeight: 800 }}>Kipu</span><span class="grow"></span><div class="row" style=${{ gap: '6px' }}>${[0, 1, 2].map((i) => html`<${Dot} key=${i} i=${i} />`)}</div></div>
       ${step === 0 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '32px', lineHeight: '38px', fontWeight: 800 }}>Money, calmly.</h1><p class="muted" style=${{ fontSize: '16px', lineHeight: 1.5 }}>Kipu keeps your accounts, bills, goals and trips in one place and tells you what’s safe to spend. Everything stays on this device.</p>
-        <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button>${cloud.status === 'guest' && html`<button class="btn sec block" onClick=${cloudLogin}>Sign in to sync</button><button class="link" onClick=${() => finish(true)}>Explore with sample data</button>`}</div>`}
+        <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button>${cloud.status === 'guest' && html`<button class="btn sec block" onClick=${cloudLogin}>Sign in to sync</button><button class="link" onClick=${() => finish(true)}>Explore with sample data</button>`}
+        <div class="row" data-raw role="group" aria-label="Idioma / Language" style=${{ gap: '6px', justifyContent: 'center', paddingTop: '4px' }}><${Icon} n="globe" s=${15} c="var(--muted)" />${K.LANGS.map(([k, l]) => html`<button key=${k} class="link" aria-pressed=${lang === k} style=${{ color: lang === k ? 'var(--ink)' : 'var(--muted)', fontWeight: lang === k ? 700 : 500 }} onClick=${() => { K.setLang(k); setLang(k); }}>${l}</button>`)}</div></div>`}
       ${step === 1 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>What should we call you?</h1><${Field} label="First name"><input id="onb-name" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Your name" autofocus /></${Field}><button class="btn pri block" onClick=${() => setStep(2)}>Continue</button></div>`}
       ${step === 2 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>Your main currency</h1><p class="muted">Totals, Safe to Spend and net worth use it. You can still record anything in other currencies.</p>
         <${K.CurrencySelect} label="Main currency" value=${base} onChange=${setBase} />
@@ -33,6 +35,7 @@
   // ---------------------------------------------------------------- Settings
   // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
+    ['General', [['language', 'globe', 'Language']]],
     ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
     ['Security & data', [['cloud', 'cloud', 'Account & sync'], ['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
   ];
@@ -50,7 +53,7 @@
     const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
     const pal = K.palette(theme, settings.effectiveDark);
     const open = (k) => go({ r: 'settings', s: k }, wide);
-    const val = { household: cloud.target === 'household' ? cloud.household.name : data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off' };
+    const val = { household: cloud.target === 'household' ? cloud.household.name : data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off', language: (K.LANGS.find((l) => l[0] === K.lang()) || [])[1] };
     const on = (k) => active === k;
     const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
     const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
@@ -138,7 +141,7 @@
       <p class="tiny muted">Cloud data is encrypted before upload. Your email and login details are managed by Supabase. Browser backups exported as JSON are readable files; store them safely. If you forget a space’s passphrase, Kipu cannot decrypt its data.</p>`;
   }
   function Section({ s }) {
-    const C = { cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
+    const C = { cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, language: Language, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
   }
 
@@ -294,6 +297,12 @@
       <div class="stack-s"><span class="eyebrow">Rules</span>
       ${data.rules.length ? html`<div class="card tight list">${data.rules.filter((r) => K.CATS[r.cat]).map((r) => html`<div key=${r.id} class="lrow"><${Tile} icon=${K.CATS[r.cat].icon} tone=${K.CATS[r.cat].tone} /><span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${r.merchant}</span><span class="t2">${K.CATS[r.cat].name}</span></span><button class="link" onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((x) => x.id !== r.id) })); toast('Rule removed'); }}>Remove</button></div>`)}</div>` : html`<div class="card"><${EmptyState} icon="tag" title="No rules yet" text="Open any expense and choose “Always use this category”." /></div>`}
       <span class="tiny muted">When a merchant matches a rule, new expenses get that category. Without a rule, Kipu suggests one from the merchant name and your past choices.</span></div>`;
+  }
+
+  function Language() {
+    const [lang, setLang] = useState(K.lang());
+    const pick = (l) => { K.setLang(l); setLang(l); };
+    return html`<${SubHead} title="Language" sub="Choose the language for Kipu. Names you typed stay as you wrote them." /><div class="card tight list">${K.LANGS.map(([k, label]) => html`<button key=${k} class=${'lrow set-row' + (lang === k ? ' on' : '')} aria-pressed=${lang === k} onClick=${() => pick(k)}><span class="grow t1" data-raw style=${{ textAlign: 'left' }}>${label}</span>${lang === k && html`<${Icon} n="check" s=${18} c="var(--acc)" w=${2.4} />`}</button>`)}</div>`;
   }
 
   function AI() {

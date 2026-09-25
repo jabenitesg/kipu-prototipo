@@ -232,7 +232,7 @@
     if (wide) {
       const nav = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
       const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const today = new Date().toLocaleDateString(K.loc(), { weekday: 'long', month: 'long', day: 'numeric' });
       const alerts = insights.filter((i) => i.kind === 'Priority').length;
       const subLabel = (() => { const g = [['money', [['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']]], ['plan', [['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', [['insights', 'Insights'], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]].find((x) => x[0] === rootOf); const t = g && g[1].find((x) => x[0] === (stack[0].tab || 'overview')); return t ? t[1] : null; })();
       const rootTab = stack[0].tab || 'overview';
