@@ -15,7 +15,7 @@ Kipu es una app de finanzas personales tranquila. Funciona de verdad: empieza va
 - **Subir estado de cuenta:** CSV o PDF; detecta duplicados y sugiere categorías
 - Presupuesto, facturas y suscripciones, metas, viajes
 - Estadísticas, insights, revisiones mensuales y forecast con escenarios
-- Settings: 7 temas, claro u oscuro, ocultar montos, reglas de categorías, copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
+- Settings: 7 temas y 5 modos (Light, Dark, Midnight, Ash, Onyx), ocultar montos, reglas de categorías, copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
 
 ## Tus datos
 

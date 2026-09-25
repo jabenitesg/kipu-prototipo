@@ -14,16 +14,27 @@
     Forest: { desc: 'Emerald to teal', g: ['#0F8A5F', '#139C9C'], gd: ['#1FB57D', '#19B8B0'], light: L('#F6FAF7', '#EDF4EF', '#E1ECE4', '#E4F3EC', '#0F7A55', '#139C9C'), dark: Dk('#0C1714', '#14221E', '#1A2C27', '#223831', '#17302A', '#4FD3A6', '#19B8B0') },
     Sunset: { desc: 'Coral to pink to violet', g: ['#F0706A', '#E3558F', '#8B55D9'], gd: ['#FF7F6E', '#F0609A', '#9A66F0'], light: L('#FFF8F5', '#FBF0EC', '#F3E4DF', '#F6EAF8', '#8E3FB0', '#E3558F'), dark: Dk('#1A0F1D', '#251729', '#301D35', '#3B2440', '#341D35', '#FFA08F', '#9A66F0') },
     'Warm Sand': { desc: 'Beige to terracotta to soft peach', g: ['#E8CFA8', '#D98A63', '#F4C4A6'], gd: ['#C9A274', '#C8673F', '#E8A27F'], light: L('#FBF7F1', '#F4EDE3', '#EBE1D3', '#F6EBDD', '#A4522F', '#D98A63', '#2A1A10'), dark: Dk('#17120F', '#221B16', '#2C231C', '#382D24', '#2E231C', '#E3A37F', '#C9A274') },
-    Midnight: { desc: 'Indigo to deep purple', g: ['#3B3FB5', '#5B2A9E'], gd: ['#5B5FFF', '#9340FF'], light: L('#F6F6FA', '#EFEFF6', '#E4E4EE', '#ECECF8', '#3B3FB5', '#7B5BC9'), dark: Dk('#07091A', '#11142A', '#181B38', '#212548', '#1B1D3F', '#A49BFF', '#9340FF') },
+    Indigo: { desc: 'Indigo to deep purple', g: ['#3B3FB5', '#5B2A9E'], gd: ['#5B5FFF', '#9340FF'], light: L('#F6F6FA', '#EFEFF6', '#E4E4EE', '#ECECF8', '#3B3FB5', '#7B5BC9'), dark: Dk('#07091A', '#11142A', '#181B38', '#212548', '#1B1D3F', '#A49BFF', '#9340FF') },
   };
   const SEM = {
     light: { ink: '#121117', ink2: '#3A3945', muted: '#6C6A78', pos: '#1A6B46', pos2: '#2E9B69', posbg: '#E6F4EC', warn: '#8F5608', warn2: '#E0A33B', warnbg: '#FDF1DC', crit: '#A3325A', crit2: '#D0537D', critbg: '#FCEBF1', info: '#2D5DB0', info2: '#7FA0D8', infobg: '#EAF1FC', neutral: '#D9D7E1' },
     dark: { ink: '#F2F2F7', ink2: '#D2D3DE', muted: '#9A9CB0', pos: '#5FD39A', pos2: '#3DBE80', posbg: 'rgba(61, 190, 128, 0.14)', warn: '#F2B654', warn2: '#E8A23A', warnbg: 'rgba(232, 162, 58, 0.14)', crit: '#FF8FA5', crit2: '#E0607F', critbg: 'rgba(224, 96, 127, 0.16)', info: '#8DB4FF', info2: '#5E86D6', infobg: 'rgba(94, 134, 214, 0.18)', neutral: '#3A3E55' },
   };
-  K.themeVars = function (name, dark) {
+  // Appearance modes. Midnight keeps each theme's tinted dark; Dark, Ash and Onyx are neutral bases that carry the theme's accent.
+  const NEUTRAL = {
+    Dark: { bg: '#0B0B0D', surface: '#151518', surface2: '#1D1D21', line: '#29292E', neutral: '#3A3A40' },
+    Ash: { bg: '#1C1C1F', surface: '#26262A', surface2: '#2F2F34', line: '#3B3B41', neutral: '#4A4A51' },
+    Onyx: { bg: '#000000', surface: '#0E0E10', surface2: '#17171A', line: '#232327', neutral: '#36363B' },
+  };
+  K.MODES = { Light: 'Bright and airy', Dark: 'Black with your theme’s accent', Midnight: 'Deep, tinted by your theme', Ash: 'Soft graphite gray', Onyx: 'Pure black, easy on OLED' };
+  K.modeBg = (name, mode) => (mode === 'Light' ? (K.THEMES[name] || K.THEMES['Kipu Purple']).light.bg : mode === 'Midnight' ? (K.THEMES[name] || K.THEMES['Kipu Purple']).dark.bg : NEUTRAL[mode].bg);
+  K.themeVars = function (name, mode) {
+    if (mode === true) mode = 'Dark'; else if (!mode) mode = 'Light';
     const T = K.THEMES[name] || K.THEMES['Kipu Purple'];
-    const v = dark ? T.dark : T.light;
-    const s = dark ? SEM.dark : SEM.light;
+    const dark = mode !== 'Light';
+    const n = NEUTRAL[mode];
+    const v = !dark ? T.light : n ? Object.assign({}, T.dark, n, { accbg: T.dark.acc + '26' }) : T.dark;
+    const s = dark ? Object.assign({}, SEM.dark, n ? { neutral: n.neutral } : {}) : SEM.light;
     const stops = dark ? T.gd : T.g;
     const grad = 'linear-gradient(135deg, ' + stops.map((c, i) => c + ' ' + Math.round((i / (stops.length - 1)) * 100) + '%').join(', ') + ')';
     return {
@@ -36,10 +47,11 @@
   };
 
   // Miniature app used for theme previews. Tokens are scoped to the preview element.
-  const ThemePreview = ({ name, dark, w }) => {
-    const vars = K.themeVars(name, dark);
+  const ThemePreview = ({ name, dark, mode, w }) => {
+    mode = mode || (dark ? 'Dark' : 'Light'); dark = mode !== 'Light';
+    const vars = K.themeVars(name, mode);
     const st = Object.assign({}, vars, { width: (w || 190) + 'px', borderRadius: '24px', padding: '12px 10px 8px', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '7px', boxShadow: dark ? '0 14px 40px rgba(0,0,0,0.5)' : '0 12px 30px rgba(20,16,50,0.12)', fontFamily: 'var(--body)' });
-    return html`<div style=${st} aria-label=${name + (dark ? ' dark' : ' light') + ' preview'}>
+    return html`<div style=${st} aria-label=${name + ' ' + mode + ' preview'}>
       <div class="between" style=${{ fontSize: '8px', color: 'var(--muted)' }}><span>Good morning</span><span style=${{ width: '14px', height: '14px', borderRadius: '999px', background: 'var(--grad)' }}></span></div>
       <div style=${{ padding: '9px', borderRadius: '13px', background: 'var(--grad)', color: 'var(--hero-ink)', display: 'flex', flexDirection: 'column', gap: '3px', boxShadow: 'var(--glow)' }}><span style=${{ fontSize: '7px', opacity: 0.8 }}>Safe to Spend</span><b class="disp" style=${{ fontSize: '17px' }}>CA$1,250</b><span style=${{ height: '3px', borderRadius: '3px', background: 'rgba(255,255,255,0.35)' }}><span style=${{ display: 'block', width: '57%', height: '100%', background: 'currentColor', borderRadius: '3px' }}></span></span></div>
       <div style=${{ display: 'flex', gap: '5px' }}>
