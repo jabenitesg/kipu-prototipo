@@ -1,6 +1,6 @@
 # Kipu · prototipo
 
-Prototipo navegable de Kipu, una app de finanzas personales tranquila. Son 202 pantallas conectadas, diseñadas para iPhone 16 Pro (393 × 852).
+Prototipo navegable de Kipu, una app de finanzas personales tranquila. Son 202 pantallas conectadas que se adaptan a cualquier teléfono. En pantallas grandes se muestran dentro de un marco de teléfono.
 
 **Empieza en Home:** `Main.dc.html` (la página principal redirige ahí).
 
@@ -18,4 +18,3 @@ Prototipo navegable de Kipu, una app de finanzas personales tranquila. Son 202 p
 Cada pantalla es un archivo `.dc.html` con su plantilla y su lógica. `support.js` es un motor ligero que las renderiza en el navegador: rellena los datos, repite listas, muestra u oculta bloques y maneja los botones. No necesita compilación ni servidor; basta con cualquier hosting estático, como GitHub Pages.
 
 Los datos son de ejemplo.
-# kipu-prototipo

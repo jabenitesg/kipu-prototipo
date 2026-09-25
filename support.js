@@ -138,17 +138,35 @@
       fit();
     };
 
+    // Phones: the screen takes the device's real width and height, so the tab bar always sits at the bottom.
+    // Very narrow phones (under 340px) keep a 340px layout scaled down. Larger screens show a phone frame.
+    var MIN_W = 340;
     function fit() {
       var root = mount.firstElementChild;
       while (root && root.nodeType === 1 && !root.style.width) root = root.nextElementSibling;
       if (!root) return;
-      var w = parseFloat(root.style.width) || 393;
-      var avail = window.innerWidth;
-      var z = Math.min(1, (avail - (avail > 520 ? 48 : 0)) / w);
-      mount.style.zoom = z < 1 ? String(z) : '';
-      document.body.classList.toggle('kipu-phone', avail <= 520);
+      var dw = parseFloat(root.getAttribute('data-design-w') || root.style.width) || 393;
+      var dh = parseFloat(root.getAttribute('data-design-h') || root.style.height) || 852;
+      root.setAttribute('data-design-w', dw); root.setAttribute('data-design-h', dh);
+      var vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+      var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      var phone = vw <= 520 && dw <= 520;
+      document.body.classList.toggle('kipu-phone', phone);
+      var tall = dh > 1000; // full-height reference boards scroll as a page
+      if (phone) {
+        var w = Math.max(vw, MIN_W), z = vw / w;
+        root.style.width = w + 'px';
+        if (!tall) root.style.height = (vh / z) + 'px';
+        mount.style.zoom = z < 1 ? String(z) : '';
+      } else {
+        root.style.width = dw + 'px'; root.style.height = dh + 'px';
+        var zz = Math.min(1, (vw - 48) / dw, tall ? 1 : (vh - 48) / dh);
+        mount.style.zoom = zz < 1 ? String(zz) : '';
+      }
     }
     window.addEventListener('resize', fit);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', function () { setTimeout(fit, 150); });
 
     inst.__render();
     if (typeof inst.componentDidMount === 'function') inst.componentDidMount();
@@ -158,7 +176,9 @@
   frame.textContent =
     'html,body{min-height:100%}body{margin:0;background:#E9E7EF;display:flex;justify-content:center;align-items:flex-start}' +
     '.kipu-stage{margin:24px auto;border-radius:44px;overflow:hidden;box-shadow:0 0 0 10px #16151C,0 30px 80px rgba(10,8,30,.35);background:#FAFAF8}' +
-    'body.kipu-phone{background:#FAFAF8}body.kipu-phone .kipu-stage{margin:0;border-radius:0;box-shadow:none}';
+    'body.kipu-phone{background:#FAFAF8;overflow-x:hidden}body.kipu-phone .kipu-stage{margin:0;border-radius:0;box-shadow:none}' +
+    '.kipu-stage svg[width="321"],.kipu-stage svg[width="353"],.kipu-stage svg[width="300"]{max-width:100%;height:auto}' +
+    '.kipu-stage img{max-width:100%}';
   document.head.appendChild(frame);
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
