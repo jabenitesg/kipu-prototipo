@@ -24,11 +24,11 @@
   };
 
   class CloudVault {
-    constructor(client, notify) { this.client = client; this.notify = notify || (() => {}); this.clear(); }
+    constructor(client, notify, table = 'user_vaults', idColumn = 'user_id') { this.client = client; this.notify = notify || (() => {}); this.table = table; this.idColumn = idColumn; this.clear(); }
     clear() { this.userId = null; this.key = null; this.salt = null; this.revision = 0; this.latest = null; this.inFlight = null; this.busy = false; this.error = null; }
-    outboxKey() { return 'kipu-cloud-pending:' + this.userId; }
+    outboxKey() { return 'kipu-' + (this.table === 'user_vaults' ? 'cloud' : 'household') + '-pending:' + this.userId; }
     async read(userId) {
-      const { data, error } = await this.client.from('user_vaults').select('payload,revision').eq('user_id', userId).maybeSingle();
+      const { data, error } = await this.client.from(this.table).select('payload,revision').eq(this.idColumn, userId).maybeSingle();
       if (error) throw error;
       return data;
     }
@@ -51,7 +51,7 @@
     async create(data) {
       if (!this.key || this.revision) throw new Error('Vault is already created');
       const payload = await encrypt(data, this.key, this.salt);
-      const { data: saved, error } = await this.client.from('user_vaults').insert({ user_id: this.userId, payload }).select('revision').single();
+      const { data: saved, error } = await this.client.from(this.table).insert({ [this.idColumn]: this.userId, payload }).select('revision').single();
       if (error) throw error;
       this.revision = saved.revision;
       return data;
@@ -70,7 +70,7 @@
           const next = this.latest; this.latest = null; this.inFlight = next;
           const payload = await encrypt(next, this.key, this.salt);
           try { localStorage.setItem(this.outboxKey(), JSON.stringify({ baseRevision: this.revision, payload })); } catch (e) { /* online save can still succeed */ }
-          const { data: saved, error } = await this.client.from('user_vaults').update({ payload, revision: this.revision + 1, updated_at: new Date().toISOString() }).eq('user_id', this.userId).eq('revision', this.revision).select('revision').maybeSingle();
+          const { data: saved, error } = await this.client.from(this.table).update({ payload, revision: this.revision + 1, updated_at: new Date().toISOString() }).eq(this.idColumn, this.userId).eq('revision', this.revision).select('revision').maybeSingle();
           if (error) throw error;
           if (!saved) throw new Error('Another device changed this vault. Export this device’s data before reloading.');
           this.revision = saved.revision;
@@ -97,6 +97,18 @@
     retry() { if (!this.latest) return; this.error = null; void this.flush(); }
   }
   K.CloudVault = CloudVault;
+  K.jointData = (data, name) => {
+    const next = Object.assign({}, data, { household: { enabled: false, joint: true, name } });
+    ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips'].forEach((key) => {
+      next[key] = (data[key] || []).map((item) => item.shared ? item : Object.assign({}, item, { shared: true }));
+    });
+    return next;
+  };
+  K.cloudHouseholds = async () => {
+    const { data, error } = await K.cloudClient.from('households').select('id,name,owner_id,invite_email');
+    if (error) throw error;
+    return data || [];
+  };
   K.cloudProviders = async () => {
     const response = await fetch(URL + '/auth/v1/settings', { headers: { apikey: KEY } });
     if (!response.ok) throw new Error('Could not check sign-in providers');

@@ -74,7 +74,7 @@
 
   // ---------------------------------------------------------------- factory state
   K.factory = () => ({
-    v: VERSION, createdAt: iso(today()), onboarded: false,
+    v: VERSION, createdAt: iso(today()), onboarded: false, demo: false,
     profile: { name: '', email: '', photo: '' },
     base: 'CAD', active: ['CAD'],
     fx: { usd: Object.assign({}, USD_RATES), updated: null, source: 'Built-in reference rates' },
@@ -460,7 +460,7 @@
 
   // ---------------------------------------------------------------- sample data for demos
   K.sampleData = () => {
-    let d = Object.assign(K.factory(), { onboarded: true, profile: { name: 'Alex Morgan', email: '' }, active: ['CAD', 'USD', 'PEN'] });
+    let d = Object.assign(K.factory(), { onboarded: true, demo: true, profile: { name: 'Alex Morgan', email: '' }, active: ['CAD', 'USD', 'PEN'] });
     const T = today();
     const ago = (n) => iso(addDays(T, -n));
     d.accounts = [

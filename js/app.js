@@ -23,7 +23,7 @@
     const dataRef = useRef(data);
     const vaultRef = useRef(null);
     const cloudUserRef = useRef(undefined);
-    const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '' });
+    const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
     if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
     useEffect(() => {
       if (!K.cloudClient) { setCloud({ status: 'guest', user: null, error: 'Cloud sign-in is unavailable.' }); return; }
@@ -35,8 +35,10 @@
         if (cloudUserRef.current === id) return;
         cloudUserRef.current = id;
         if (vaultRef.current) vaultRef.current.clear();
+        vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
         const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
-        setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '' });
+        setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '', target: 'personal', household: null, households: [] });
+        if (user) K.cloudHouseholds().then((households) => { if (cloudUserRef.current === id) setCloud((c) => Object.assign({}, c, { households })); }).catch((error) => { if (cloudUserRef.current === id) setCloud((c) => Object.assign({}, c, { error: error.message })); });
       });
       return () => listener.subscription.unsubscribe();
     }, []);
@@ -56,38 +58,84 @@
 
     useEffect(() => { const on = () => setVw(window.innerWidth); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
     const commit = useCallback((next) => {
+      if (cloud.target === 'household') next = K.jointData(next, cloud.household.name);
       dataRef.current = next;
       setData(next);
       if (vaultRef.current && vaultRef.current.key && vaultRef.current.revision) vaultRef.current.enqueue(next);
       else if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.');
-    }, []);
+    }, [cloud.target, cloud.household]);
     const cloudOpen = useCallback(async (passphrase, seed) => {
       if (!cloud.user) throw new Error('Sign in first');
       setCloud((c) => Object.assign({}, c, { status: 'opening', error: '' }));
       try {
-        const remote = await vaultRef.current.open(cloud.user.id, passphrase);
-        if (remote) { dataRef.current = remote; setData(remote); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: vaultRef.current.error ? 'error' : 'synced', error: vaultRef.current.error ? vaultRef.current.error.message : '' })); return 'opened'; }
+        const remote = await vaultRef.current.open(cloud.target === 'household' ? cloud.household.id : cloud.user.id, passphrase);
+        if (remote) { const next = cloud.target === 'household' ? K.jointData(remote, cloud.household.name) : remote; dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: vaultRef.current.error ? 'error' : 'synced', error: vaultRef.current.error ? vaultRef.current.error.message : '' })); return 'opened'; }
+        if (cloud.target === 'household') throw new Error('This Household is still being set up. Ask its creator to finish setup.');
         if (!seed) { setCloud((c) => Object.assign({}, c, { status: 'choose' })); return 'choose'; }
         const initial = seed === 'local' ? K.load() : K.factory();
+        if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.');
         await vaultRef.current.create(initial);
         if (seed === 'local') K.wipe();
         dataRef.current = initial; setData(initial);
         setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced' }));
         return 'created';
       } catch (e) { vaultRef.current.clear(); setCloud((c) => Object.assign({}, c, { status: 'locked', error: e.message })); throw e; }
-    }, [cloud.user]);
+    }, [cloud.user, cloud.target, cloud.household]);
     const cloudCreate = useCallback(async (seed) => {
-      try { const initial = seed === 'local' ? K.load() : K.factory(); await vaultRef.current.create(initial); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
+      try { const initial = seed === 'local' ? K.load() : K.factory(); if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.'); await vaultRef.current.create(initial); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
       catch (e) { setCloud((c) => Object.assign({}, c, { error: e.message })); throw e; }
     }, []);
+    const cloudSelectHousehold = useCallback((household) => {
+      if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
+      if (vaultRef.current) vaultRef.current.clear();
+      vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
+      const next = K.factory(); dataRef.current = next; setData(next);
+      setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
+      setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'household', household, error: '', sync: null }));
+    }, []);
+    const cloudSelectPersonal = useCallback(() => {
+      if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
+      if (vaultRef.current) vaultRef.current.clear();
+      vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
+      const next = K.factory(); dataRef.current = next; setData(next);
+      setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
+      setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'personal', household: null, error: '', sync: null }));
+    }, []);
+    const cloudStartHousehold = useCallback(() => {
+      cloudSelectPersonal();
+      setCloud((c) => Object.assign({}, c, { status: 'household-create' }));
+    }, [cloudSelectPersonal]);
+    const cloudCreateHousehold = useCallback(async (name, inviteEmail, passphrase, currency) => {
+      if (!cloud.user) throw new Error('Sign in first.');
+      if (passphrase.length < 12) throw new Error('Use at least 12 characters for the Household passphrase.');
+      if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before creating a Household.');
+      const email = inviteEmail.trim().toLowerCase();
+      if (!email || email === (cloud.user.email || '').toLowerCase()) throw new Error('Enter your partner’s email address.');
+      const { data: household, error } = await K.cloudClient.from('households').insert({ name: name.trim() || 'Our Household', owner_id: cloud.user.id, invite_email: email }).select('id,name,owner_id,invite_email').single();
+      if (error) throw error;
+      let created = false;
+      try {
+        const vault = new K.CloudVault(K.cloudClient, (status, issue) => setCloud((c) => Object.assign({}, c, { sync: status, error: issue || '' })), 'household_vaults', 'household_id');
+        await vault.open(household.id, passphrase);
+        const initial = K.jointData(Object.assign(K.factory(), { onboarded: true, base: currency, active: [currency] }), household.name);
+        await vault.create(initial); created = true;
+        if (vaultRef.current) vaultRef.current.clear();
+        vaultRef.current = vault; dataRef.current = initial; setData(initial);
+        setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
+        setCloud((c) => Object.assign({}, c, { status: 'ready', target: 'household', household, households: (c.households || []).concat([household]), sync: 'synced', error: '' }));
+      } catch (e) {
+        if (!created) await K.cloudClient.from('households').delete().eq('id', household.id);
+        throw e;
+      }
+    }, [cloud.user]);
     const cloudSignOut = useCallback(async () => { if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync or export a backup before signing out.'); const { error } = await K.cloudClient.auth.signOut(); if (error) throw error; }, []);
     useEffect(() => {
       if (cloud.status !== 'ready') return;
-      const check = async () => { if (document.hidden) return; try { const fresh = await vaultRef.current.refresh(); if (fresh) { dataRef.current = fresh; setData(fresh); setCloud((c) => Object.assign({}, c, { sync: 'synced' })); } } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); } };
+      const check = async () => { if (document.hidden) return; try { const fresh = await vaultRef.current.refresh(); if (fresh) { const next = cloud.target === 'household' ? K.jointData(fresh, cloud.household.name) : fresh; dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { sync: 'synced' })); } } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); } };
       const timer = setInterval(check, 30000);
       window.addEventListener('focus', check);
       return () => { clearInterval(timer); window.removeEventListener('focus', check); };
-    }, [cloud.status]);
+    }, [cloud.status, cloud.target, cloud.household]);
     const setCtx = useCallback((o) => setCtxRaw((c) => Object.assign({}, c, o)), []);
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
     const effectiveMode = settings.mode === 'System' ? (sysDark ? 'Dark' : 'Light') : K.modeName(settings.mode);
@@ -121,12 +169,24 @@
     const D = useMemo(() => K.derive(data, ctx), [data, ctx]);
     const fmt = useMemo(() => K.makeFmt(settings, data), [settings.hide, data.base]);
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);
+    const displayName = cloud.target === 'household' && cloud.user ? (cloud.user.user_metadata && (cloud.user.user_metadata.full_name || cloud.user.user_metadata.name)) || (cloud.user.email || '').split('@')[0] : data.profile.name;
     const toast = useCallback((m) => { setToast(m); clearTimeout(window.__kt); window.__kt = setTimeout(() => setToast(null), 2800); }, []);
-    const resetAll = useCallback(() => { if (vaultRef.current && vaultRef.current.key) commit(K.factory()); else { K.wipe(); const next = K.factory(); dataRef.current = next; setData(next); } setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null); }, []);
+    const resetAll = useCallback(() => {
+      if (vaultRef.current && vaultRef.current.key) {
+        const empty = cloud.target === 'household'
+          ? K.jointData(Object.assign(K.factory(), { onboarded: true, base: dataRef.current.base, active: [dataRef.current.base] }), cloud.household.name)
+          : K.factory();
+        commit(empty);
+      } else {
+        K.wipe(); const next = K.factory(); dataRef.current = next; setData(next);
+      }
+      setCtxRaw({ scope: cloud.target === 'household' ? 'household' : 'personal', currency: 'Combined', period: 11 });
+      setStack([{ r: 'home' }]); setSheet(null);
+    }, [cloud.target, cloud.household, commit]);
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, commit, cloud, cloudOpen, cloudCreate, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;
@@ -157,7 +217,7 @@
           <nav class="rail-nav">${SIDE.map(([r, ic, l, subs]) => html`<div key=${r} class="rail-wrap">
             <button class=${'rail-btn' + (rootOf === r ? ' on' : '') + (fly === r ? ' flying' : '')} aria-label=${l} aria-current=${rootOf === r ? 'page' : null} aria-expanded=${subs ? fly === r : null} aria-haspopup=${subs ? 'menu' : null} onClick=${(e) => { e.stopPropagation(); if (subs) setFly(fly === r ? null : r); else { setFly(null); go({ r }); } }}><${Icon} n=${ic} s=${20} />${fly !== r && html`<span class="rail-tip">${l}</span>`}</button>
             ${subs && fly === r && html`<div class="fly" role="menu" aria-label=${l} onClick=${(e) => e.stopPropagation()}><span class="fly-title">${l}</span>${subs.map(([t, tl, badge]) => html`<button key=${t} role="menuitem" class=${'fly-item' + (rootOf === r && rootTab === t ? ' on' : '')} onClick=${() => { setFly(null); go(t === 'overview' ? { r } : { r, tab: t }); }}><span>${tl}</span>${badge ? html`<i class="side-badge">${badge}</i>` : null}</button>`)}</div>`}</div>`)}</nav>
-          <div class="rail-foot"><button class=${'rail-btn' + (rootOf === 'settings' ? ' on' : '')} aria-label="Settings" onClick=${() => go({ r: 'settings' })}><${Icon} n="gear" s=${20} /><span class="rail-tip">Settings</span></button><button class="rail-face" aria-label="Profile" onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${40} /><span class="rail-tip">${data.profile.name || 'Profile'}</span></button></div>
+          <div class="rail-foot"><button class=${'rail-btn' + (rootOf === 'settings' ? ' on' : '')} aria-label="Settings" onClick=${() => go({ r: 'settings' })}><${Icon} n="gear" s=${20} /><span class="rail-tip">Settings</span></button><button class="rail-face" aria-label="Profile" onClick=${() => go({ r: 'settings', s: 'profile' })}><${K.Face} s=${40} /><span class="rail-tip">${displayName || 'Profile'}</span></button></div>
         </aside>
         <main class="d-main">
           <div class="d-bar">

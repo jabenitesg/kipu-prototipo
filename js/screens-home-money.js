@@ -7,7 +7,7 @@
   const initials = (n) => (n || 'K').split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   K.initials = initials;
   // Profile photo when there is one, initials otherwise
-  const Face = ({ s = 40 }) => { const { data } = useApp(); const photo = data.profile.photo; return html`<span style=${{ width: s + 'px', height: s + 'px', borderRadius: '999px', background: photo ? 'var(--surface2)' : 'var(--grad)', color: 'var(--hero-ink)', fontWeight: 700, fontSize: s * 0.36 + 'px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>${photo ? html`<img src=${photo} alt="" style=${{ width: '100%', height: '100%', objectFit: 'cover' }} />` : initials(data.profile.name)}</span>`; };
+  const Face = ({ s = 40 }) => { const { data, displayName, cloud } = useApp(); const photo = cloud.target === 'household' ? '' : data.profile.photo; return html`<span style=${{ width: s + 'px', height: s + 'px', borderRadius: '999px', background: photo ? 'var(--surface2)' : 'var(--grad)', color: 'var(--hero-ink)', fontWeight: 700, fontSize: s * 0.36 + 'px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>${photo ? html`<img src=${photo} alt="" style=${{ width: '100%', height: '100%', objectFit: 'cover' }} />` : initials(displayName)}</span>`; };
   K.Face = Face;
   const Avatar = ({ s = 40 }) => { const { go } = useApp(); return html`<button onClick=${() => go({ r: 'settings' })} aria-label="Profile and settings" style=${{ borderRadius: '999px', flexShrink: 0 }}><${Face} s=${s} /></button>`; };
   K.Avatar = Avatar;
@@ -61,7 +61,7 @@
 
   // ---------------------------------------------------------------- Home
   K.Home = function Home() {
-    const { D, fmt, go, data, ctx, wide, insights, openSheet } = useApp();
+    const { D, fmt, go, data, displayName, cloud, ctx, wide, insights, openSheet } = useApp();
     const m = D.month, prev = D.series[10];
     const top = insights[0];
     const trip = D.activeTrip;
@@ -84,8 +84,8 @@
     const goal = D.goals.filter((g) => g.pct < 100).sort((a, b) => b.pct - a.pct)[0] || D.goals[0];
     const goalCard = goal && html`<div class="stack-s"><${SectionHeader} title="Featured goal" action="Goals" onAction=${() => go({ r: 'plan', tab: 'goals' })} /><${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`;
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
-    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${data.profile.name ? ', ' + data.profile.name.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
-    const ctxChip = !wide && data.household.enabled && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
+    const ctxChip = !wide && (data.household.enabled || cloud.target === 'household') && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     if (wide) {
       const badge = (a, b, goodUp) => { if (!prev.count || !b) return null; const d = ((a - b) / Math.abs(b)) * 100; if (Math.abs(d) < 0.5) return null; return html`<span class=${'b ' + ((d > 0) === goodUp ? 'pos' : 'warn')}>${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(0)}%</span>`; };
       const kpis = html`<div class="kpis">
@@ -116,7 +116,7 @@
       const areasMd = ['"hero hero"', r2 ? '"' + r2 + '"' : null, '"up nw"', '"flow flow"', '"cat bud"', '"rec rec"', '"ins gls"'].filter(Boolean).join(' ');
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
-        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${data.profile.name ? ', ' + data.profile.name.split(' ')[0] : ''}</h1></div>${kpis}</header>
+        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${kpis}</header>
         <${Setup} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div style=${{ gridArea: 'hero' }}><${SafeHero} /></div>

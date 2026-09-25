@@ -24,10 +24,10 @@
   };
 
   const ContextSheet = ({ show, onClose }) => {
-    const { ctx, setCtx, data, D } = useApp();
+    const { ctx, setCtx, data, D, cloud } = useApp();
     const curs = ['Combined'].concat(curOptions(data));
     return html`<${Sheet} title="View" sub="Scope, currency and period apply across Kipu." onClose=${onClose}>
-      ${data.household.enabled && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
+      ${data.household.enabled && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
       ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
       ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${ctx.period == null ? 11 : ctx.period} onChange=${(v) => setCtx({ period: v })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
       <button class="btn pri block" onClick=${onClose}>Done</button></${Sheet}>`;
@@ -332,7 +332,7 @@
   const CreateHousehold = ({ onClose }) => {
     const { data, commit, toast } = useApp();
     const [name, setName] = useState(data.household.name || '');
-    return html`<${Form} title="Household" sub="Mark accounts, bills and goals as shared, then switch the scope to see only shared money. Inviting other people needs cloud sync, which comes later." onClose=${onClose} cta="Turn on Household" onSave=${() => { commit(Object.assign({}, data, { household: { enabled: true, name: name || 'Home' } })); toast('Household on · use the scope switch to view shared items'); onClose(); }}>
+    return html`<${Form} title="Household" sub="Mark accounts, bills and goals as shared, then switch the scope to see only shared money on this device. Sign in to set up a joint space for two accounts." onClose=${onClose} cta="Turn on Household" onSave=${() => { commit(Object.assign({}, data, { household: { enabled: true, name: name || 'Home' } })); toast('Household on · use the scope switch to view shared items'); onClose(); }}>
       <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
   };
 

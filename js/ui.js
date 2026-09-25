@@ -289,9 +289,9 @@
 
   // One context control: scope · currency · period
   const ContextFilter = ({ show }) => {
-    const { ctx, data, openSheet, D } = useApp();
+    const { ctx, data, openSheet, D, cloud } = useApp();
     const parts = [];
-    if (data.household.enabled && show.includes('scope')) parts.push(ctx.scope === 'household' ? 'Household' : 'Personal');
+    if (cloud.target === 'household' || (data.household.enabled && show.includes('scope'))) parts.push(cloud.target === 'household' || ctx.scope === 'household' ? 'Household' : 'Personal');
     if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
     if (show.includes('period')) { const S = D.series; parts.push(ctx.period === 'ytd' ? 'Last 12 months' : S[ctx.period].m + ' ' + S[ctx.period].y); }
     return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change scope, currency or period"><${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
