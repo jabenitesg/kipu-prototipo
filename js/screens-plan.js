@@ -51,7 +51,7 @@
       const pct = b.plan ? (b.actual / b.plan) * 100 : 0, over = b.actual > b.plan + 0.5, c = K.CATS[b.cat];
       return html`<button key=${b.cat} class="lrow" style=${{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }} onClick=${() => openSheet({ k: 'budgetEdit', cat: b.cat })}>
         <span class="between"><span class="row" style=${{ gap: '10px' }}><${Tile} icon=${c.icon} tone=${c.tone} s=${30} /><span class="t1">${c.name}</span>${over && html`<span class="pill warn" style=${{ height: '22px' }}><${Icon} n="alert" s=${11} w=${2.4} />Over</span>`}</span><span class="small num"><b>${fmt(b.actual)}</b><span class="muted"> of ${fmt(b.plan)}</span></span></span>
-        <${K.Segs} pct=${pct} n=${24} h=${7} color=${pct > 100 ? 'var(--crit2)' : pct > 90 ? 'var(--warn2)' : 'var(--acc)'} mark=${elapsed} />
+        <${K.Segs} pct=${pct} n=${24} h=${7} color=${over ? 'var(--warn2)' : 'var(--acc)'} mark=${elapsed} />
         <span class="tiny muted num" style=${{ textAlign: 'left' }}>${over ? fmt(b.actual - b.plan) + ' over plan' : fmt(b.plan - b.actual) + ' left'}</span></button>`;
     };
     const unplanned = K.CAT_ORDER.filter((c) => !D.plan.budgetRows.some((b) => b.cat === c) && (D.month.cats[c] || 0) > 0);
