@@ -18,3 +18,4 @@ Prototipo navegable de Kipu, una app de finanzas personales tranquila. Son 202 p
 Cada pantalla es un archivo `.dc.html` con su plantilla y su lógica. `support.js` es un motor ligero que las renderiza en el navegador: rellena los datos, repite listas, muestra u oculta bloques y maneja los botones. No necesita compilación ni servidor; basta con cualquier hosting estático, como GitHub Pages.
 
 Los datos son de ejemplo.
+# kipu-prototipo
