@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Household invitation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; box-sizing: border-box; padding: 62px 20px 40px; display: flex; flex-direction: column; gap: 20px">
+<div style="height: 40px; display: flex; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">INVITATION</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 18px">
+<span style="width: 60px; height: 60px; border-radius: 20px; background: #EEF3FB; display: flex; align-items: center; justify-content: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.02em">You’ve been invited</span><span style="font-size: 15px; line-height: 22px; color: #55555F">{{inviter}} invited you to join <b style="color: #111114">{{hhName}}</b> as a Member.</span></span>
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 600; color: #6B6B76">What’s shared in this Household</span>
+<sc-for list="{{shared}}" as="x" hint-placeholder-count="5"><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #3A3A42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{x.t}}</span></sc-for>
+</section>
+<div style="display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: #F4F1FD"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10.5h12v9.5H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"></path></svg><span style="font-size: 14px; line-height: 20px; color: #2B1F66">Your existing personal finances remain private unless you choose to share them.</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="Household.dc.html" style="height: 54px; border-radius: 18px; background: #5134C9; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center">Join Household</a>
+<a href="Main.dc.html" style="height: 48px; border-radius: 16px; background: #F5F4F8; color: #111114; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Decline</a>
+</div>
+</div>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"household": {"name": "Home", "members": [{"name": "Juan", "role": "Owner", "since": "Created Mar 2024"}, {"name": "Karinna", "role": "Member", "since": "Joined Mar 2024"}, {"name": "alex@example.com", "role": "Pending", "since": "Invite sent Sep 20"}]}, "priv": [["CIBC Chequing", "Account", "included"], ["USD Account", "Account", "excluded"], ["CIBC Costco Mastercard", "Credit card", "included"], ["Visa", "Credit card", "included"], ["Emergency Savings", "Account", "shared"], ["RRSP", "Investment", "excluded"], ["Cash wallet", "Cash", "excluded"]], "scope": "Household", "sheet": null, "mem": 1, "shareIdx": 0, "contrib": true, "step": 1, "icon": 0}; }
+  renderVals() {
+    const HH = this.state.household;
+    return { hhName: HH.name, inviter: HH.members[0].name, shared: ['3 shared accounts', '3 shared bills', '2 shared goals', 'Shared budget and trips', 'Household totals from included items'].map((t) => ({ t })) };
+  }
+}
+</script>
+</body>
+</html>

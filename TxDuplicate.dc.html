@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review possible duplicate</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 40px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; height: 40px"><a href="Transactions.dc.html" style="display: flex; align-items: center; gap: 4px; margin-left: -6px; font-size: 14px; font-weight: 600; color: #2A2540"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Transactions</a></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #94580A"><span style="width: 7px; height: 7px; border-radius: 999px; background: #E0A33B"></span>POSSIBLE DUPLICATE</span><h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -0.02em">Are these the same?</h1><p style="margin: 0; font-size: 14px; color: #55555F">Merchant, amount, date and card all match.</p></div>
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 6px 16px">
+<div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid #F1F0F4; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #6B6B76"><span></span><span>FIRST</span><span>SECOND</span></div>
+<div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; align-items: center"><span style="color: #6B6B76">Merchant</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">Costco</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #111114">COSTCO WHOLESALE</span></div><div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; align-items: center"><span style="color: #6B6B76">Amount</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">CA$320.47</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #111114">CA$320.47</span></div><div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; align-items: center"><span style="color: #6B6B76">Date</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">Sep 24</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #111114">Sep 24</span></div><div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; align-items: center"><span style="color: #6B6B76">Card</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">•••• 4821</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #111114">•••• 4821</span></div><div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; align-items: center"><span style="color: #6B6B76">Source</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">Receipt scan</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #111114">Statement</span></div><div style="display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 11px 0; font-size: 13px; align-items: center"><span style="color: #6B6B76">Receipt</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">Attached</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #A09EAB">—</span></div>
+</section>
+<div role="radiogroup" aria-label="What to do" style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+<button role="radio" onClick="{{o.pick}}" aria-checked="{{o.pressed}}" style="{{o.style}}"><span style="{{o.radio}}"><span style="{{o.dot}}"></span></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600">{{o.label}}<sc-if value="{{o.rec}}" hint-placeholder-val="{{false}}"><span style="padding: 1px 6px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 10px; font-weight: 700">SUGGESTED</span></sc-if></span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">{{o.sub}}</span></span></button>
+</sc-for>
+</div>
+<a href="TxDetail.dc.html" style="height: 54px; border-radius: 18px; background: #5134C9; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center">Confirm</a>
+<span style="text-align: center; font-size: 12px; color: #8A8896">Nothing is deleted until you confirm.</span>
+</div>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { pick: 'merge' }; }
+  renderVals() {
+    const s = this.state;
+    const O = [['merge', 'Merge', 'One transaction with the receipt and the statement match.', true], ['first', 'Keep first', 'Keep the receipt version, remove the statement copy.', false],
+      ['second', 'Keep second', 'Keep the statement version, remove the receipt copy.', false], ['both', 'Keep both', 'They were two separate purchases.', false]];
+    return { opts: O.map((o) => { const on = o[0] === s.pick; return { label: o[1], sub: o[2], rec: o[3], pressed: on ? 'true' : 'false', pick: () => this.setState({ pick: o[0] }),
+      radio: 'width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid ' + (on ? '#5134C9' : '#D2CEDC') + ';',
+      dot: 'width: 10px; height: 10px; border-radius: 999px; background: ' + (on ? '#5134C9' : 'transparent') + ';',
+      style: 'padding: 12px 14px; border-radius: 16px; display: flex; align-items: flex-start; gap: 12px; ' + (on ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }; }) };
+  }
+}
+</script>
+</body>
+</html>

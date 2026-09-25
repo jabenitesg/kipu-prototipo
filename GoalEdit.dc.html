@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goal detail, edit goal</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<a href="Goals.dc.html" aria-label="Back to Goals" style="width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<div style="position: relative">
+<button onClick="{{toggleMenu}}" aria-label="Goal actions" aria-haspopup="menu" aria-expanded="{{menuAttr}}" style="width: 40px; height: 40px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#2A2540"><circle cx="5.5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18.5" cy="12" r="1.6"></circle></svg></button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" style="position: absolute; top: 46px; right: 0; z-index: 30; width: 190px; padding: 6px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 16px; box-shadow: 0 14px 34px rgba(24, 16, 64, 0.14); display: flex; flex-direction: column">
+<button role="menuitem" onClick="{{openEdit}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit goal</button>
+<button role="menuitem" onClick="{{closeMenu}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14M15 5v14"></path></svg>Pause goal</button>
+<button role="menuitem" onClick="{{closeMenu}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17v4h-17zM5 8.5v11h14v-11M10 12.5h4"></path></svg>Archive goal</button>
+<div style="height: 1px; background: #F1F0F4; margin: 4px 6px"></div>
+<button role="menuitem" onClick="{{askDelete}}" style="height: 40px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 13px; text-align: left; color: #A3325A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A3325A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"></path></svg>Delete goal</button>
+</div>
+</sc-if>
+</div>
+</div>
+
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">GOAL</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">{{g.name}}</h1>
+<p style="margin: 0; font-size: 15px; color: #55555F">{{g.sub}}</p>
+</header>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; overflow: hidden">
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; font-variant-numeric: tabular-nums">
+<span style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em">{{g.saved}}</span><span style="font-size: 14px; color: #6B6B76">of {{g.target}}</span></span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #1A6B46">{{g.pct}}</span>
+</div>
+<sc-if value="{{g.isForeign}}" hint-placeholder-val="{{false}}"><span style="margin-top: -8px; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">{{g.baseEq}}</span></sc-if>
+<div style="position: relative; height: 14px; background: #F1F0F4; border-radius: 999px"><div style="{{g.fill}}"></div><span style="position: absolute; left: 25%; top: 3px; bottom: 3px; width: 2px; background: rgba(255,255,255,0.8)"></span><span style="position: absolute; left: 50%; top: 3px; bottom: 3px; width: 2px; background: rgba(255,255,255,0.8)"></span><span style="position: absolute; left: 75%; top: 3px; bottom: 3px; width: 2px; background: rgba(255,255,255,0.8)"></span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 16px 20px; border-top: 1px solid #F1F0F4">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Remaining</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.remaining}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Monthly contribution</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.monthlyText}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Target date</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.targetDate}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Projected completion<span style="padding: 0 5px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0">EST.</span></span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.projected}}</b></span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #F1F0F4; background: #FBFAFD"><span style="font-size: 13px; color: #55555F">Status</span><span style="{{g.statusStyle}}">{{g.status}}</span></div>
+</section>
+<button onClick="{{openContrib}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(81, 52, 201, 0.25)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Add contribution</button>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+<section style="border-radius: 24px; padding: 22px 20px; background: #EEF7F2; display: flex; flex-direction: column; gap: 14px">
+<span style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #1F3B2D">Goal reached</span></span>
+<span style="display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 34px; font-weight: 700; color: #111114">{{g.target}}</span><span style="font-size: 14px; color: #3F6B55">of {{g.target}}</span></span>
+<div style="height: 10px; background: #2E9B69; border-radius: 999px"></div>
+<span style="font-size: 13px; color: #3F6B55">Completed {{g.completedOn}}</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button style="height: 42px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Keep saving</button>
+<button style="height: 42px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Increase target</button>
+<button style="height: 42px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Archive goal</button>
+<button style="height: 42px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Transfer funds</button>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{g.hasTrip}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Trip fund</h2><a href="TxTrip.dc.html" style="font-size: 12px; font-weight: 600; color: #5134C9">Peru 2026 trip ›</a></div>
+<span style="font-size: 12px; color: #6B6B76">Trip started Sep 10. Savings and trip spending are kept separate.</span>
+<div style="display: flex; height: 10px; gap: 2px"><span style="{{g.tripSpent}}"></span><span style="flex-grow: 1; background: #2E9B69; border-radius: 3px 999px 999px 3px"></span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Saved before trip</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.tripBefore}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Spent so far</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.tripSpentText}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Left in fund</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.tripLeft}}</b></span></div>
+</section>
+</sc-if>
+
+<sc-if value="{{g.hasSplit}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Shared goal</h2><span style="padding: 2px 8px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 11px; font-weight: 600">{{g.owner}}</span></div>
+<div style="display: flex; height: 10px; gap: 2px"><sc-for list="{{g.split}}" as="p" hint-placeholder-count="2"><span style="{{p.bar}}"></span></sc-for></div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums"><sc-for list="{{g.split}}" as="p" hint-placeholder-count="2"><div style="display: flex; justify-content: space-between"><span style="display: flex; align-items: center; gap: 8px; color: #3A3A42"><span style="{{p.dot}}"></span>{{p.name}}</span><span style="color: #55555F"><b style="color: #111114; font-weight: 600">{{p.amount}}</b> contributed</span></div></sc-for></div>
+</section>
+</sc-if>
+<sc-if value="{{g.single}}" hint-placeholder-val="{{false}}"><div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 16px; background: #F6F5F8; font-size: 13px"><span style="color: #55555F">Owner</span><b style="font-weight: 600">{{g.owner}}</b></div></sc-if>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">This month</h2><span style="font-size: 12px; color: #6B6B76">September</span></div>
+<div style="height: 10px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="{{g.monthFill}}"></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Planned</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.mPlanned}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Contributed</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.mDone}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Remaining</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.mLeft}}</b></span></div>
+<span style="{{g.monthNoteStyle}}">{{g.monthNote}}</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Projection</h2><span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0">ESTIMATE</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Current monthly</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.monthlyText}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Projected completion</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.projected}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Time remaining</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.timeLeft}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Needed for target date</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.required}}</b></span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: #F6F5F8; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Difference</span><b style="font-weight: 700">{{g.diff}}</b></div>
+<span style="font-size: 13px; line-height: 19px; color: #3A3A42">{{g.paceNote}}</span>
+</section>
+</div>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 3px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Progress over time</h2><span style="font-size: 12px; color: #6B6B76">Is this goal growing at the pace you expected?</span></div>
+<div style="position: relative; width: 321px; height: 160px">
+<svg width="321" height="160" viewBox="0 0 321 160" style="position: absolute; left: 0; top: 0; overflow: visible">
+<path d="M0 16H321" stroke="#BFE3CF" stroke-width="1.2" stroke-dasharray="3 4"></path>
+<path d="M0 140H321" stroke="#EEEDF2" stroke-width="1"></path>
+<path d="{{ch.area}}" fill="#5134C9" fill-opacity="0.07"></path>
+<path d="{{ch.line}}" fill="none" stroke="#5134C9" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>
+<path d="{{ch.proj}}" fill="none" stroke="#8A8896" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"></path>
+</svg>
+<span style="position: absolute; right: 0; top: 0; font-size: 10px; font-weight: 600; color: #1A6B46; font-variant-numeric: tabular-nums">Target {{g.target}}</span>
+<sc-for list="{{ch.dots}}" as="d" hint-placeholder-count="5"><span style="{{d.dot}}"></span><span style="{{d.lab}}">{{d.v}}</span></sc-for>
+<sc-for list="{{ch.months}}" as="m" hint-placeholder-count="6"><span style="{{m.style}}">{{m.t}}</span></sc-for>
+</div>
+<div style="display: flex; gap: 14px; font-size: 11px; color: #6B6B76; margin-top: 6px"><span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 2.5px; background: #5134C9; border-radius: 2px"></span>Saved</span><span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; border-top: 2px dashed #8A8896"></span>Projected</span></div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Milestones</h2>
+<div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px">
+<span style="position: absolute; left: 12.5%; right: 12.5%; top: 7px; height: 2px; background: #ECEAF1"></span>
+<sc-for list="{{g.milestones}}" as="m" hint-placeholder-count="4"><span style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="{{m.dot}}"></span><b style="font-size: 13px; font-weight: 700">{{m.p}}</b><span style="{{m.textStyle}}">{{m.t}}</span></span></sc-for>
+</div>
+</section>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">What if you save more?</h2><span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0">SIMULATION</span></div>
+<div class="kipu-noscroll" style="overflow-x: auto; margin: 0 -16px; padding: 0 16px"><div role="group" aria-label="Monthly change" style="display: flex; gap: 6px; width: max-content"><sc-for list="{{scen}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<sc-if value="{{sim.isCustom}}" hint-placeholder-val="{{false}}"><label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #5134C9; font-size: 14px"><span style="color: #6B6B76">New monthly</span><input type="text" inputmode="decimal" value="{{sim.newMonthly}}" readonly aria-label="Custom monthly contribution" style="flex-grow: 1; min-width: 0; border: 0; outline: none; font-weight: 700; font-size: 15px; background: transparent; text-align: right"></label></sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 11px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #F6F5F8"><span style="color: #6B6B76">Current</span><b style="font-size: 14px; font-weight: 700">{{g.monthlyText}}/mo · {{g.projected}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #F4F1FD"><span style="color: #55506E">New</span><b style="font-size: 14px; font-weight: 700; color: #2B1F66">{{sim.newMonthly}}/mo · {{sim.newDate}}</b></span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; {{sim.deltaBox}}; font-size: 13px"><span>{{sim.deltaLabel}}</span><b style="font-weight: 700">{{sim.delta}}</b></div>
+<button onClick="{{openApply}}" style="height: 44px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 13px; font-weight: 600; color: #5134C9">Apply this contribution</button>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Reach it sooner?</h2><span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0">SCENARIO</span></div>
+<span style="font-size: 13px; color: #55555F">What would it take to reach this by…</span>
+<div role="group" aria-label="Target date scenario" style="display: flex; gap: 6px"><sc-for list="{{dates}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Required</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{ds.req}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Current</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.monthlyText}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Difference</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{ds.diff}}</b></span></div>
+<span style="font-size: 11px; color: #8A8896">Nothing changes unless you edit the goal.</span>
+</section>
+</div>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">Contributions</h2><a href="Transactions.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9; padding: 6px 0">View all ›</a></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="4">
+<div style="{{h.row}}"><span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: #EEF3FB; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"></path></svg></span><span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">{{h.date}} · {{h.who}}</span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{h.src}}</span></span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">{{h.amount}}</b></div>
+</sc-for>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Linked account</h2>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #EEF3FB; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11a7 6 0 1 0-12.3 3.9L6 19h3l.6-1.4a8 8 0 0 0 4.8 0L15 19h3l-.3-2.8A6 6 0 0 0 19 11z"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{g.linkName}}</span><span style="font-size: 12px; color: #6B6B76">{{g.linkCur}} · {{g.linkOwner}}</span></span><b style="font-size: 14px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums">{{g.linkBal}}</b></div>
+<span style="font-size: 12px; line-height: 17px; color: #55555F">{{g.linkNote}} No need to enter the same money twice.</span>
+</section>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Monthly plan impact</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Contribution</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.monthlyCad}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Household income</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$6,590</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Share of income</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.rate}}</b></span></div>
+<span style="font-size: 12px; color: #6B6B76">This contribution is included in your monthly Plan.</span>
+<a href="PlanSafeToSpend.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 14px; background: #F4F1FD; color: inherit"><span style="font-size: 12px; line-height: 17px; color: #2B1F66">{{g.stsLine}}</span><span style="font-size: 12px; font-weight: 600; color: #5134C9; white-space: nowrap">See calculation →</span></a>
+</section>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Default source</span><b style="font-weight: 600">{{g.src0}}</b></div>
+<div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Destination</span><b style="font-weight: 600">{{g.src1}}</b></div>
+<div style="display: flex; justify-content: space-between; padding: 12px 0; font-size: 14px"><span style="color: #55555F">Owner</span><b style="font-weight: 600">{{g.src2}}</b></div>
+</section>
+
+<sc-if value="{{g.hasNotes}}" hint-placeholder-val="{{false}}"><section style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><div style="padding: 14px; border-radius: 16px; background: #F6F5F8; font-size: 14px; line-height: 20px; color: #3A3A42">{{g.notes}}</div></section></sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"></path></svg></span>INSIGHT</span>
+<p style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 22px; font-weight: 700">{{g.insight}}</p>
+</section>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetContrib}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add contribution" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add contribution</span><span style="font-size: 13px; color: #6B6B76">Recorded as a transfer, not spending.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Amount</span><input type="text" inputmode="decimal" value="{{g.sym}}200" readonly style="height: 54px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 700; outline: none"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Date</span><input type="text" inputmode="text" placeholder="Today" value="Today" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Note</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">From account</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{cFrom}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{cOwners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #EEF3FB; font-size: 13px; color: #1F2F4D"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"></path></svg><span>To <b>{{g.linkName}}</b> · finishes this month’s plan</span></div>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Add contribution</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetApply}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Change monthly contribution" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Change monthly contribution?</span><span style="font-size: 13px; color: #6B6B76">Your plan updates from next month.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 18px; background: #F4F1FD; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #55506E">Now</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #7C74A0">{{g.monthlyText}}</span></span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 2px; text-align: right"><span style="font-size: 11px; color: #55506E">New</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 700; color: #2B1F66">{{sim.newMonthly}}</span></span>
+</div>
+<div style="background: #F6F5F8; border-radius: 16px; padding: 2px 14px; font-size: 14px; font-variant-numeric: tabular-nums">
+<div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #ECEAF1"><span style="color: #55555F">Projected completion</span><b style="font-weight: 600">{{sim.newDate}}</b></div>
+<div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #ECEAF1"><span style="color: #55555F">Monthly plan change</span><b style="font-weight: 600">{{sim.planDelta}}</b></div>
+<div style="display: flex; justify-content: space-between; padding: 11px 0"><span style="color: #55555F">Safe to Spend change</span><b style="font-weight: 600">{{sim.stsDelta}}</b></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #F5F4F8; font-size: 15px; font-weight: 600">Keep current</button><button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Apply</button></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetDelete}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Delete goal" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Delete this goal?</span><span style="font-size: 13px; color: #6B6B76">{{g.name}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<span style="font-size: 14px; line-height: 20px; color: #55555F">The goal and its plan entries are removed. Money in {{g.linkName}} stays where it is, and past transfers stay in your transactions.</span>
+<span style="font-size: 13px; color: #3A3A42">Want to keep the history? <b style="color: #5134C9">Archive it instead.</b></span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #F5F4F8; font-size: 15px; font-weight: 600">Archive</button><button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #FCEBF1; color: #A3325A; font-size: 15px; font-weight: 600">Delete goal</button></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetEdit}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Edit goal" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Edit goal</span><span style="font-size: 13px; color: #6B6B76">Past contributions stay as they are.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Name</span><input type="text" inputmode="text" placeholder="" value="{{g.name}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Target</span><input type="text" inputmode="decimal" placeholder="" value="{{g.target}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Monthly contribution</span><input type="text" inputmode="decimal" placeholder="" value="{{g.monthlyText}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Target date</span><input type="text" inputmode="text" placeholder="" value="{{g.targetDate}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{eCurs}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{eOwners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Linked account</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{eAccts}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Priority</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{ePrios}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" value="{{g.notes}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<span style="font-size: 12px; color: #6B6B76">Changing the target keeps a record: CA$8,000 until Mar 2026, CA$10,000 since.</span>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Save changes</button>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"menu": false, "sheet": "edit", "scen": 2, "dsc": 1, "completed": false}; }
+  renderVals() {
+    const s = this.state;
+    const G0 = {"name": "Emergency Fund", "sub": "Build a stronger financial cushion.", "owner": "Household", "cur": "CAD", "sym": "CA$", "fx": 1, "saved": 5800, "target": 10000, "monthly": 500, "targetIdx": 8, "split": [["Juan", 3200, "#2A2540"], ["Karinna", 2600, "#B7A9EC"]], "thisMonth": [500, 300], "chart": [[-8, 2800, "Jan"], [-6, 3500, "Mar"], [-4, 4100, "May"], [-2, 4900, "Jul"], [0, 5800, "Sep"]], "milestones": [["25%", "Reached Dec 2025", true], ["50%", "Reached Aug 2026", true], ["75%", "Projected Jan 2027", false], ["100%", "Projected May 2027", false]], "linked": {"name": "Emergency Savings", "balance": "CA$5,800", "cur": "CAD", "owner": "Household", "note": "This goal uses the balance of Emergency Savings."}, "history": [["Sep 15", 250, "Juan", "CIBC Chequing", ""], ["Sep 1", 50, "Karinna", "Shared Chequing", "Top-up"], ["Aug 15", 250, "Juan", "CIBC Chequing", ""], ["Aug 1", 250, "Karinna", "Shared Chequing", ""]], "source": ["CIBC Chequing", "Emergency Savings", "Household"], "notes": "Target is roughly 3 months of essential expenses.", "insight": "At your current pace, this goal is projected to finish on time, in May 2027."};
+    const G = s.completed ? Object.assign({}, G0, { saved: G0.target, completedOn: 'May 14, 2027', chart: G0.chart.concat([[4, 7700, 'Jan'], [8, G0.target, 'May']]), milestones: G0.milestones.map((m) => [m[0], m[1].replace('Projected', 'Reached'), true]) }) : G0;
+    const MON = ['Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026', 'Jan 2027', 'Feb 2027', 'Mar 2027', 'Apr 2027', 'May 2027', 'Jun 2027', 'Jul 2027', 'Aug 2027', 'Sep 2027', 'Oct 2027', 'Nov 2027'];
+    const f = (n) => G.sym + Math.round(n).toLocaleString('en-US');
+    const cad = (n) => 'CA$' + Math.round(n * G.fx).toLocaleString('en-US');
+    const rem = Math.max(0, G.target - G.saved);
+    const done = G.saved >= G.target;
+    const months = G.monthly > 0 ? rem / G.monthly : null;
+    const projIdx = months != null ? Math.floor(months) : null;
+    const req = G.targetIdx ? rem / G.targetIdx : null;
+    let status = ['Goal reached', '#1A6B46', '#E6F4EC'];
+    if (!done) {
+      if (projIdx == null) status = ['Add a monthly amount', '#55555F', '#F1F0F4'];
+      else if (projIdx < G.targetIdx) status = ['Ahead · ' + (G.targetIdx - projIdx) + ' months', '#1A6B46', '#E6F4EC'];
+      else if (projIdx === G.targetIdx) status = ['On track', '#1A6B46', '#E6F4EC'];
+      else status = ['Behind target pace', '#94580A', '#FDF1DC'];
+    }
+    const mp = G.thisMonth, mLeft = Math.max(0, mp[0] - mp[1]);
+    const diffV = req != null ? req - G.monthly : 0;
+    const paceNote = projIdx == null ? 'Add a monthly contribution to see a forecast.'
+      : Math.abs(diffV) < 1 ? 'Your contribution matches the pace needed for your target date.'
+      : diffV > 0 && projIdx <= G.targetIdx ? 'You’re close to the contribution pace needed for your target date. ' + f(Math.ceil(diffV)) + ' more a month would give you a little room.'
+      : diffV > 0 ? 'Reaching the target date would take about ' + f(req) + ' a month. You can keep your pace or adjust it any time.'
+      : 'You’re contributing more than the pace needed, so you’re likely to finish early.';
+    const g = {
+      name: G.name, sub: G.sub, owner: G.owner, sym: G.sym, saved: f(G.saved), target: f(G.target), pct: Math.round(G.saved / G.target * 100) + '% complete',
+      isForeign: G.cur !== 'CAD', baseEq: '≈ ' + cad(G.saved) + ' of ' + cad(G.target) + ' in CAD · kept in USD',
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + Math.min(100, G.saved / G.target * 100).toFixed(1) + '%; background: ' + (status[0] === 'Behind target pace' ? '#E0A33B' : '#2E9B69') + ';',
+      remaining: f(rem), monthlyText: f(G.monthly), targetDate: G.targetIdx != null ? MON[G.targetIdx] : 'None', projected: projIdx != null ? MON[projIdx] : '—',
+      status: status[0], statusStyle: 'padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: ' + status[1] + '; background: ' + status[2] + ';',
+      completedOn: G.completedOn || '',
+      hasSplit: !!G.split, single: !G.split,
+      split: (G.split || []).map((p, i, a) => ({ name: p[0], amount: f(p[1]), dot: 'width: 8px; height: 8px; border-radius: 2px; background: ' + p[2] + ';',
+        bar: 'width: ' + (p[1] / G.saved * 100).toFixed(1) + '%; background: ' + p[2] + '; border-radius: ' + (i === 0 ? '999px 3px 3px 999px' : '3px 999px 999px 3px') + ';' })),
+      mPlanned: f(mp[0]), mDone: f(mp[1]), mLeft: f(mLeft),
+      monthFill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: ' + (mLeft === 0 ? '#2E9B69' : '#5134C9') + '; width: ' + (mp[0] ? mp[1] / mp[0] * 100 : 0).toFixed(1) + '%;',
+      monthNote: mLeft === 0 ? 'September contribution complete' : f(mLeft) + ' remaining this month · scheduled for Sep 30',
+      monthNoteStyle: 'font-size: 13px; font-weight: 600; color: ' + (mLeft === 0 ? '#1A6B46' : '#3A3A42') + ';',
+      timeLeft: months != null ? Math.round(months) + ' months' : '—', required: req ? f(Math.ceil(req)) : '—',
+      diff: req == null ? '—' : Math.abs(diffV) < 1 ? 'None' : (diffV > 0 ? '+' : '−') + f(Math.abs(Math.ceil(diffV))) + ' a month', paceNote,
+      milestones: G.milestones.map((m) => ({ p: m[0], t: m[1], dot: 'position: relative; z-index: 1; width: 16px; height: 16px; border-radius: 999px; box-sizing: border-box; ' + (m[2] ? 'background: #2E9B69;' : 'background: #FFFFFF; border: 2px dashed #9DB6E3;'),
+        textStyle: 'font-size: 11px; line-height: 14px; color: ' + (m[2] ? '#1A6B46' : '#2D5DB0') + ';' })),
+      linkName: G.linked.name, linkBal: G.linked.balance, linkCur: G.linked.cur, linkOwner: G.linked.owner, linkNote: G.linked.note,
+      monthlyCad: cad(G.monthly), rate: (G.monthly * G.fx / 6590 * 100).toFixed(1) + '%',
+      stsLine: mLeft > 0 ? f(mLeft) + ' still scheduled this month is reserved in Safe to Spend. Unscheduled future months aren’t.' : 'This month’s contribution is done, so nothing more is reserved in Safe to Spend.',
+      src0: G.source[0], src1: G.source[1], src2: G.source[2], notes: G.notes, hasNotes: !!G.notes, insight: G.insight,
+      hasTrip: !!G.trip, tripBefore: G.trip ? G.trip.before : '', tripSpentText: G.trip ? G.trip.spent : '', tripLeft: G.trip ? G.trip.left : '',
+      tripSpent: G.trip ? 'width: ' + G.trip.pct + '%; background: #2A2540; border-radius: 999px 3px 3px 999px;' : ''
+    };
+    // chart
+    const pts = G.chart;
+    const endI = done ? 0 : (months != null ? months : 0);
+    const x0 = pts[0][0], x1 = Math.max(endI, 0.001);
+    const X = (i) => 4 + (i - x0) / (x1 - x0) * 313;
+    const Y = (v) => 16 + (1 - v / G.target) * 124;
+    const line = 'M' + pts.map((p) => X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' L');
+    const last = pts[pts.length - 1];
+    const ch = {
+      line, area: line + ' L' + X(last[0]).toFixed(1) + ' 140 L' + X(pts[0][0]).toFixed(1) + ' 140 Z',
+      proj: done ? '' : 'M' + X(last[0]).toFixed(1) + ' ' + Y(last[1]).toFixed(1) + ' L' + X(endI).toFixed(1) + ' ' + Y(G.target).toFixed(1),
+      dots: pts.map((p, i) => ({ v: f(p[1]),
+        dot: 'position: absolute; box-sizing: border-box; border-radius: 999px; ' + (i === pts.length - 1 ? 'width: 12px; height: 12px; background: #5134C9; border: 2.5px solid #FFFFFF; box-shadow: 0 0 0 1px #5134C9; left: ' + (X(p[0]) - 6).toFixed(1) + 'px; top: ' + (Y(p[1]) - 6).toFixed(1) + 'px;' : 'width: 7px; height: 7px; background: #5134C9; left: ' + (X(p[0]) - 3.5).toFixed(1) + 'px; top: ' + (Y(p[1]) - 3.5).toFixed(1) + 'px;'),
+        lab: 'position: absolute; white-space: nowrap; font-size: 9.5px; font-weight: 600; color: #3A3A42; font-variant-numeric: tabular-nums; transform: translateX(-50%); top: ' + (Y(p[1]) - 18).toFixed(1) + 'px; left: ' + Math.max(18, X(p[0])).toFixed(1) + 'px;' }))
+        .concat(done ? [] : [{ v: MON[projIdx].slice(0, 3) + ' ' + MON[projIdx].slice(-4), dot: 'position: absolute; box-sizing: border-box; width: 10px; height: 10px; border-radius: 999px; background: #FFFFFF; border: 2px solid #8A8896; left: ' + (X(endI) - 5).toFixed(1) + 'px; top: ' + (Y(G.target) - 5).toFixed(1) + 'px;',
+          lab: 'position: absolute; white-space: nowrap; font-size: 9.5px; font-weight: 600; color: #2D5DB0; right: 0; top: ' + (Y(G.target) + 8).toFixed(1) + 'px;' }]),
+      months: pts.map((p) => ({ t: p[2], style: 'position: absolute; top: 146px; font-size: 10px; color: #8A8896; transform: translateX(-50%); left: ' + Math.max(10, X(p[0])).toFixed(1) + 'px;' }))
+    };
+    // simulation
+    const SC = [['−' + G.sym + '100', -100], ['+' + G.sym + '50', 50], ['+' + G.sym + '100', 100], ['+' + G.sym + '200', 200], ['Custom', 250]];
+    const sel = s.scen == null ? 2 : s.scen;
+    const segS = (on) => 'height: 38px; padding: 0 12px; border-radius: 12px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #5134C9; color: #FFFFFF; font-weight: 600;' : 'background: #F5F4F8; color: #3A3A42; font-weight: 500;');
+    const scen = SC.map((c, i) => ({ label: c[0], pressed: i === sel ? 'true' : 'false', style: segS(i === sel), pick: () => this.setState({ scen: i }) }));
+    const nm = Math.max(1, G.monthly + SC[sel][1]);
+    const nIdx = Math.floor(rem / nm);
+    const shift = projIdx != null ? nIdx - projIdx : 0;
+    const sim = { isCustom: SC[sel][0] === 'Custom', newMonthly: f(nm), newDate: MON[Math.min(nIdx, MON.length - 1)],
+      deltaLabel: shift > 0 ? 'Later by' : 'Time saved', delta: shift === 0 ? 'Same month' : Math.abs(shift) + (Math.abs(shift) === 1 ? ' month' : ' months'),
+      deltaBox: shift > 0 ? 'background: #F6F5F8; color: #3A3A42' : 'background: #EEF7F2; color: #1A6B46',
+      planDelta: (nm - G.monthly >= 0 ? '+' : '−') + f(Math.abs(nm - G.monthly)) + ' a month', stsDelta: (nm - G.monthly >= 0 ? '−' : '+') + f(Math.abs(nm - G.monthly)) + ' from next month' };
+    const DATES = [[4, 'Jan 2027'], [6, 'Mar 2027'], [12, 'Sep 2027']];
+    const dsel = s.dsc == null ? 1 : s.dsc;
+    const dates = DATES.map((d, i) => ({ label: d[1], pressed: i === dsel ? 'true' : 'false', style: segS(i === dsel), pick: () => this.setState({ dsc: i }) }));
+    const dreq = rem / DATES[dsel][0];
+    const ds = { req: f(Math.ceil(dreq)), diff: (dreq - G.monthly >= 0 ? '+' : '−') + f(Math.abs(Math.ceil(dreq - G.monthly))) };
+    const history = G.history.map((h, i) => ({ date: h[0], who: h[2], amount: '+' + f(h[1]), src: 'From ' + h[3] + (h[4] ? ' · ' + h[4] : ''), row: 'display: flex; align-items: center; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }));
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const seg = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const opts = (list, key, st, def) => list.map((o) => ({ label: o, pressed: o === (s[key] || def) ? 'true' : 'false', style: st(o === (s[key] || def)), pick: () => this.setState({ [key]: o }) }));
+    return {
+      g, ch, scen, sim, dates, ds, history, isActive: !done, isDone: done,
+      cFrom: opts(['CIBC Chequing', 'Shared Chequing', 'Everyday Chequing'], 'cFrom', pill, G.source[0]), cOwners: opts(['Juan', 'Karinna', 'Household'], 'cOwner', seg, 'Juan'),
+      eCurs: opts(['CAD', 'USD'], 'eCur', seg, G.cur), eOwners: opts(['Juan', 'Karinna', 'Household'], 'eOwner', seg, G.owner), eAccts: opts([G.linked.name, 'None'], 'eAcct', pill, G.linked.name), ePrios: opts(['High', 'Medium', 'Low'], 'ePrio', seg, 'High'),
+      menuOpen: !!s.menu, menuAttr: s.menu ? 'true' : 'false', toggleMenu: () => this.setState({ menu: !s.menu }), closeMenu: () => this.setState({ menu: false }),
+      openEdit: () => this.setState({ menu: false, sheet: 'edit' }), askDelete: () => this.setState({ menu: false, sheet: 'delete' }),
+      openContrib: () => this.setState({ sheet: 'contrib' }), openApply: () => this.setState({ sheet: 'apply' }), closeSheet: () => this.setState({ sheet: null }),
+      sheetContrib: s.sheet === 'contrib', sheetApply: s.sheet === 'apply', sheetDelete: s.sheet === 'delete', sheetEdit: s.sheet === 'edit'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add account, USD account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FAFAF8">
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 58px 20px 24px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<sc-if value="{{isStep2}}" hint-placeholder-val="{{false}}"><button onClick="{{back}}" aria-label="Back" style="width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button></sc-if>
+<sc-if value="{{isStep1}}" hint-placeholder-val="{{true}}"><span style="font-size: 12px; color: #6B6B76">Step 1 of 2</span></sc-if>
+<a href="Money.dc.html" aria-label="Close" style="width: 40px; height: 40px; border-radius: 999px; background: #F1F0F4; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
+</div>
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">NEW ACCOUNT</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Add account</h1>
+<p style="margin: 0; font-size: 15px; color: #55555F">{{subtitle}}</p>
+</header>
+
+<sc-if value="{{isStep1}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="6">
+<button onClick="{{t.pick}}" style="{{t.style}}"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 15px; font-weight: 600">{{t.label}}</span><span style="font-size: 12px; color: #6B6B76">{{t.desc}}</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px"><span style="font-size: 12px; color: #8A8896">No bank login needed. Add balances by hand or from statements.</span><button style="padding: 6px 10px; font-size: 13px; font-weight: 600; color: #6B6B76">Connect bank instead · coming later</button></div>
+</sc-if>
+
+<sc-if value="{{isStep2}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<button onClick="{{back}}" style="align-self: flex-start; height: 34px; padding: 0 12px; border-radius: 999px; background: #EEF3FB; color: #2D5DB0; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{typeIcon}}"></path></svg>{{typeLabel}} · change</button>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EEEDF2">
+<span style="font-size: 12px; font-weight: 600; color: #6B6B76">{{balLabel}}</span>
+<label style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 600; color: #8A8896">{{sym}}</span><input type="text" inputmode="decimal" aria-label="Current balance" value="{{balance}}" onChange="{{onBal}}" style="{{balStyle}}"></label>
+<sc-if value="{{isForeignCur}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #F5F8FD; border: 1px dashed #9DB6E3; font-size: 12px; color: #2D5DB0; font-variant-numeric: tabular-nums"><b style="font-weight: 700">≈ {{baseEq}}</b>· rate updated today</span></sc-if>
+<span style="font-size: 12px; color: #8A8896">You can update this later.</span>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Account name</span><input type="text" value="{{name}}" onChange="{{onName}}" placeholder="e.g. Everyday account" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label>
+<sc-if value="{{showInst}}" hint-placeholder-val="{{true}}"><label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Institution</span><span style="font-weight: 400; color: #8A8896">Optional</span></span><input type="text" value="{{inst}}" onChange="{{onInst}}" placeholder="e.g. your bank" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></sc-if>
+<sc-if value="{{isInvestment}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Investment account type</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{invTypes}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">Just the total value. No holdings or stocks needed.</span></div></sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><sc-if value="{{noHousehold}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; color: #8A8896">Household options appear if you create a Household.</span></sc-if></div>
+
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{curs}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for><button onClick="{{openCur}}" style="height: 36px; padding: 0 12px; border-radius: 999px; background: #F6F5F8; font-size: 13px; font-weight: 600; color: #5134C9">+ Add currency</button></div>
+<sc-if value="{{isForeignCur}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; line-height: 16px; color: #8A8896">The balance stays in {{currency}}. Combined views use the current reference rate; past transactions keep their own rates.</span></sc-if></div>
+
+<sc-if value="{{dupOn}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: #FDF6E8">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #4A3206"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4.5M12 15.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg>This account may already exist.</span>
+<span style="display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; font-size: 13px"><span style="font-weight: 600">CIBC Chequing</span><span style="color: #6B6B76">CAD · Personal · CA$3,420</span></span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><a href="AccountDetail.dc.html" style="height: 40px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600; color: #111114; display: flex; align-items: center; justify-content: center">View existing</a><button onClick="{{addAnyway}}" style="height: 40px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Add anyway</button></div>
+</div>
+</sc-if>
+
+<div style="border-top: 1px solid #ECEBF0; border-bottom: 1px solid #ECEBF0">
+<button onClick="{{toggleMore}}" aria-expanded="{{moreAttr}}" style="width: 100%; padding: 14px 0; display: flex; align-items: center; gap: 12px; text-align: left"><span style="width: 28px; height: 28px; border-radius: 999px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.4" stroke-linecap="round"><path d="{{moreIcon}}"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">More details</span><span style="font-size: 12px; color: #6B6B76">{{moreSummary}}</span></span></button>
+<sc-if value="{{moreOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 2px 0 16px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Nickname</span><input type="text" placeholder="Optional" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Last four</span><input type="text" inputmode="numeric" placeholder="••••" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></div>
+<div style="display: flex; flex-direction: column">
+<button role="switch" onClick="{{stsSw.toggle}}" aria-checked="{{stsSw.attr}}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Include in Safe to Spend</span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">Use this balance when calculating money available for everyday spending.</span></span><span style="{{stsSw.track}}"><span style="{{stsSw.knob}}"></span></span></button>
+<span style="margin: -6px 0 6px; font-size: 11px; color: #8A8896">{{stsHint}}</span>
+<button role="switch" onClick="{{nwSw.toggle}}" aria-checked="{{nwSw.attr}}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Include in Net Worth</span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">This account will count toward your assets.</span></span><span style="{{nwSw.track}}"><span style="{{nwSw.knob}}"></span></span></button>
+</div>
+<sc-if value="{{hasHousehold}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Sharing</span>
+<sc-for list="{{sharing}}" as="o" hint-placeholder-count="3"><button role="radio" onClick="{{o.pick}}" aria-checked="{{o.pressed}}" style="{{o.style}}"><span style="{{o.radio}}"><span style="{{o.dot}}"></span></span><span style="display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{o.label}}</span><span style="font-size: 11px; color: #6B6B76">{{o.sub}}</span></span></button></sc-for>
+<span style="font-size: 11px; color: #8A8896">More options live in Household settings.</span></div></sc-if>
+<sc-if value="{{isSavings}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Link to goal</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{goals}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<sc-if value="{{hasGoal}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; padding: 4px 12px; margin-top: 4px; border-radius: 14px; background: #F6F5F8"><button role="switch" onClick="{{srcSw.toggle}}" aria-checked="{{srcSw.attr}}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Use this balance as the goal balance</span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">The goal updates when this account changes, so you don’t enter the money twice.</span></span><span style="{{srcSw.track}}"><span style="{{srcSw.knob}}"></span></span></button></div></sc-if></div></sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" placeholder="Optional" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{isStep2}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; padding: 12px 20px 30px; background: #FFFFFF; border-top: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 10px">
+<span style="text-align: center; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{summary}}</span>
+<button onClick="{{save}}" style="height: 56px; border-radius: 18px; background: #5134C9; color: #FFFFFF; font-size: 16px; font-weight: 600; box-shadow: 0 8px 20px rgba(81, 52, 201, 0.3)">Add account</button>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{saved}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 60; background: rgba(17, 17, 20, 0.34)">
+<div role="status" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span>
+<span style="margin-top: 8px; width: 60px; height: 60px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700">Account added</span><span style="font-size: 15px; color: #3A3A42; font-variant-numeric: tabular-nums">{{doneLine}}</span></span>
+<div style="width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px">
+<button onClick="{{addAnother}}" style="height: 52px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 15px; font-weight: 600">Add another</button>
+<a href="NewAccountEmpty.dc.html" style="height: 52px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Done</a>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetCur}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add a currency" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add a currency</span><span style="font-size: 13px; color: #6B6B76">It becomes available everywhere in Kipu.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px"><sc-for list="{{newCurs}}" as="c" hint-placeholder-count="5"><button onClick="{{c.pick}}" style="height: 52px; padding: 0 14px; border-radius: 14px; background: #F6F5F8; display: flex; align-items: center; gap: 12px; text-align: left"><span style="padding: 3px 7px; border-radius: 7px; background: #EEF3FB; color: #2D5DB0; font-size: 11px; font-weight: 700">{{c.code}}</span><span style="flex-grow: 1; font-size: 14px; font-weight: 500">{{c.name}}</span><span style="font-size: 12px; font-weight: 600; color: #5134C9">Add</span></button></sc-for></div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props); this.state = {"step": 2, "type": "Foreign currency account", "name": "USD Account", "inst": "CIBC", "currency": "USD", "balance": "4,250", "owner": "Personal", "sts": true, "nw": true, "more": false, "sharing": "private", "goal": null, "goalSrc": true, "invType": "RRSP", "household": true, "enabled": ["CAD", "USD", "PEN"], "dupDismissed": true, "saved": false, "sheet": null};
+    this.onBal = (e) => this.setState({ balance: e.target.value.replace(/[^0-9.,]/g, '') });
+    this.onName = (e) => this.setState({ name: e.target.value });
+    this.onInst = (e) => this.setState({ inst: e.target.value });
+  }
+  renderVals() {
+    const s = this.state;
+    const TYPES = {
+      Chequing: ['Everyday spending account', 'M3.5 9.5 12 4l8.5 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3.5 20h17', { name: 'CIBC Chequing', inst: 'CIBC', cur: 'CAD', bal: '3,420', sts: true, nw: true }],
+      Savings: ['Money set aside for goals or reserves', 'M19 11a7 6 0 1 0-12.3 3.9L6 19h3l.6-1.4a8 8 0 0 0 4.8 0L15 19h3l-.3-2.8A6 6 0 0 0 19 11z', { name: 'Emergency Savings', inst: 'CIBC', cur: 'CAD', bal: '5,800', sts: false, nw: true }],
+      'Foreign currency account': ['An account held in USD, PEN or another currency', 'M12 3v18M16 7.5c-.6-1.5-2.2-2.5-4-2.5-2.2 0-4 1.3-4 3.2 0 4.3 8 2.3 8 6.6 0 1.9-1.8 3.2-4 3.2-1.9 0-3.5-1-4.1-2.6', { name: 'USD Account', inst: 'CIBC', cur: 'USD', bal: '4,250', sts: true, nw: true }],
+      Investment: ['RRSP, TFSA or other investment account', 'M3 17l6-6 4 4 8-8M15 7h6v6', { name: 'RRSP', inst: 'Brokerage', cur: 'CAD', bal: '8,400', sts: false, nw: true }],
+      Cash: ['Physical cash balance', 'M3 6.5h18v11H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', { name: 'PEN Travel Cash', inst: '', cur: 'PEN', bal: '355', sts: true, nw: true }],
+      Other: ['Anything else you want to track', 'M5.5 12h.01M12 12h.01M18.5 12h.01', { name: '', inst: '', cur: 'CAD', bal: '', sts: false, nw: false }]
+    };
+    const RATE = { CAD: 1, USD: 1.3694, PEN: 0.3622, EUR: 1.49, MXN: 0.075, GBP: 1.77 };
+    const SYM = { CAD: 'CA$', USD: 'US$', PEN: 'S/', EUR: '€', MXN: 'MX$', GBP: '£' };
+    const pickType = (t) => { const d = TYPES[t][2]; this.setState({ type: t, step: 2, name: d.name, inst: d.inst, currency: d.cur, balance: d.bal, sts: d.sts, nw: d.nw, goal: null, dupDismissed: false }); };
+    const types = Object.keys(TYPES).map((t) => ({ label: t, desc: TYPES[t][0], icon: TYPES[t][1], pick: () => pickType(t),
+      style: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; ' + (t === s.type ? 'background: #F4F1FD; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }));
+    const T = TYPES[s.type] || TYPES.Chequing;
+    const seg = (on) => 'flex: 1 1 0; height: 38px; padding: 0 8px; border-radius: 9px; font-size: 14px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const ownersList = s.household ? ['Personal', 'Household'] : ['Personal'];
+    const owners = ownersList.map((o) => ({ label: o, pressed: o === s.owner ? 'true' : 'false', style: seg(o === s.owner), pick: () => this.setState({ owner: o }) }));
+    const curs = s.enabled.map((c) => ({ label: c, pressed: c === s.currency ? 'true' : 'false', style: pill(c === s.currency), pick: () => this.setState({ currency: c }) }));
+    const NEW = [['EUR', 'Euro'], ['MXN', 'Mexican peso'], ['GBP', 'British pound']].filter((c) => s.enabled.indexOf(c[0]) < 0);
+    const newCurs = NEW.map((c) => ({ code: c[0], name: c[1], pick: () => this.setState({ enabled: s.enabled.concat([c[0]]), currency: c[0], sheet: null }) }));
+    const invTypes = ['RRSP', 'TFSA', 'Non-registered', 'Retirement', 'Other'].map((o) => ({ label: o, pressed: o === s.invType ? 'true' : 'false', style: pill(o === s.invType), pick: () => this.setState({ invType: o, name: s.name === s.invType || !s.name ? o : s.name }) }));
+    const amt = parseFloat((s.balance || '0').replace(/,/g, '')) || 0;
+    const baseEq = 'CA$' + Math.round(amt * (RATE[s.currency] || 1)).toLocaleString('en-US');
+    const len = Math.max(3, (s.balance || '0').length);
+    const sw = (on, toggle) => ({ attr: on ? 'true' : 'false', toggle, track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; background: ' + (on ? '#5134C9' : '#DCDAE3') + ';',
+      knob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); left: ' + (on ? '21px' : '3px') + ';' });
+    const radio = (on) => ({ radio: 'width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid ' + (on ? '#5134C9' : '#D2CEDC') + ';', dot: 'width: 10px; height: 10px; border-radius: 999px; background: ' + (on ? '#5134C9' : 'transparent') + ';' });
+    const sharing = [['private', 'Private', 'Only you see it'], ['totals', 'Include balance in Household totals', 'Balance counts, details stay private'], ['full', 'Share full account details', 'Members see balance and transactions']]
+      .map((o) => Object.assign({ label: o[1], sub: o[2], pressed: o[0] === s.sharing ? 'true' : 'false', pick: () => this.setState({ sharing: o[0] }),
+        style: 'width: 100%; padding: 11px 12px; border-radius: 14px; display: flex; align-items: flex-start; gap: 12px; ' + (o[0] === s.sharing ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }, radio(o[0] === s.sharing)));
+    const goals = ['None', 'Emergency Fund', 'Peru 2026', 'Camera Equipment'].map((g) => ({ label: g, pressed: (s.goal || 'None') === g ? 'true' : 'false', style: pill((s.goal || 'None') === g), pick: () => this.setState({ goal: g === 'None' ? null : g }) }));
+    const STS_HINT = { Chequing: 'On by default for chequing accounts.', Savings: 'Off by default. Savings usually isn’t everyday money.', 'Foreign currency account': 'On if you spend from this account day to day.', Investment: 'Off by default for investments.', Cash: 'On by default for cash.', Other: 'Your choice.' };
+    const bits = [];
+    bits.push(s.sts ? 'In Safe to Spend' : 'Not in Safe to Spend'); bits.push(s.nw ? 'in Net Worth' : 'not in Net Worth');
+    if (s.goal) bits.push('linked to ' + s.goal);
+    const symTxt = SYM[s.currency] || s.currency + ' ';
+    const balText = symTxt + (s.currency === 'PEN' ? ' ' : '') + (s.balance || '0');
+    return {
+      isStep1: s.step === 1, isStep2: s.step === 2, back: () => this.setState({ step: 1 }), subtitle: s.step === 1 ? 'Add where your money lives.' : 'Only the name and balance matter now.',
+      types, typeLabel: s.type, typeIcon: T[1],
+      balLabel: s.type === 'Investment' ? 'Current value' : s.type === 'Cash' ? 'Current amount' : 'Current balance',
+      sym: symTxt, balance: s.balance, onBal: this.onBal, isForeignCur: s.currency !== 'CAD', baseEq, currency: s.currency,
+      balStyle: "width: " + len + "ch; min-width: 0; border: 0; outline: none; background: transparent; padding: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 44px; line-height: 52px; font-weight: 700; letter-spacing: -0.02em; color: #111114; caret-color: #5134C9; font-variant-numeric: tabular-nums;",
+      name: s.name, onName: this.onName, inst: s.inst, onInst: this.onInst, showInst: s.type !== 'Cash', isInvestment: s.type === 'Investment', invTypes,
+      owners, hasHousehold: !!s.household, noHousehold: !s.household, curs, newCurs, openCur: () => this.setState({ sheet: 'cur' }),
+      dupOn: s.type === 'Chequing' && (s.name || '').trim().toLowerCase() === 'cibc chequing' && !s.dupDismissed, addAnyway: () => this.setState({ dupDismissed: true }),
+      moreOpen: !!s.more, moreAttr: s.more ? 'true' : 'false', toggleMore: () => this.setState({ more: !s.more }), moreIcon: s.more ? 'M5 12h14' : 'M12 5v14M5 12h14', moreSummary: bits.join(' · '),
+      stsSw: sw(!!s.sts, () => this.setState({ sts: !s.sts })), nwSw: sw(!!s.nw, () => this.setState({ nw: !s.nw })), stsHint: STS_HINT[s.type],
+      sharing, isSavings: s.type === 'Savings', goals, hasGoal: !!s.goal, srcSw: sw(s.goalSrc !== false, () => this.setState({ goalSrc: s.goalSrc === false })),
+      summary: [s.name || 'Unnamed account', s.currency, balText, s.owner].join(' · ') + (s.currency !== 'CAD' ? ' (≈ ' + baseEq + ')' : ''),
+      save: () => this.setState({ saved: true }), saved: !!s.saved, doneLine: (s.name || 'Account') + ' · ' + balText,
+      addAnother: () => this.setState({ saved: false, step: 1, more: false }),
+      closeSheet: () => this.setState({ sheet: null }), sheetCur: s.sheet === 'cur'
+    };
+  }
+}
+</script>
+</body>
+</html>

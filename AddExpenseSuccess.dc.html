@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expense added</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="position: absolute; inset: 0; background: #2A2833"></div>
+<div style="position: absolute; left: 14px; right: 14px; top: 42px; height: 40px; border-radius: 26px 26px 0 0; background: #C9C7CF"></div>
+<div style="position: absolute; left: 0; right: 0; top: 54px; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; overflow: hidden">
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 10px 20px 24px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; justify-content: center; padding-top: 2px"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">NEW TRANSACTION</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -0.02em">Add expense</h1>
+<p style="margin: 0; font-size: 14px; color: #55555F">Log a purchase in seconds.</p>
+</div>
+<a href="Main.dc.html" aria-label="Close" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 0 2px">
+<div style="position: relative">
+<button onClick="{{toggleCur}}" aria-haspopup="listbox" aria-expanded="{{curExpanded}}" aria-label="Currency" style="height: 30px; padding: 0 8px 0 12px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #3A3A42">{{currency}}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{curOpen}}" hint-placeholder-val="{{false}}">
+<div role="listbox" style="position: absolute; top: 36px; left: 50%; transform: translateX(-50%); z-index: 30; width: 190px; padding: 5px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 14px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.14); display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{currencies}}" as="o" hint-placeholder-count="3">
+<button role="option" onClick="{{o.pick}}" aria-selected="{{o.pressed}}" style="{{o.style}}"><span>{{o.code}}</span><span style="font-size: 12px; color: #8A8896; font-weight: 400">{{o.name}}</span></button>
+</sc-for>
+<span style="padding: 6px 10px 4px; font-size: 11px; color: #8A8896">More currencies coming soon</span>
+</div>
+</sc-if>
+</div>
+<label style="display: flex; align-items: baseline; justify-content: center; gap: 6px; color: #111114">
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 600; color: #8A8896">{{symbol}}</span>
+<input type="text" inputmode="decimal" aria-label="Amount" placeholder="0.00" value="{{amount}}" onChange="{{onAmount}}" style="{{amountStyle}}">
+</label>
+<sc-if value="{{isForeign}}" hint-placeholder-val="{{false}}">
+<span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px dashed #9DB6E3; background: #F5F8FD; font-size: 12px; color: #2D5DB0; font-variant-numeric: tabular-nums"><b style="font-weight: 700">≈ {{converted}}</b>· estimate at today’s rate</span>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; color: #6B6B76">Recent</span>
+<div class="kipu-noscroll" style="margin: 0 -20px; padding: 0 20px; overflow-x: auto">
+<div style="display: flex; gap: 8px; width: max-content">
+<sc-for list="{{recent}}" as="r" hint-placeholder-count="3">
+<button onClick="{{r.pick}}" style="{{r.style}}"><span style="font-size: 13px; font-weight: 600; color: #111114">{{r.name}}</span><span style="font-size: 11px; color: #6B6B76; white-space: nowrap">{{r.meta}}</span></button>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="background: #F6F5F8; border-radius: 18px; display: flex; flex-direction: column">
+<sc-if value="{{merchantEditing}}" hint-placeholder-val="{{false}}">
+<div style="padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 10px">
+<label style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; background: #FFFFFF; border-radius: 12px; box-shadow: 0 0 0 1.5px #5134C9">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM16 16l4 4"></path></svg>
+<input type="text" aria-label="Merchant" placeholder="Search merchants" value="{{query}}" onChange="{{onQuery}}" style="flex-grow: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 15px; font-weight: 500">
+<button onClick="{{closeMerchant}}" style="font-size: 13px; font-weight: 600; color: #5134C9">Done</button>
+</label>
+<div style="display: flex; flex-direction: column; background: #FFFFFF; border-radius: 12px; padding: 2px 12px">
+<sc-for list="{{matches}}" as="m" hint-placeholder-count="2">
+<button onClick="{{m.pick}}" style="{{m.style}}">
+<span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #F4F1FD; display: flex; align-items: center; justify-content: center; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: #5134C9">{{m.initial}}</span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">{{m.name}}</span><span style="font-size: 11px; color: #6B6B76">{{m.meta}}</span></span>
+<span style="font-size: 11px; font-weight: 600; color: #5134C9">{{m.hint}}</span>
+</button>
+</sc-for>
+<sc-if value="{{showNew}}" hint-placeholder-val="{{false}}">
+<button onClick="{{useNew}}" style="width: 100%; padding: 12px 0; display: flex; align-items: center; gap: 10px; border-top: 1px solid #F1F0F4; font-size: 13px; color: #3A3A42; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Use “{{query}}” as a new merchant</button>
+</sc-if>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{quickMerchants}}" as="q" hint-placeholder-count="6">
+<button onClick="{{q.pick}}" style="height: 30px; padding: 0 11px; border-radius: 999px; background: #FFFFFF; font-size: 12px; font-weight: 500; color: #3A3A42">{{q.name}}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{merchantIdle}}" hint-placeholder-val="{{true}}">
+<button onClick="{{openMerchant}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.5 4h13L20 9.5M4 9.5h16M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0M5.5 12v8h13v-8M10 20v-5h4v5"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 11px; color: #6B6B76">Merchant</span><span style="{{merchantStyle}}">{{merchantLabel}}</span></span>
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM16 16l4 4"></path></svg>
+</button>
+</sc-if>
+<div style="height: 1px; background: #FFFFFF; margin: 0 14px"></div>
+<button onClick="{{openCategory}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{catIcon}}"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 11px; color: #6B6B76">Category</span><span style="font-size: 15px; font-weight: 600">{{category}}</span></span>
+<sc-if value="{{catSuggested}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; font-weight: 600; color: #5134C9">From {{merchant}}</span></sc-if>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+</button>
+<div style="height: 1px; background: #FFFFFF; margin: 0 14px"></div>
+<button onClick="{{toggleDate}}" aria-expanded="{{dateExpanded}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h17v14h-17zM3.5 10.5h17M8 3.5v5M16 3.5v5"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 11px; color: #6B6B76">Date</span><span style="font-size: 15px; font-weight: 600">{{dateLabel}}</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+</button>
+<sc-if value="{{dateOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 6px; padding: 0 14px 14px">
+<sc-for list="{{dates}}" as="d" hint-placeholder-count="3">
+<button onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Paid with</span><span style="font-size: 11px; color: #5134C9; font-weight: 600">{{payHint}}</span></div>
+<div class="kipu-noscroll" style="margin: 0 -20px; padding: 2px 20px 4px; overflow-x: auto">
+<div style="display: flex; gap: 8px; width: max-content">
+<sc-for list="{{pays}}" as="p" hint-placeholder-count="5">
+<button onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="{{p.style}}">
+<span style="{{p.thumb}}"></span>
+<span style="display: flex; flex-direction: column; gap: 1px; text-align: left"><span style="font-size: 13px; font-weight: 600; white-space: nowrap">{{p.name}}</span><span style="font-size: 11px; color: #6B6B76; white-space: nowrap">{{p.sub}}</span></span>
+<sc-if value="{{p.suggested}}" hint-placeholder-val="{{false}}"><span style="position: absolute; top: -7px; right: 10px; padding: 1px 6px; border-radius: 999px; background: #5134C9; color: #FFFFFF; font-size: 9px; font-weight: 700; letter-spacing: 0.04em">SUGGESTED</span></sc-if>
+</button>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; color: #6B6B76">Who spent it?</span>
+<div role="group" aria-label="Who spent it" style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px">
+<sc-for list="{{owners}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isForeign}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 12px; padding: 14px; background: #F5F8FD; border-radius: 16px">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h13l-3-3M20 17H7l3 3"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #3A3A42; font-variant-numeric: tabular-nums">
+<span style="font-size: 13px; font-weight: 600; color: #1F2F4D">Kipu keeps the original {{symbol}}{{amount}}</span>
+<span style="display: grid; grid-template-columns: auto auto; column-gap: 14px; row-gap: 3px"><span style="color: #6B6B76">Original amount</span><b style="font-weight: 600">{{symbol}}{{amount}}</b><span style="color: #6B6B76">Estimated in CAD</span><b style="font-weight: 600">≈ {{converted}}</b><span style="color: #6B6B76">Paid with</span><b style="font-weight: 600">{{payName}}</b></span>
+<span style="line-height: 17px; color: #55555F">When the card transaction or statement arrives, Kipu fills in the final CAD amount, exchange rate and any foreign transaction fee.</span>
+</span>
+</div>
+</sc-if>
+
+<div style="border-top: 1px solid #F1F0F4; border-bottom: 1px solid #F1F0F4">
+<button onClick="{{toggleDetails}}" aria-expanded="{{detailsExpanded}}" style="width: 100%; padding: 14px 0; display: flex; align-items: center; gap: 12px; text-align: left">
+<span style="width: 28px; height: 28px; border-radius: 999px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.4" stroke-linecap="round"><path d="{{detailsIcon}}"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">Add details</span><span style="font-size: 12px; color: #6B6B76">{{detailsSummary}}</span></span>
+</button>
+<sc-if value="{{detailsOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 2px 0 18px">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" placeholder="Anything to remember?" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Trip or event</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{trips}}" as="t" hint-placeholder-count="3">
+<button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 11px; color: #8A8896">Keeps the category too. Trip spending is also tracked on its own.</span>
+</div>
+<button style="height: 48px; border-radius: 14px; border: 1.5px dashed #DCD8E6; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; color: #3A3A42"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5 12.6 21a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"></path></svg>Attach receipt</button>
+<button onClick="{{toggleRecurring}}" role="switch" aria-checked="{{recurringAttr}}" style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0; text-align: left">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Recurring</span><span style="font-size: 12px; color: #6B6B76">Repeat this expense every month</span></span>
+<span style="{{switchTrack}}"><span style="{{switchKnob}}"></span></span>
+</button>
+<sc-if value="{{isForeign}}" hint-placeholder-val="{{false}}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Exchange rate</span><input type="text" inputmode="decimal" placeholder="{{ratePlaceholder}}" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 14px; outline: none"></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Foreign fee</span><input type="text" inputmode="decimal" placeholder="From statement" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 14px; outline: none"></label>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Tags</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{tags}}" as="g" hint-placeholder-count="1"><span style="height: 32px; padding: 0 12px; border-radius: 999px; background: #F4F1FD; color: #2B1F66; font-size: 12px; font-weight: 600; display: flex; align-items: center">{{g.label}}</span></sc-for>
+<button style="height: 32px; padding: 0 12px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 600; color: #3A3A42">+ Add tag</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; color: #6B6B76">Prefer not to type?</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button style="height: 40px; border-radius: 12px; background: #F6F5F8; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 600; color: #3A3A42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10h6M9 14h4"></path></svg>Scan</button>
+<button style="height: 40px; border-radius: 12px; background: #F6F5F8; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 600; color: #3A3A42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"></path></svg>Receipt</button>
+<button style="height: 40px; border-radius: 12px; background: #F6F5F8; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 600; color: #3A3A42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"></path></svg>Statement</button>
+</div>
+</div>
+
+</div>
+<div style="flex-shrink: 0; padding: 12px 20px 34px; background: #FFFFFF; border-top: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 10px">
+<span style="text-align: center; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{summary}}</span>
+<button onClick="{{save}}" disabled="{{noAmount}}" style="{{saveStyle}}">Add expense</button>
+</div>
+</div>
+<sc-if value="{{catOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.28)">
+<button onClick="{{closeCategory}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Choose category" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">Category</span><button onClick="{{closeCategory}}" aria-label="Close" style="width: 36px; height: 36px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Frequently used</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{freqCats}}" as="c" hint-placeholder-count="4">
+<button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="{{c.tileStyle}}"><span style="{{c.iconWrap}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{c.icon}}"></path></svg></span><span style="font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%">{{c.label}}</span></button>
+</sc-for>
+</div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">All categories</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px">
+<sc-for list="{{allCats}}" as="c" hint-placeholder-count="11">
+<button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="{{c.rowStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.iconColor2}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{c.icon}}"></path></svg>{{c.label}}</button>
+</sc-for>
+</div></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{saved}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 60; background: rgba(17, 17, 20, 0.34)">
+<div role="status" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span>
+<span style="margin-top: 8px; width: 56px; height: 56px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Expense added</span><span style="font-size: 15px; color: #3A3A42; font-variant-numeric: tabular-nums">{{doneLine}}</span><span style="font-size: 12px; color: #8A8896">{{doneMeta}}</span></span>
+<div style="width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 6px">
+<button onClick="{{addAnother}}" style="height: 52px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 15px; font-weight: 600">Add another</button>
+<a href="Main.dc.html" style="height: 52px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Done</a>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"amount": "320.47", "currency": "CAD", "merchant": "Costco", "query": "Costco", "category": "Groceries", "catFromMerchant": true, "pay": "cibc", "suggestedPay": "cibc", "owner": "Juan", "date": "Today", "trip": "None", "recurring": false, "details": false, "curOpen": false, "merchantEditing": false, "catOpen": false, "dateOpen": false, "saved": true};
+    this.onAmount = (e) => this.setState({ amount: e.target.value.replace(/[^0-9.]/g, '') });
+    this.onQuery = (e) => this.setState({ query: e.target.value });
+  }
+  renderVals() {
+    const s = this.state;
+    const ICON = {"Groceries": "M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9", "Dining": "M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M17 21V3c-2 0-3.5 2.5-3.5 6s1.5 4 3.5 4", "Transportation": "M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2", "Shopping": "M5.5 8h13l-1 12.5h-11zM9 8V6.5a3 3 0 0 1 6 0V8", "Subscriptions": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Entertainment": "M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4zM14 7v12", "Family": "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM22 20v-1a4 4 0 0 0-3-3.87M16 4.13a4 4 0 0 1 0 7.75", "Travel": "M3 13.5l18-7-7 18-2.5-8.5z", "Health": "M12 6v12M6 12h12", "Home": "M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z", "Other": "M5.5 12h.01M12 12h.01M18.5 12h.01", "Uncategorized": "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"};
+    const CUR = { CAD: ['CA$', 'Canadian dollar', 1], USD: ['US$', 'US dollar', 1.3709], PEN: ['S/', 'Peruvian sol', 0.3622] };
+    const PAYS = [
+      { id: 'cibc', name: 'CIBC Costco Mastercard', sub: '•••• 4821', thumb: 'linear-gradient(135deg, #3A3552, #111018)' },
+      { id: 'visa', name: 'CIBC Visa', sub: '•••• 3095', thumb: 'linear-gradient(135deg, #7358E6, #2B1B78)' },
+      { id: 'amex', name: 'American Express', sub: '•••• 2714', thumb: 'linear-gradient(135deg, #F4F2F8, #BBB5CC)' },
+      { id: 'chequing', name: 'Chequing', sub: 'CA$ account', thumb: 'linear-gradient(135deg, #E6F4EC, #BFE3CF)' },
+      { id: 'cash', name: 'Cash', sub: 'Wallet', thumb: 'linear-gradient(135deg, #F7EBD4, #E9CF9D)' }
+    ];
+    const MER = {
+      'Costco': ['Groceries', 'cibc', 'Juan', 'CAD'], 'Costco Gas': ['Transportation', 'cibc', 'Juan', 'CAD'], 'Shell': ['Transportation', 'visa', 'Juan', 'CAD'],
+      'Amazon': ['Shopping', 'amex', 'Karinna', 'CAD'], 'Walmart': ['Groceries', 'chequing', 'Household', 'CAD'], 'Adobe': ['Subscriptions', 'amex', 'Juan', 'USD'],
+      'Starbucks': ['Dining', 'amex', 'Karinna', 'CAD'], 'Restaurant Central': ['Dining', 'visa', 'Juan', 'PEN']
+    };
+    const CATS = ['Groceries', 'Dining', 'Transportation', 'Shopping', 'Subscriptions', 'Entertainment', 'Family', 'Travel', 'Health', 'Home', 'Other'];
+    const payById = (id) => PAYS.find((p) => p.id === id);
+    const applyMerchant = (name) => {
+      const m = MER[name];
+      const patch = { merchant: name, query: name, merchantEditing: false, catFromMerchant: !!m };
+      if (m) Object.assign(patch, { category: m[0], pay: m[1], owner: m[2], currency: m[3], suggestedPay: m[1] });
+      else Object.assign(patch, { suggestedPay: null });
+      return patch;
+    };
+    const cur = CUR[s.currency];
+    const amt = parseFloat(s.amount) || 0;
+    const fmt2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const amountText = s.amount ? cur[0] + (s.currency === 'PEN' ? ' ' : '') + (amt % 1 === 0 && s.amount.indexOf('.') < 0 ? amt.toLocaleString('en-US') : fmt2(amt)) : '';
+    const converted = 'CA$' + fmt2(amt * cur[2]);
+    const isForeign = s.currency !== 'CAD';
+    const len = Math.max(4, (s.amount || '0.00').length);
+    const curOpt = (code) => ({ code, name: CUR[code][1], pressed: code === s.currency ? 'true' : 'false', pick: () => this.setState({ currency: code, curOpen: false }),
+      style: 'height: 40px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; ' + (code === s.currency ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'color: #111114; font-weight: 500;') });
+    const RECENT = [['Costco', '320.47'], ['Shell', '72.30'], ['Adobe', '55.00']];
+    const recent = RECENT.map((r) => { const m = MER[r[0]]; const on = s.merchant === r[0];
+      return { name: r[0], meta: m[0] + ' · ' + payById(m[1]).name.replace('American Express', 'Amex').replace(' Mastercard', ''),
+        pick: () => this.setState(Object.assign(applyMerchant(r[0]), { amount: r[1] })),
+        style: 'padding: 9px 12px; border-radius: 14px; display: flex; flex-direction: column; gap: 2px; text-align: left; ' + (on ? 'background: #F4F1FD; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }; });
+    const q = (s.query || '').trim().toLowerCase();
+    const names = Object.keys(MER);
+    const matchNames = q ? names.filter((n) => n.toLowerCase().indexOf(q) >= 0) : ['Costco', 'Shell', 'Adobe'];
+    const matches = matchNames.slice(0, 4).map((n, i) => { const m = MER[n]; return {
+      name: n, initial: n.charAt(0), meta: m[0] + ' · ' + payById(m[1]).name, hint: i === 0 && q ? 'Best match' : '',
+      pick: () => this.setState(applyMerchant(n)),
+      style: 'width: 100%; padding: 10px 0; display: flex; align-items: center; gap: 10px; text-align: left;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }; });
+    const quick = ['Costco', 'Shell', 'Amazon', 'Walmart', 'Adobe', 'Starbucks'].map((n) => ({ name: n, pick: () => this.setState(applyMerchant(n)) }));
+    const pays = PAYS.map((p) => { const on = p.id === s.pay; return {
+      name: p.name, sub: p.sub, pressed: on ? 'true' : 'false', suggested: p.id === s.suggestedPay,
+      thumb: 'width: 30px; height: 20px; flex-shrink: 0; border-radius: 4px; background: ' + p.thumb + '; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.2);',
+      pick: () => this.setState({ pay: p.id }),
+      style: 'position: relative; height: 54px; padding: 0 14px 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 10px; ' + (on ? 'background: #FFFFFF; box-shadow: inset 0 0 0 2px #5134C9;' : 'background: #F6F5F8;') }; });
+    const seg = (on) => 'flex: 1 1 0; height: 38px; border-radius: 9px; font-size: 14px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const owners = ['Juan', 'Karinna', 'Household'].map((o) => ({ label: o, pressed: o === s.owner ? 'true' : 'false', style: seg(o === s.owner), pick: () => this.setState({ owner: o }) }));
+    const chip = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #FFFFFF; color: #3A3A42; font-weight: 500;');
+    const dates = ['Today', 'Yesterday', 'Choose date…'].map((d) => ({ label: d, pick: () => this.setState({ date: d === 'Choose date…' ? s.date : d, dateOpen: false }), style: chip(d === s.date) }));
+    const tchip = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const trips = ['None', 'Peru 2026', '+ New trip'].map((t) => ({ label: t, pressed: t === s.trip ? 'true' : 'false', style: tchip(t === s.trip), pick: () => this.setState({ trip: t === '+ New trip' ? s.trip : t }) }));
+    const catItem = (c) => { const on = c === s.category; return {
+      label: c, icon: ICON[c], pressed: on ? 'true' : 'false', pick: () => this.setState({ category: c, catOpen: false, catFromMerchant: false }),
+      iconColor: on ? '#FFFFFF' : '#2A2540', iconColor2: on ? '#5134C9' : '#6B6B76',
+      iconWrap: 'width: 40px; height: 40px; border-radius: 13px; display: flex; align-items: center; justify-content: center; background: ' + (on ? '#5134C9' : '#F6F5F8') + ';',
+      tileStyle: 'display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0; min-width: 0; color: ' + (on ? '#2B1F66' : '#3A3A42') + ';',
+      rowStyle: 'height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; ' + (on ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'background: #F6F5F8; color: #111114; font-weight: 500;') }; };
+    const p = payById(s.pay);
+    const merchantName = s.merchant || 'Expense';
+    const detailBits = [];
+    if (s.trip && s.trip !== 'None') detailBits.push(s.trip);
+    if (s.recurring) detailBits.push('Recurring');
+    return {
+      currency: s.currency, curOpen: !!s.curOpen, curExpanded: s.curOpen ? 'true' : 'false', toggleCur: () => this.setState({ curOpen: !s.curOpen }),
+      currencies: ['CAD', 'USD', 'PEN'].map(curOpt), symbol: cur[0] + (s.currency === 'PEN' ? ' ' : ''),
+      amount: s.amount, onAmount: this.onAmount, isForeign, converted,
+      amountStyle: "width: " + len + "ch; min-width: 0; border: 0; outline: none; background: transparent; padding: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 56px; line-height: 64px; font-weight: 700; letter-spacing: -0.03em; color: #111114; caret-color: #5134C9; font-variant-numeric: tabular-nums;",
+      recent,
+      merchantEditing: !!s.merchantEditing, merchantIdle: !s.merchantEditing, query: s.query || '', onQuery: this.onQuery,
+      openMerchant: () => this.setState({ merchantEditing: true, query: s.merchant || '' }), closeMerchant: () => this.setState({ merchantEditing: false }),
+      matches, quickMerchants: quick, showNew: !!q && !MER[s.query.trim()],
+      useNew: () => this.setState(applyMerchant(s.query.trim())),
+      merchant: s.merchant, merchantLabel: s.merchant || 'Add a merchant (optional)',
+      merchantStyle: 'font-size: 15px; font-weight: ' + (s.merchant ? '600; color: #111114;' : '500; color: #8A8896;'),
+      category: s.category, catIcon: ICON[s.category] || ICON.Uncategorized, catSuggested: !!s.catFromMerchant && !!s.merchant,
+      openCategory: () => this.setState({ catOpen: true }), closeCategory: () => this.setState({ catOpen: false }), catOpen: !!s.catOpen,
+      freqCats: ['Groceries', 'Dining', 'Transportation', 'Shopping'].map(catItem), allCats: CATS.map(catItem),
+      dateLabel: s.date === 'Today' ? 'Today · Sep 24' : s.date === 'Yesterday' ? 'Yesterday · Sep 23' : s.date,
+      dateOpen: !!s.dateOpen, dateExpanded: s.dateOpen ? 'true' : 'false', toggleDate: () => this.setState({ dateOpen: !s.dateOpen }), dates,
+      pays, payName: p.name, payHint: s.suggestedPay && s.merchant ? 'Suggested for ' + s.merchant : '',
+      owners,
+      detailsOpen: !!s.details, detailsExpanded: s.details ? 'true' : 'false', toggleDetails: () => this.setState({ details: !s.details }),
+      detailsIcon: s.details ? 'M5 12h14' : 'M12 5v14M5 12h14',
+      detailsSummary: detailBits.length ? detailBits.join(' · ') : 'Notes, trip, receipt, recurring, tags',
+      trips, recurringAttr: s.recurring ? 'true' : 'false', toggleRecurring: () => this.setState({ recurring: !s.recurring }),
+      switchTrack: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; transition: background 0.15s; background: ' + (s.recurring ? '#5134C9' : '#DCDAE3') + ';',
+      switchKnob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: left 0.15s; left: ' + (s.recurring ? '21px' : '3px') + ';',
+      ratePlaceholder: 'Auto · ' + cur[2],
+      tags: s.trip === 'Peru 2026' ? [{ label: '#vacation' }] : [],
+      summary: [s.merchant || 'No merchant', amountText || cur[0] + '0.00', s.category].join(' · ') + (isForeign && amt ? ' (≈ ' + converted + ')' : ''),
+      noAmount: !amt,
+      saveStyle: 'height: 56px; border-radius: 18px; font-size: 16px; font-weight: 600; ' + (amt ? 'background: #5134C9; color: #FFFFFF; box-shadow: 0 8px 20px rgba(81, 52, 201, 0.3);' : 'background: #E4E1EC; color: #8A8896; cursor: default;'),
+      save: () => { if (amt) this.setState({ saved: true, curOpen: false, merchantEditing: false }); },
+      saved: !!s.saved,
+      doneLine: merchantName + ' · ' + amountText + (isForeign ? ' (≈ ' + converted + ')' : ''),
+      doneMeta: [s.category, p.name, s.owner].concat(detailBits).join(' · '),
+      addAnother: () => this.setState({ saved: false, amount: '', merchant: '', query: '', category: 'Uncategorized', catFromMerchant: false, suggestedPay: null, trip: 'None', recurring: false, details: false, currency: 'CAD' })
+    };
+  }
+}
+</script>
+</body>
+</html>

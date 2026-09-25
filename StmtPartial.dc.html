@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement partly read</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+@keyframes kipu-spin{to{transform:rotate(360deg)}}
+@keyframes kipu-in{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:none}}
+@keyframes kipu-sweep{0%{top:6%}50%{top:88%}100%{top:6%}}
+@keyframes kipu-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column">
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 58px 20px 22px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px"><a href="StmtUpload.dc.html" aria-label="Close" style="width: 40px; height: 40px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></a><span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8A8896"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"></path></svg>Securely processed and stored</span></div>
+<sc-if value="{{isFull}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">STATEMENT FOUND</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; letter-spacing: -0.02em">Review statement</h1>
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: #55555F">Check the details before importing.</p>
+</div></sc-if>
+<sc-if value="{{isPartial}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">STATEMENT FOUND</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; letter-spacing: -0.02em">Some details found</h1>
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: #55555F">Save what Kipu found now. You can add transactions later.</p>
+</div></sc-if>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: #F6F5F8">
+<span style="width: 48px; height: 32px; flex-shrink: 0; border-radius: 6px; background: linear-gradient(135deg, #3A3552, #111018); box-shadow: 0 2px 6px rgba(24, 16, 64, 0.2)"></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">CIBC Costco Mastercard</span><span style="font-size: 12px; color: #6B6B76">•••• 4821 · Juan · transactions default to Juan</span></span>
+<span style="padding: 3px 8px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Detected</span>
+</div>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 4px 16px">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Statement period</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">Aug 20 – Sep 19</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4"><span style="font-size: 14px; color: #55555F">Statement balance</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,284.62</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Minimum payment</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">CA$30.00</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Payment due</span><span style="font-weight: 600; font-variant-numeric: tabular-nums; color: #94580A">Oct 12</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #55555F">Currency</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">CAD</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font-size: 14px"><span style="color: #55555F">Transactions</span><span style="{{txCountStyle}}">{{txCount}}</span></div>
+</section>
+
+<sc-if value="{{isPartial}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: #FDF6E8">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4.5M12 15.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 14px; font-weight: 600; color: #4A3206">Transactions couldn’t be detected</span><span style="font-size: 13px; line-height: 18px; color: #6B5320">The balance, minimum payment and due date will still update your card.</span></span>
+</div>
+</sc-if>
+
+<sc-if value="{{isFull}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">34 transactions found</span><span style="font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">CA$1,284.62 spent</span></div>
+<div style="display: flex; height: 10px; gap: 2px"><span style="{{bar.newStyle}}"></span><span style="{{bar.dupStyle}}"></span><span style="{{bar.revStyle}}"></span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6B6B76"><span style="width: 7px; height: 7px; border-radius: 999px; background: #2E9B69"></span>New</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">{{newCount}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6B6B76"><span style="width: 7px; height: 7px; border-radius: 999px; background: #D9C08E"></span>Possible duplicates</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">4</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6B6B76"><span style="width: 7px; height: 7px; border-radius: 999px; background: #E0A33B"></span>Needs review</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">{{reviewCount}}</b></span>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 18px; background: #F4F1FD">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 32px; height: 32px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600; color: #2B1F66">Trip detected · Peru 2026</span><span style="font-size: 12px; color: #55506E">Sep 10 – Sep 24 · includes Restaurant Central, S/ 180</span></span>
+</div>
+<button onClick="{{toggleTrip}}" aria-pressed="{{tripPressed}}" style="{{tripBtn}}">{{tripLabel}}</button>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">Transactions</span><span style="font-size: 12px; color: #6B6B76">Tap to edit</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{txs}}" as="t" hint-placeholder-count="6">
+<button onClick="{{t.pick}}" aria-label="{{t.aria}}" style="{{t.rowStyle}}">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.merchant}}</span><span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6B6B76"><span>{{t.date}} · {{t.cat}}</span></span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums">{{t.amount}}</span><span style="{{t.chipStyle}}">{{t.chip}}</span></span>
+</button>
+</sc-for>
+</div>
+<a href="Transactions.dc.html" style="align-self: center; padding: 6px 12px; font-size: 13px; font-weight: 600; color: #5134C9">View all 34 transactions</a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: #F6F5F8">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Payment · Sep 2</span><span style="font-size: 12px; color: #6B6B76">From Chequing</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums">−CA$1,120.00</span><span style="padding: 1px 7px; border-radius: 999px; background: #EAF1FC; color: #2D5DB0; font-size: 11px; font-weight: 600">Card payment</span></span>
+</div>
+<span style="font-size: 12px; line-height: 17px; color: #55555F">Card payments are matched to the transfer from your bank account, so they never count as spending twice.</span>
+</section>
+
+<button onClick="{{openOpt}}" style="display: flex; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid #F1F0F4; border-bottom: 1px solid #F1F0F4; text-align: left">
+<span style="width: 32px; height: 32px; border-radius: 10px; background: #F6F5F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">Import options</span><span style="font-size: 12px; color: #6B6B76">{{optSummary}}</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+</button>
+
+</div>
+</sc-if>
+</div>
+
+<div style="flex-shrink: 0; padding: 12px 20px 30px; background: #FFFFFF; border-top: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 8px">
+<button onClick="{{doImport}}" style="height: 56px; border-radius: 18px; background: #5134C9; color: #FFFFFF; font-size: 16px; font-weight: 600; box-shadow: 0 8px 20px rgba(81, 52, 201, 0.3)">{{cta}}</button>
+<span style="text-align: center; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">{{ctaNote}}<sc-if value="{{hasReview}}" hint-placeholder-val="{{false}}"><span> · </span><button onClick="{{openCat}}" style="font-size: 12px; font-weight: 600; color: #94580A; text-decoration: underline">1 transaction needs review</button></sc-if></span>
+</div>
+</div>
+<sc-if value="{{sheetDup}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Possible duplicate" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 790px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em">Possible duplicate</span><span style="font-size: 13px; color: #6B6B76">This looks like an expense you already added.</span></span><button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="padding: 12px; border-radius: 16px; background: #F6F5F8; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #6B6B76">ALREADY IN KIPU</span><span style="font-size: 14px; font-weight: 600">Costco</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">CA$320.47</span><span style="font-size: 12px; color: #6B6B76">Sep 18 · from receipt scan</span><span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #5134C9"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5 12.6 21a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"></path></svg>Receipt attached</span></div>
+<div style="padding: 12px; border-radius: 16px; background: #F6F5F8; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #6B6B76">ON STATEMENT</span><span style="font-size: 14px; font-weight: 600">COSTCO WHOLESALE</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">CA$320.47</span><span style="font-size: 12px; color: #6B6B76">Sep 18 · •••• 4821</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Why Kipu matched them</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="padding: 4px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Merchant</span><span style="padding: 4px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Amount</span><span style="padding: 4px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Date</span><span style="padding: 4px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Card</span><span style="padding: 4px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Currency</span></div></div>
+<div role="radiogroup" aria-label="What to do" style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{dupOpts}}" as="o" hint-placeholder-count="3">
+<button role="radio" onClick="{{o.pick}}" aria-checked="{{o.pressed}}" style="{{o.style}}"><span style="{{o.radio}}"><span style="{{o.dot}}"></span></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600">{{o.label}}<sc-if value="{{o.rec}}" hint-placeholder-val="{{false}}"><span style="padding: 1px 6px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 10px; font-weight: 700">RECOMMENDED</span></sc-if></span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">{{o.sub}}</span></span></button>
+</sc-for>
+</div>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Confirm</button>
+<span style="font-size: 11px; color: #8A8896; text-align: center">Nothing is deleted or overwritten until you confirm.</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetRec}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Final amount available" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 790px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em">Final amount available</span><span style="font-size: 13px; color: #6B6B76">Restaurant Lima · Sep 15</span></span><button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 18px; background: #F4F1FD">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #55506E">Your estimate</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: #7C74A0; text-decoration: line-through; font-variant-numeric: tabular-nums">CA$65.20</span></span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 2px; text-align: right"><span style="font-size: 11px; color: #55506E">Final from statement</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 700; color: #2B1F66; font-variant-numeric: tabular-nums">CA$67.14</span></span>
+</div>
+<div style="background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ECEAF1; font-size: 14px"><span style="color: #55555F">Original amount</span><span style="font-weight: 600; color: #111114; font-variant-numeric: tabular-nums">S/ 180.00</span></div><div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ECEAF1; font-size: 14px"><span style="color: #55555F">Converted by your card</span><span style="font-weight: 600; color: #111114; font-variant-numeric: tabular-nums">CA$65.20</span></div><div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ECEAF1; font-size: 14px"><span style="color: #55555F">Foreign transaction fee</span><span style="font-weight: 600; color: #111114; font-variant-numeric: tabular-nums">CA$1.94</span></div><div style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 14px"><span style="color: #55555F">Final CAD amount</span><span style="font-weight: 700; color: #2B1F66; font-variant-numeric: tabular-nums">CA$67.14</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Stays the same</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="padding: 5px 10px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 500; color: #3A3A42; display: flex; align-items: center; gap: 5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>S/ 180.00 in PEN</span><span style="padding: 5px 10px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 500; color: #3A3A42; display: flex; align-items: center; gap: 5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Receipt</span><span style="padding: 5px 10px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 500; color: #3A3A42; display: flex; align-items: center; gap: 5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Dining</span><span style="padding: 5px 10px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 500; color: #3A3A42; display: flex; align-items: center; gap: 5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Juan</span><span style="padding: 5px 10px; border-radius: 999px; background: #F6F5F8; font-size: 12px; font-weight: 500; color: #3A3A42; display: flex; align-items: center; gap: 5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Peru 2026</span></div></div>
+<button onClick="{{reconcile}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Update to CA$67.14</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetCat}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Choose category" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 790px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em">Needs category</span><span style="font-size: 13px; color: #6B6B76">Amazon · CA$112.40 · Sep 12</span></span><button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Suggested</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{catOpts}}" as="c" hint-placeholder-count="4">
+<button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="{{c.wrap}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.color}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{c.icon}}"></path></svg></span><span style="font-size: 12px; font-weight: 600; color: #3A3A42">{{c.label}}</span></button>
+</sc-for>
+</div></div>
+<button style="height: 44px; border-radius: 14px; background: #F6F5F8; font-size: 13px; font-weight: 600; color: #3A3A42">More categories</button>
+<span style="font-size: 12px; color: #8A8896; text-align: center">Kipu will remember this for Amazon next time.</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetOpt}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Import options" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 790px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em">Import options</span><span style="font-size: 13px; color: #6B6B76">All on by default.</span></span><button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="6">
+<button role="switch" onClick="{{o.pick}}" aria-checked="{{o.checked}}" style="{{o.row}}"><span style="display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{o.label}}</span><span style="font-size: 12px; color: #6B6B76">{{o.sub}}</span></span><span style="{{o.track}}"><span style="{{o.knob}}"></span></span></button>
+</sc-for>
+</div>
+<span style="font-size: 12px; line-height: 17px; color: #8A8896">Choose whether to keep the original file or delete it after import in Settings › Privacy.</span>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600">Done</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetEdit}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 50; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Edit transaction" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 790px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.16); padding: 10px 20px 34px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em">{{ed.merchant}}</span><span style="font-size: 13px; color: #6B6B76">{{ed.date}} · {{ed.amount}}</span></span><button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Category</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{ed.cats}}" as="c" hint-placeholder-count="5"><button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="{{c.style}}">{{c.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Who spent it?</span>
+<div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{ed.owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600">Done</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{saved}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: absolute; inset: 0; z-index: 70; background: #FFFFFF; padding: 58px 20px 40px; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center">
+<span style="width: 72px; height: 72px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em">Statement imported</span><span style="font-size: 15px; color: #3A3A42">{{importedLine}}</span></span>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px; border-radius: 18px; background: #F6F5F8; text-align: left; min-width: 250px">
+<sc-for list="{{doneItems}}" as="d" hint-placeholder-count="3"><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #3A3A42"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{d.label}}</span></sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<a href="StmtHistory.dc.html" style="height: 50px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">View card</a>
+<a href="CardDetailTransactions.dc.html" style="height: 50px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">View transactions</a>
+</div>
+<a href="Main.dc.html" style="height: 54px; border-radius: 18px; background: #111114; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center">Done</a>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"mode": "partial", "sheet": null, "dup": "keep", "dupDone": false, "rec": false, "amazonCat": null, "trip": false, "saved": false, "editId": 1}; }
+  renderVals() {
+    const s = this.state;
+    const TX = [
+      ['costco', 'Costco', 'Sep 18', 'CA$320.47', 'Groceries', 'dup'],
+      ['shell', 'Shell', 'Sep 17', 'CA$72.30', 'Transportation', 'new'],
+      ['adobe', 'Adobe', 'Sep 16', 'US$55.00', 'Software', 'match'],
+      ['lima', 'Restaurant Lima', 'Sep 15', 'S/ 180.00', 'Dining · Peru 2026', 'rec'],
+      ['rest', 'Restaurant', 'Sep 14', 'CA$86.00', 'Dining', 'new'],
+      ['amazon', 'Amazon', 'Sep 12', 'CA$112.40', null, 'review']
+    ];
+    const chip = (t, fg, bg) => ({ chip: t, chipStyle: 'padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: ' + fg + '; background: ' + bg + ';' });
+    const G = ['#1A6B46', '#E6F4EC'], A = ['#94580A', '#FDF1DC'], N = ['#55555F', '#F1F0F4'], B = ['#2D5DB0', '#EAF1FC'];
+    const dupLabel = { keep: 'Keeping existing', replace: 'Replacing', both: 'Importing both' };
+    const txs = TX.map((t, i) => {
+      let st;
+      if (t[5] === 'new') st = chip('New', G[0], G[1]);
+      else if (t[5] === 'dup') st = s.dupDone ? chip(dupLabel[s.dup], N[0], N[1]) : chip('Possible duplicate', A[0], A[1]);
+      else if (t[5] === 'match') st = chip('Possible match', A[0], A[1]);
+      else if (t[5] === 'rec') st = s.rec ? chip('Final amount updated', G[0], G[1]) : chip('Final amount ready', B[0], B[1]);
+      else st = s.amazonCat ? chip('New', G[0], G[1]) : chip('Needs category', A[0], A[1]);
+      const cat = t[0] === 'amazon' ? (s.amazonCat || 'No category yet') : t[4];
+      const amount = t[0] === 'lima' ? (s.rec ? 'CA$67.14' : 'S/ 180.00') : t[3];
+      const sheet = t[5] === 'dup' ? 'dup' : t[5] === 'rec' ? 'rec' : t[5] === 'review' ? 'cat' : 'edit';
+      return Object.assign({
+        merchant: t[1], date: t[2], cat: t[0] === 'adobe' ? cat + ' · ≈ CA$75.40' : (t[0] === 'lima' && s.rec ? cat + ' · S/ 180.00' : cat), amount,
+        aria: t[1] + ', ' + t[3] + ', ' + t[2], pick: () => this.setState({ sheet, editId: i }),
+        rowStyle: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; text-align: left;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '')
+      }, st);
+    });
+    const newCount = 29 + (s.amazonCat ? 1 : 0) + (s.dupDone && s.dup !== 'keep' ? 1 : 0);
+    const skipped = 4 - (s.dupDone && s.dup !== 'keep' ? 1 : 0);
+    const reviewCount = s.amazonCat ? 0 : 1;
+    const seg = (w, c, r) => 'width: ' + w + '%; background: ' + c + '; border-radius: ' + r + ';';
+    const bar = { newStyle: seg((newCount / 34 * 100).toFixed(1), '#2E9B69', '999px 3px 3px 999px'), dupStyle: seg((skipped / 34 * 100).toFixed(1), '#E8D6AE', '3px'),
+      revStyle: reviewCount ? 'flex-grow: 1; background: #E0A33B; border-radius: 3px 999px 999px 3px;' : 'flex-grow: 1; background: #2E9B69; border-radius: 3px 999px 999px 3px;' };
+    const radio = (on) => ({ radio: 'width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid ' + (on ? '#5134C9' : '#D2CEDC') + ';',
+      dot: 'width: 10px; height: 10px; border-radius: 999px; background: ' + (on ? '#5134C9' : 'transparent') + ';' });
+    const dupOpts = [['keep', 'Keep existing', 'Skip the statement copy. Your receipt and details stay.', true], ['replace', 'Replace with statement transaction', 'Use the statement version. Kipu asks before removing anything.', false], ['both', 'Import both', 'Adds a second Costco transaction.', false]]
+      .map((o) => Object.assign({ label: o[1], sub: o[2], rec: o[3], pressed: o[0] === s.dup ? 'true' : 'false', pick: () => this.setState({ dup: o[0], dupDone: true }),
+        style: 'padding: 12px 14px; border-radius: 16px; display: flex; align-items: flex-start; gap: 12px; ' + (o[0] === s.dup ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }, radio(o[0] === s.dup)));
+    const ICON = { Shopping: 'M5.5 8h13l-1 12.5h-11zM9 8V6.5a3 3 0 0 1 6 0V8', Home: 'M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z',
+      Family: 'M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM22 20v-1a4 4 0 0 0-3-3.87M16 4.13a4 4 0 0 1 0 7.75', Other: 'M5.5 12h.01M12 12h.01M18.5 12h.01' };
+    const catOpts = ['Shopping', 'Home', 'Family', 'Other'].map((c) => { const on = c === s.amazonCat; return { label: c, icon: ICON[c], pressed: on ? 'true' : 'false', color: on ? '#FFFFFF' : '#2A2540',
+      wrap: 'width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: ' + (on ? '#5134C9' : '#F6F5F8') + ';',
+      pick: () => this.setState({ amazonCat: c, sheet: null }) }; });
+    const OPTS = [['tx', 'Import transactions', 'New transactions only'], ['bal', 'Update statement balance', 'CA$1,284.62'], ['min', 'Update minimum payment', 'CA$30.00'], ['due', 'Update due date', 'Oct 12'], ['card', 'Update current card information', 'Limit and available credit'], ['pdf', 'Attach statement PDF', 'Saved with this statement']];
+    const optState = s.opts || {};
+    const opts = OPTS.map((o, i) => { const on = optState[o[0]] !== false; return {
+      label: o[1], sub: o[2], checked: on ? 'true' : 'false', pick: () => this.setState({ opts: Object.assign({}, optState, { [o[0]]: !on }) }),
+      row: 'display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; text-align: left;' + (i < OPTS.length - 1 ? ' border-bottom: 1px solid #F1F0F4;' : ''),
+      track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; background: ' + (on ? '#5134C9' : '#DCDAE3') + ';',
+      knob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); left: ' + (on ? '21px' : '3px') + ';' }; });
+    const onCount = OPTS.filter((o) => optState[o[0]] !== false).length;
+    const edT = TX[s.editId || 1];
+    const pillS = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const segS = (on) => 'flex: 1 1 0; height: 38px; border-radius: 9px; font-size: 14px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const edCat = (s.edCat || {})[edT[0]] || (edT[4] || '').split(' · ')[0];
+    const edOwner = (s.edOwner || {})[edT[0]] || 'Juan';
+    const ed = { merchant: edT[1], date: edT[2], amount: edT[3],
+      cats: ['Groceries', 'Dining', 'Transportation', 'Shopping', 'Software'].map((c) => ({ label: c, pressed: c === edCat ? 'true' : 'false', style: pillS(c === edCat), pick: () => this.setState({ edCat: Object.assign({}, s.edCat, { [edT[0]]: c }) }) })),
+      owners: ['Juan', 'Karinna', 'Household'].map((o) => ({ label: o, pressed: o === edOwner ? 'true' : 'false', style: segS(o === edOwner), pick: () => this.setState({ edOwner: Object.assign({}, s.edOwner, { [edT[0]]: o }) }) })) };
+    const partial = s.mode === 'partial';
+    const doneItems = partial ? [{ label: 'Statement balance updated' }, { label: 'Minimum payment updated' }, { label: 'Due date updated' }]
+      : [{ label: skipped + ' duplicates skipped' }, { label: 'Statement balance updated' }, { label: 'Due date updated' }].concat(s.trip ? [{ label: '12 transactions added to Peru 2026' }] : []);
+    return {
+      isFull: !partial, isPartial: partial,
+      txCount: partial ? 'Could not detect' : '34', txCountStyle: partial ? 'font-weight: 600; color: #94580A;' : 'font-weight: 600;',
+      bar, newCount, reviewCount, txs,
+      trip: !!s.trip, tripPressed: s.trip ? 'true' : 'false', toggleTrip: () => this.setState({ trip: !s.trip }),
+      tripLabel: s.trip ? '✓ 12 transactions added to Peru 2026 · Undo' : 'Add 12 transactions to Peru 2026',
+      tripBtn: 'height: 42px; border-radius: 12px; font-size: 13px; font-weight: 600; ' + (s.trip ? 'background: transparent; color: #2B1F66; box-shadow: inset 0 0 0 1px #CFC6F2;' : 'background: #FFFFFF; color: #5134C9;'),
+      openOpt: () => this.setState({ sheet: 'opt' }), optSummary: onCount === 6 ? 'Transactions, balance, due date and more · all on' : onCount + ' of 6 on',
+      openCat: () => this.setState({ sheet: 'cat' }),
+      cta: partial ? 'Save statement details' : 'Import ' + newCount + ' transactions',
+      ctaNote: partial ? 'Try another file later to import transactions' : skipped + ' duplicates will be skipped',
+      hasReview: !partial && reviewCount > 0,
+      doImport: () => this.setState({ saved: true, sheet: null }),
+      sheetDup: s.sheet === 'dup', sheetRec: s.sheet === 'rec', sheetCat: s.sheet === 'cat', sheetOpt: s.sheet === 'opt', sheetEdit: s.sheet === 'edit',
+      closeSheet: () => this.setState({ sheet: null }), dupOpts, catOpts, opts, ed,
+      reconcile: () => this.setState({ rec: true, sheet: null }),
+      saved: !!s.saved, importedLine: partial ? 'Statement details saved.' : newCount + ' new transactions added.', doneItems
+    };
+  }
+}
+</script>
+</body>
+</html>

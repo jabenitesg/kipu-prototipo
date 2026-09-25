@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kipu Bills and recurring, full scroll</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 3720px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow: hidden; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Plan.dc.html" aria-label="Back to Plan" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">UPCOMING MONEY</span></div>
+<button onClick="{{openAdd}}" aria-label="Add recurring expense" style="width: 40px; height: 40px; border-radius: 999px; background: #5134C9; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Bills &amp; recurring</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">See what’s coming before it hits your accounts.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Plan.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Overview</a><a href="Budget.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Budget</a><a href="Bills.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Bills &amp; recurring</a><a href="Goals.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Goals</a><a href="Trips.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Trips</a></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px">
+<div role="group" aria-label="Owner" style="display: flex; gap: 6px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div style="position: relative"><button onClick="{{toggleCur}}" aria-haspopup="listbox" aria-expanded="{{curAttr}}" aria-label="Currency" style="height: 36px; padding: 0 10px 0 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600">{{currency}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{curOpen}}" hint-placeholder-val="{{false}}"><div role="listbox" style="position: absolute; top: 42px; right: 0; z-index: 25; width: 140px; padding: 5px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 14px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.12); display: flex; flex-direction: column; gap: 2px"><sc-for list="{{currencies}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></sc-if></div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div role="group" aria-label="Period" style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{periods}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div role="group" aria-label="View" style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{views}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+</div>
+</header>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="padding: 36px 22px; border-radius: 24px; background: #FFFFFF; border: 1px dashed #E4E2EA; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 60px; height: 60px; border-radius: 20px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h17v14h-17zM3.5 10.5h17M8 3.5v5M16 3.5v5M12 13.5v4M10 15.5h4"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700">Know what’s coming</span><span style="font-size: 14px; line-height: 20px; color: #55555F">Add bills, subscriptions and recurring payments so Kipu can plan ahead.</span></span>
+<button onClick="{{openAdd}}" style="width: 100%; height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; margin-top: 4px">Add recurring expense</button>
+<button style="width: 100%; height: 46px; border-radius: 16px; background: #F5F4F8; font-size: 14px; font-weight: 600">Import from transactions</button>
+</div>
+</sc-if>
+
+<sc-if value="{{hasItems}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+
+<section aria-label="Summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); font-variant-numeric: tabular-nums">
+<span style="padding: 14px 16px; border-right: 1px solid #F1F0F4; border-bottom: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; color: #6B6B76">Next 7 days</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #94580A">{{sum.d7}}</b></span>
+<span style="padding: 14px 16px; border-bottom: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; color: #6B6B76">Next 30 days</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">{{sum.d30}}</b></span>
+<span style="padding: 14px 16px; border-right: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; color: #6B6B76">Recurring per month</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">CA$3,557</b></span>
+<span style="padding: 14px 16px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; color: #6B6B76">Autopay</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">8 active</b></span>
+</section>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{true}}">
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Coming up</h2><span style="font-size: 12px; color: #6B6B76">{{periodNote}}</span></div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="{{g.labelStyle}}">{{g.label}}</span>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 18px; padding: 0 14px">
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+<div style="{{r.wrap}}">
+<button onClick="{{r.open}}" aria-label="{{r.aria}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; text-align: left">
+<span style="{{r.iconWrap}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 600; color: #111114; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+<span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.meta}}</span>
+<span style="font-size: 11px; color: #8A8896; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.src}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0">
+<span style="{{r.amountStyle}}">{{r.amount}}</span>
+<span style="{{r.statusStyle}}">{{r.status}}</span>
+</span>
+</button>
+<sc-if value="{{r.canPay}}" hint-placeholder-val="{{false}}"><button onClick="{{r.pay}}" style="margin: -4px 0 12px 52px; height: 32px; padding: 0 12px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 12px; font-weight: 600">Mark as paid</button></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</section>
+</sc-if>
+
+<sc-if value="{{isCalendar}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; font-size: 11px; font-weight: 600; color: #8A8896"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{cal}}" as="c" hint-placeholder-count="35">
+<button onClick="{{c.pick}}" aria-label="{{c.aria}}" style="{{c.style}}"><span style="{{c.monStyle}}">{{c.mon}}</span><span>{{c.day}}</span><span style="display: flex; gap: 2px; height: 5px"><sc-for list="{{c.dots}}" as="d" hint-placeholder-count="1"><span style="{{d.style}}"></span></sc-for></span></button>
+</sc-for>
+</div>
+<div style="display: flex; gap: 12px; font-size: 11px; color: #6B6B76"><span style="display: flex; align-items: center; gap: 5px"><span style="width: 6px; height: 6px; border-radius: 999px; background: #E0A33B"></span>Upcoming</span><span style="display: flex; align-items: center; gap: 5px"><span style="width: 6px; height: 6px; border-radius: 999px; background: #7FA0D8"></span>Expected</span><span style="display: flex; align-items: center; gap: 5px"><span style="width: 6px; height: 6px; border-radius: 999px; background: #D66A8E"></span>Overdue</span></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76; padding: 0 2px">{{calLabel}}</span>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 18px; padding: 0 14px">
+<sc-for list="{{calRows}}" as="r" hint-placeholder-count="2">
+<div style="{{r.wrap}}">
+<button onClick="{{r.open}}" aria-label="{{r.aria}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; text-align: left">
+<span style="{{r.iconWrap}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 600; color: #111114; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+<span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.meta}}</span>
+<span style="font-size: 11px; color: #8A8896; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.src}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0">
+<span style="{{r.amountStyle}}">{{r.amount}}</span>
+<span style="{{r.statusStyle}}">{{r.status}}</span>
+</span>
+</button>
+<sc-if value="{{r.canPay}}" hint-placeholder-val="{{false}}"><button onClick="{{r.pay}}" style="margin: -4px 0 12px 52px; height: 32px; padding: 0 12px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 12px; font-weight: 600">Mark as paid</button></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{calNone}}" hint-placeholder-val="{{false}}"><span style="display: block; padding: 16px 0; font-size: 13px; color: #6B6B76">Nothing due on this day.</span></sc-if>
+</div>
+</section>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Cash impact</h2><span style="font-size: 12px; color: #6B6B76">Next 7 days</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; height: 12px; gap: 2px"><span style="width: 32.9%; background: #E0A33B; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #2E9B69; border-radius: 3px 999px 999px 3px"></span></div></div>
+<div style="display: flex; flex-direction: column; font-size: 14px; font-variant-numeric: tabular-nums">
+<div style="display: flex; justify-content: space-between; padding: 6px 0"><span style="color: #55555F">Available cash</span><b style="font-weight: 600">CA$4,100</b></div>
+<div style="display: flex; justify-content: space-between; padding: 6px 0"><span style="display: flex; align-items: center; gap: 8px; color: #55555F"><span style="width: 8px; height: 8px; border-radius: 2px; background: #E0A33B"></span>Scheduled payments</span><b style="font-weight: 600">−CA$1,347</b></div>
+<div style="display: flex; justify-content: space-between; padding: 10px 0 0; border-top: 1px solid #F1F0F4"><span style="display: flex; align-items: center; gap: 8px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 2px; background: #2E9B69"></span>Remaining after payments</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; color: #1A6B46">CA$2,753</b></div>
+</div>
+<a href="PlanSafeToSpend.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 14px; background: #F4F1FD; color: inherit"><span style="font-size: 12px; line-height: 17px; color: #2B1F66">These upcoming commitments are included in your Safe to Spend calculation.</span><span style="font-size: 12px; font-weight: 600; color: #5134C9; white-space: nowrap">See calculation →</span></a>
+</section>
+
+<sc-if value="{{showDetect}}" hint-placeholder-val="{{true}}">
+<section style="padding: 16px; border-radius: 20px; background: #F6F5F8; display: flex; flex-direction: column; gap: 12px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #5134C9"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4"></path></svg>LOOKS RECURRING</span>
+<span style="font-size: 14px; line-height: 20px; color: #111114">We noticed <b>Music streaming · CA$12.99</b> appears every month on your CIBC Visa.</span>
+<div style="display: flex; gap: 8px"><button onClick="{{makeRecurring}}" style="height: 38px; padding: 0 14px; border-radius: 12px; background: #5134C9; color: #FFFFFF; font-size: 13px; font-weight: 600">Make recurring</button><button onClick="{{ignoreDetect}}" style="height: 38px; padding: 0 14px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600; color: #3A3A42">Ignore</button></div>
+</section>
+</sc-if>
+<sc-if value="{{detectDone}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #1A6B46; display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{detectMsg}}</span></sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Recently matched</h2><span style="font-size: 12px; color: #6B6B76">Expected vs actual</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F1F0F4"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">Electricity</span><span style="font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">Sep 20 · expected CA$100 · actual CA$112</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$112.00</span><span style="padding: 1px 7px; border-radius: 999px; background: #FDF1DC; color: #94580A; font-size: 11px; font-weight: 600">Amount changed</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #EAF1FC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">Adobe</span><span style="font-size: 12px; color: #6B6B76">Sep 7 · matched to American Express</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">US$55.00</span><span style="padding: 1px 7px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Confirmed</span></span></div>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Recurring commitments</h2><span style="font-size: 12px; color: #6B6B76">Per month</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; height: 12px; gap: 2px"><span style="width: 54%; background: #5134C9; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #ECEAF1; border-radius: 3px 999px 999px 3px"></span></div><span style="font-size: 12px; color: #3A3A42"><b style="font-weight: 700">54%</b> of expected household income.</span></div>
+<div style="display: flex; flex-direction: column; font-size: 14px; font-variant-numeric: tabular-nums">
+<sc-for list="{{commit}}" as="c" hint-placeholder-count="6"><div style="display: flex; justify-content: space-between; padding: 7px 0"><span style="color: #55555F">{{c.k}}</span><span style="font-weight: 600">{{c.v}}</span></div></sc-for>
+<div style="display: flex; justify-content: space-between; padding: 10px 0 0; border-top: 1px solid #F1F0F4"><span style="font-weight: 600">Total</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">CA$3,557</b></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #F1F0F4">
+<div style="display: flex; height: 8px; gap: 2px"><span style="width: 87.7%; background: #2A2540; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; border: 1.5px dashed #7FA0D8; box-sizing: border-box; border-radius: 3px 999px 999px 3px"></span></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; font-variant-numeric: tabular-nums"><span style="display: flex; align-items: center; gap: 6px; color: #55555F"><span style="width: 8px; height: 8px; border-radius: 2px; background: #2A2540"></span>Fixed <b style="color: #111114">CA$3,120</b></span><span style="display: flex; align-items: center; gap: 6px; color: #55555F"><span style="width: 8px; height: 8px; border-radius: 2px; border: 1.5px dashed #7FA0D8; box-sizing: border-box"></span>Variable <b style="color: #111114">≈ CA$437</b></span></div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Yearly cost</h2><a href="#" style="font-size: 13px; font-weight: 600; color: #5134C9; padding: 6px 0">View subscriptions ›</a></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px; font-variant-numeric: tabular-nums">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Adobe</span><span style="font-size: 12px; color: #6B6B76">US$55 monthly</span></span><b style="font-size: 14px; font-weight: 700">≈ US$660 / yr</b></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Costco membership</span><span style="font-size: 12px; color: #6B6B76">Annual · next Mar 14</span></span><b style="font-size: 14px; font-weight: 700">CA$65 / yr</b></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Insurance</span><span style="font-size: 12px; color: #6B6B76">CA$184 monthly</span></span><b style="font-size: 14px; font-weight: 700">≈ CA$2,208 / yr</b></div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Temporary</h2><span style="font-size: 12px; color: #6B6B76">Has an end date</span></div>
+<button onClick="{{openSim}}" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; text-align: left">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">Peru SIM plan</span><span style="font-size: 12px; color: #6B6B76">Monthly · Nov 1 – Dec 1 · Peru 2026</span></span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">S/ 70</span>
+</button>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #475467"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EEF1F5; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v5M12 7.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg></span>INSIGHT</span>
+<p style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 22px; font-weight: 700">Your recurring monthly commitments equal 54% of expected household income.</p>
+<a href="Insights.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9">View insight →</a>
+</section>
+
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetDetail}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Recurring expense" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{det.name}}</span><span style="font-size: 13px; color: #6B6B76">{{det.sub}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; align-items: flex-end; justify-content: space-between"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #6B6B76">{{det.amountLabel}}</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{det.amount}}</span></span><span style="{{det.stateStyle}}">{{det.state}}</span></div>
+<div style="background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<sc-for list="{{det.rows}}" as="x" hint-placeholder-count="8"><div style="{{x.style}}"><span style="color: #55555F">{{x.k}}</span><span style="font-weight: 600; text-align: right; font-variant-numeric: tabular-nums">{{x.v}}</span></div></sc-for>
+</div>
+<sc-if value="{{det.hasHistory}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">History</span>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; border: 1px solid #EEEDF2">
+<sc-for list="{{det.history}}" as="h" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600">{{h.what}}</span><span style="font-size: 11px; color: #6B6B76">{{h.when}}</span></span><span style="{{h.tagStyle}}">{{h.tag}}</span></div></sc-for>
+</div></div>
+</sc-if>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button onClick="{{closeSheet}}" style="height: 46px; border-radius: 14px; background: #111114; color: #FFFFFF; font-size: 13px; font-weight: 600">Edit</button>
+<button onClick="{{closeSheet}}" style="height: 46px; border-radius: 14px; background: #F5F4F8; font-size: 13px; font-weight: 600">Pause</button>
+<button onClick="{{closeSheet}}" style="height: 46px; border-radius: 14px; background: #F5F4F8; font-size: 13px; font-weight: 600; color: #A3325A">Cancel</button>
+</div>
+<span style="font-size: 11px; color: #8A8896; text-align: center">Pausing or cancelling keeps past payments in your history.</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetAdd}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add recurring expense" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add recurring expense</span><span style="font-size: 13px; color: #6B6B76">Save with just a name and amount. Add the rest later.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 6px"><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: #5134C9"></span><span style="{{add.bar2}}"></span></div><span style="font-size: 12px; color: #6B6B76">Step {{add.step}} of 2 · {{add.stepName}}</span></div>
+<sc-if value="{{add.isStep1}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Type</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.types}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 124px; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Name</span><input type="text" inputmode="text" placeholder="e.g. Electricity" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Amount</span><input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<button role="switch" onClick="{{add.varies.toggle}}" aria-checked="{{add.varies.attr}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Amount varies</span><span style="font-size: 12px; color: #6B6B76">Kipu uses an expected estimate until the real amount arrives</span></span><span style="{{add.varies.track}}"><span style="{{add.varies.knob}}"></span></span></button>
+<sc-if value="{{add.variesOn}}" hint-placeholder-val="{{false}}"><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Usually from</span><input type="text" inputmode="decimal" placeholder="CA$90" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Usually up to</span><input type="text" inputmode="decimal" placeholder="CA$140" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div></sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.curs}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">How often</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.freqs}}" as="o" hint-placeholder-count="8"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Category</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.cats}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+</div>
+</sc-if>
+<sc-if value="{{add.isStep2}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Next payment date</span><input type="text" inputmode="text" placeholder="Oct 20" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Paid from</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.sources}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Payment</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.aps}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<button onClick="{{add.toggleOpt}}" aria-expanded="{{add.optAttr}}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid #F1F0F4; font-size: 13px; font-weight: 600; color: #3A3A42"><span>Optional · start, end date, notes, trip</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{add.optIcon}}"></path></svg></button>
+<sc-if value="{{add.optOpen}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 12px"><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Start date</span><input type="text" inputmode="text" placeholder="Today" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">End date</span><input type="text" inputmode="text" placeholder="None" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Trip or event</span><div style="display: flex; gap: 6px"><sc-for list="{{add.trips}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div></div></sc-if>
+</div>
+</sc-if>
+<div style="display: flex; gap: 10px">
+<button onClick="{{add.secondary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 15px; font-weight: 600">{{add.secondaryLabel}}</button>
+<button onClick="{{add.primary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">{{add.primaryLabel}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":3720}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"owner": "Household", "period": "30 days", "currency": "Combined", "curOpen": false, "view": "List", "sheet": null, "det": "internet", "paid": {}, "calDay": null, "detect": null, "empty": false, "step": 1, "aType": "Bill", "aVaries": false, "aCur": "CAD", "aFreq": "Monthly", "aOwner": "Household", "aCat": "Utilities", "aSrc": "Shared Chequing", "aAp": "Autopay", "aOpt": false, "aTrip": "None"}; }
+  renderVals() {
+    const s = this.state;
+    const ITEMS = [{"id": "gym", "n": "Gym membership", "a": 45.0, "d": -4, "dl": "SEP 20", "f": "Monthly", "t": "Bill", "o": "Karinna", "src": "From Everyday Chequing", "ap": "Manual", "cat": "Health"}, {"id": "tucson1", "n": "Hyundai Tucson", "a": 253.73, "d": 3, "dl": "SEP 27", "f": "Bi-weekly", "t": "Loan", "o": "Juan", "src": "From CIBC Chequing", "ap": "Autopay", "cat": "Car loan", "loan": true}, {"id": "internet", "n": "Internet", "a": 106.0, "d": 5, "dl": "SEP 29", "f": "Monthly", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Utilities", "detail": true}, {"id": "water", "n": "Water bill", "a": 95.93, "d": 6, "dl": "SEP 30", "f": "Every 2 months", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Utilities"}, {"id": "ins", "n": "Insurance", "a": 184.0, "d": 7, "dl": "OCT 1", "f": "Monthly", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Insurance"}, {"id": "chev", "n": "Chevrolet", "a": 662.34, "d": 7, "dl": "OCT 1", "f": "Monthly", "t": "Loan", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Car loan", "loan": true}, {"id": "amex", "n": "American Express", "a": 840.0, "d": 10, "dl": "OCT 4", "f": "Statement", "t": "Statement", "o": "Karinna", "src": "From Everyday Chequing", "ap": "Manual", "cat": "Card payment"}, {"id": "rent", "n": "Rent", "a": 1500.0, "d": 11, "dl": "OCT 5", "f": "Monthly", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Scheduled", "cat": "Housing", "icon": "Housing"}, {"id": "adobe", "n": "Adobe", "a": 75.4, "orig": "US$55.00", "d": 13, "dl": "OCT 7", "f": "Monthly", "t": "Subscription", "o": "Juan", "src": "Charged to American Express", "ap": "Autopay", "cat": "Subscriptions"}, {"id": "tucson2", "n": "Hyundai Tucson", "a": 253.73, "d": 17, "dl": "OCT 11", "f": "Bi-weekly", "t": "Loan", "o": "Juan", "src": "From CIBC Chequing", "ap": "Autopay", "cat": "Car loan", "loan": true}, {"id": "cibc", "n": "CIBC Costco Mastercard", "a": 980.0, "d": 18, "dl": "OCT 12", "f": "Statement", "t": "Statement", "o": "Juan", "src": "From CIBC Chequing", "ap": "Scheduled", "cat": "Card payment"}, {"id": "netflix", "n": "Netflix", "a": 23.0, "d": 21, "dl": "OCT 15", "f": "Monthly", "t": "Subscription", "o": "Household", "src": "Charged to CIBC Visa", "ap": "Card charge", "cat": "Subscriptions"}, {"id": "save", "n": "Savings transfer", "a": 300.0, "d": 21, "dl": "OCT 15", "f": "Monthly", "t": "Savings", "o": "Household", "src": "CIBC Chequing → Emergency Savings", "ap": "Scheduled", "cat": "Savings"}, {"id": "phone", "n": "Phone", "a": 106.0, "d": 24, "dl": "OCT 18", "f": "Monthly", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Utilities", "varies": true, "rng": "Usually CA$98–CA$112"}, {"id": "elec", "n": "Electricity", "a": 120.0, "d": 26, "dl": "OCT 20", "f": "Monthly", "t": "Bill", "o": "Household", "src": "From Shared Chequing", "ap": "Autopay", "cat": "Utilities", "varies": true, "rng": "Usually CA$90–CA$140"}];
+    const TICON = {"Loan": "M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2", "Bill": "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4", "Subscription": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Statement": "M2.5 5h19v14h-19zM2.5 10h19M6.5 15h3", "Savings": "M19 11a7 6 0 1 0-12.3 3.9L6 19h3l.6-1.4a8 8 0 0 0 4.8 0L15 19h3l-.3-2.8A6 6 0 0 0 19 11z", "Housing": "M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"};
+    const fmt = (n, d) => 'CA$' + n.toLocaleString('en-US', { minimumFractionDigits: d === 0 ? 0 : 2, maximumFractionDigits: d === 0 ? 0 : 2 });
+    const chip = (on) => 'height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #FFFFFF; color: #3A3A42; font-weight: 500; box-shadow: inset 0 0 0 1px #E9E7EF;');
+    const seg = (on) => 'height: 30px; padding: 0 10px; border-radius: 9px; font-size: 12px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const segW = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, st, extra) => list.map((o) => ({ label: o, pressed: o === s[key] ? 'true' : 'false', style: st(o === s[key]), pick: () => this.setState(Object.assign({ [key]: o }, extra || {})) }));
+    const days = { '7 days': 7, '14 days': 14, '30 days': 30 }[s.period];
+    const paid = s.paid || {};
+    const ownOk = (it) => s.owner === 'Household' || it.o === s.owner || it.o === 'Household';
+    const curOk = (it) => s.currency === 'Combined' || (it.orig ? 'USD' : 'CAD') === s.currency;
+    const rowOf = (it, i) => {
+      const isPaid = !!paid[it.id], overdue = it.d < 0 && !isPaid, soon = !overdue && it.d <= 3 && !isPaid;
+      let status, sfg, sbg, dashed = false;
+      if (isPaid) { status = 'Paid'; sfg = '#1A6B46'; sbg = '#E6F4EC'; }
+      else if (overdue) { status = 'Overdue'; sfg = '#A3325A'; sbg = '#FCEBF1'; }
+      else if (it.varies) { status = 'Expected'; sfg = '#6B6B76'; sbg = '#FFFFFF'; dashed = true; }
+      else if (soon) { status = 'Due soon'; sfg = '#94580A'; sbg = '#FDF1DC'; }
+      else if (it.ap === 'Scheduled') { status = 'Scheduled'; sfg = '#2D5DB0'; sbg = '#EAF1FC'; }
+      else if (it.ap === 'Manual') { status = 'Manual'; sfg = '#55555F'; sbg = '#F1F0F4'; }
+      else { status = 'Upcoming'; sfg = '#55555F'; sbg = '#F1F0F4'; }
+      const tile = it.t === 'Subscription' || it.t === 'Savings' ? ['#EAF1FC', '#2D5DB0'] : overdue ? ['#FCEBF1', '#A3325A'] : ['#F5F4F8', '#2A2540'];
+      const metaBits = [it.f, it.o === 'Household' ? 'Household' : it.o];
+      if (it.ap === 'Autopay') metaBits.push('Autopay on'); else if (it.ap === 'Manual') metaBits.push('Manual');
+      if (it.loan) metaBits.push('from Loans');
+      return {
+        name: it.n, aria: it.n + ', ' + (it.orig || fmt(it.a)), icon: TICON[it.icon || it.t], iconColor: tile[1],
+        iconWrap: 'width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: ' + tile[0] + ';',
+        meta: metaBits.join(' · '), src: it.varies ? it.rng + ' · ' + it.src.toLowerCase().replace('from ', 'from ') : it.src,
+        amount: (it.varies ? '≈ ' : '') + (it.orig || fmt(it.a)),
+        amountStyle: "font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: " + (it.varies ? '#55555F' : '#111114') + ';',
+        status, statusStyle: 'padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: ' + sfg + '; background: ' + sbg + ';' + (dashed ? ' box-shadow: inset 0 0 0 1px #CFCCD8;' : ''),
+        canPay: it.ap === 'Manual' && !isPaid, pay: () => this.setState({ paid: Object.assign({}, paid, { [it.id]: true }) }),
+        open: () => this.setState({ sheet: 'detail', det: it.id }),
+        wrap: i > 0 ? 'border-top: 1px solid #F1F0F4;' : ''
+      };
+    };
+    const vis = ITEMS.filter((it) => ownOk(it) && curOk(it) && it.d <= days);
+    const labels = [];
+    vis.forEach((it) => { const lab = it.d < 0 ? 'OVERDUE' : it.dl; if (labels.indexOf(lab) < 0) labels.push(lab); });
+    const groups = labels.map((lab) => ({ label: lab, rows: vis.filter((it) => (it.d < 0 ? 'OVERDUE' : it.dl) === lab).map(rowOf),
+      labelStyle: 'font-size: 11px; font-weight: 600; letter-spacing: 0.1em; padding: 0 2px; color: ' + (lab === 'OVERDUE' ? '#A3325A' : '#6B6B76') + ';' }));
+    const sumDays = (n) => ITEMS.filter((it) => ownOk(it) && it.d <= n && !paid[it.id]).reduce((a, it) => a + it.a, 0);
+    const sum = { d7: fmt(sumDays(7), 0), d30: fmt(sumDays(30), 0) };
+    // calendar Sep 21 - Oct 25
+    const cal = [];
+    const selected = s.calDay == null ? 3 : s.calDay;
+    for (let k = 0; k < 35; k++) {
+      const off = k - 3; const inSep = k < 10; const day = inSep ? 21 + k : k - 9;
+      const its = ITEMS.filter((it) => it.d === off && ownOk(it));
+      const on = off === selected, today = off === 0;
+      cal.push({ day: String(day), mon: (k === 0 ? 'SEP' : k === 10 ? 'OCT' : ''), aria: (inSep ? 'September ' : 'October ') + day + (its.length ? ', ' + its.length + ' payments' : ''),
+        monStyle: 'font-size: 8px; font-weight: 700; letter-spacing: 0.04em; color: #8A8896; height: 9px;',
+        dots: its.slice(0, 3).map((it) => ({ style: 'width: 5px; height: 5px; border-radius: 999px; background: ' + (it.d < 0 && !paid[it.id] ? '#D66A8E' : it.varies ? '#7FA0D8' : '#E0A33B') + ';' })),
+        pick: () => this.setState({ calDay: off }),
+        style: 'height: 50px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 13px; font-variant-numeric: tabular-nums; ' +
+          (on ? 'background: #5134C9; color: #FFFFFF; font-weight: 700;' : today ? 'box-shadow: inset 0 0 0 1.5px #5134C9; color: #111114; font-weight: 700;' : off < 0 ? 'color: #A09EAB;' : 'color: #111114;') });
+    }
+    const calItems = ITEMS.filter((it) => it.d === selected && ownOk(it));
+    const selDay = selected + 24 <= 30 ? 'SEP ' + (selected + 24) : 'OCT ' + (selected + 24 - 30);
+    const it = ITEMS.find((x) => x.id === s.det) || ITEMS[0];
+    const simMode = s.det === 'sim';
+    const rows = (pairs) => pairs.map((r, i) => ({ k: r[0], v: r[1], style: 'display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14px;' + (i < pairs.length - 1 ? ' border-bottom: 1px solid #ECEAF1;' : '') }));
+    const det = simMode ? {
+      name: 'Peru SIM plan', sub: 'Temporary · ends Dec 1', amountLabel: 'Monthly amount', amount: 'S/ 70.00', state: 'Starts Nov 1',
+      stateStyle: 'padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #2D5DB0; background: #EAF1FC;',
+      rows: rows([['Currency', 'PEN'], ['Frequency', 'Monthly'], ['Start date', 'Nov 1, 2026'], ['End date', 'Dec 1, 2026'], ['Owner', 'Juan'], ['Category', 'Phone'], ['Charged to', 'CIBC Visa'], ['Trip', 'Peru 2026']]),
+      hasHistory: false, history: []
+    } : {
+      name: it.n, sub: it.f + ' · ' + it.cat, amountLabel: it.varies ? 'Expected amount' : 'Amount', amount: (it.varies ? '≈ ' : '') + (it.orig || fmt(it.a)),
+      state: paid[it.id] ? 'Paid' : it.d < 0 ? 'Overdue' : 'Active',
+      stateStyle: 'padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; ' + (it.d < 0 && !paid[it.id] ? 'color: #A3325A; background: #FCEBF1;' : 'color: #1A6B46; background: #E6F4EC;'),
+      rows: rows([['Next payment', it.d < 0 ? 'Was due ' + it.dl.charAt(0) + it.dl.slice(1).toLowerCase() : it.dl.charAt(0) + it.dl.slice(1).toLowerCase()], ['Currency', it.orig ? 'USD' : 'CAD'], ['Owner', it.o], ['Category', it.cat], ['Payment source', it.src.replace('From ', '').replace('Charged to ', '')], ['Autopay', it.ap === 'Autopay' ? 'On' : it.ap], ['Start date', it.id === 'internet' ? 'Mar 2024' : 'Jan 2026'], ['End date', 'None']]),
+      hasHistory: it.id === 'internet', history: [
+        { what: 'Aug 29 · CA$106.00', when: 'Expected CA$106 · matched to Shared Chequing', tag: 'Confirmed', tagStyle: 'padding: 1px 7px; height: fit-content; border-radius: 999px; font-size: 11px; font-weight: 600; color: #1A6B46; background: #E6F4EC;' },
+        { what: 'Price changed to CA$106', when: 'From August 2026', tag: 'was CA$95', tagStyle: 'font-size: 11px; color: #6B6B76; white-space: nowrap;' },
+        { what: 'Jul 29 · CA$95.00', when: 'Earlier months keep their original amount', tag: 'Confirmed', tagStyle: 'padding: 1px 7px; height: fit-content; border-radius: 999px; font-size: 11px; font-weight: 600; color: #1A6B46; background: #E6F4EC;' }
+      ]
+    };
+    const commit = [['Housing', 1500], ['Transportation', 691], ['Utilities', 396], ['Subscriptions', 186], ['Insurance', 184], ['Savings', 600]].map((c) => ({ k: c[0], v: fmt(c[1], 0) }));
+    const sw = (on, toggle) => ({ attr: on ? 'true' : 'false', toggle, track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; background: ' + (on ? '#5134C9' : '#DCDAE3') + ';',
+      knob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); left: ' + (on ? '21px' : '3px') + ';' });
+    const st = s.step || 1;
+    const add = {
+      step: st, stepName: st === 1 ? 'What and how often' : 'When and from where', isStep1: st === 1, isStep2: st === 2,
+      bar2: 'flex: 1 1 0; height: 4px; border-radius: 999px; background: ' + (st === 2 ? '#5134C9' : '#E4E1EC') + ';',
+      types: opts(['Bill', 'Subscription', 'Loan payment', 'Statement payment', 'Savings'], 'aType', pill), varies: sw(!!s.aVaries, () => this.setState({ aVaries: !s.aVaries })), variesOn: !!s.aVaries,
+      curs: opts(['CAD', 'USD', 'PEN'], 'aCur', segW), freqs: opts(['Weekly', 'Bi-weekly', 'Monthly', 'Every 2 months', 'Quarterly', 'Every 6 months', 'Annual', 'Custom'], 'aFreq', pill),
+      owners: opts(['Juan', 'Karinna', 'Household'], 'aOwner', segW), cats: opts(['Utilities', 'Housing', 'Insurance', 'Subscriptions', 'Transportation'], 'aCat', pill),
+      sources: opts(['CIBC Chequing', 'Shared Chequing', 'CIBC Visa', 'American Express'], 'aSrc', pill), aps: opts(['Autopay', 'Manual', 'Scheduled'], 'aAp', segW),
+      optOpen: !!s.aOpt, optAttr: s.aOpt ? 'true' : 'false', optIcon: s.aOpt ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6', toggleOpt: () => this.setState({ aOpt: !s.aOpt }), trips: opts(['None', 'Peru 2026'], 'aTrip', pill),
+      primaryLabel: st === 1 ? 'Next' : 'Save', secondaryLabel: st === 1 ? 'Save now' : 'Back',
+      primary: () => this.setState(st === 1 ? { step: 2 } : { sheet: null, step: 1 }), secondary: () => this.setState(st === 1 ? { sheet: null } : { step: 1 })
+    };
+    return {
+      owners: opts(['Juan', 'Karinna', 'Household'], 'owner', chip), periods: opts(['7 days', '14 days', '30 days'], 'period', seg), views: opts(['List', 'Calendar'], 'view', seg),
+      currencies: ['CAD', 'USD', 'PEN', 'Combined'].map((c) => ({ label: c, pressed: c === s.currency ? 'true' : 'false', pick: () => this.setState({ currency: c, curOpen: false }),
+        style: 'height: 38px; padding: 0 10px; border-radius: 10px; font-size: 13px; text-align: left; ' + (c === s.currency ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'color: #111114; font-weight: 500;') })),
+      currency: s.currency, curOpen: !!s.curOpen, curAttr: s.curOpen ? 'true' : 'false', toggleCur: () => this.setState({ curOpen: !s.curOpen }),
+      isEmpty: !!s.empty, hasItems: !s.empty, isList: s.view === 'List', isCalendar: s.view === 'Calendar',
+      sum, groups, periodNote: 'Sep 24 – ' + (days === 7 ? 'Oct 1' : days === 14 ? 'Oct 8' : 'Oct 24'),
+      cal, calRows: calItems.map(rowOf), calNone: calItems.length === 0, calLabel: selected === 0 ? 'TODAY · SEP 24' : selDay,
+      showDetect: !s.detect, detectDone: !!s.detect, detectMsg: s.detect === 'made' ? 'Music streaming added as a monthly subscription.' : 'Got it. Kipu won’t suggest this again.',
+      makeRecurring: () => this.setState({ detect: 'made' }), ignoreDetect: () => this.setState({ detect: 'ignored' }),
+      commit, det, add, openSim: () => this.setState({ sheet: 'detail', det: 'sim' }),
+      openAdd: () => this.setState({ sheet: 'add', step: 1 }), closeSheet: () => this.setState({ sheet: null }), sheetDetail: s.sheet === 'detail', sheetAdd: s.sheet === 'add'
+    };
+  }
+}
+</script>
+</body>
+</html>

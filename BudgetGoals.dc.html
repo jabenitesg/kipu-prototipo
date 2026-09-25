@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget, goal contributions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Plan.dc.html" aria-label="Back to Plan" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">MONTHLY BUDGET</span></div>
+<button onClick="{{openEdit}}" aria-label="Edit budget" style="width: 40px; height: 40px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Budget</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Plan your spending and stay aware of what’s left.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Plan.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Overview</a><a href="Budget.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Budget</a><a href="Bills.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Bills &amp; recurring</a><a href="Goals.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Goals</a><a href="Trips.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Trips</a></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px">
+<button aria-label="Previous month" style="height: 34px; padding: 0 6px; display: flex; align-items: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">{{monthLabel}}</span>
+<button aria-label="Next month" style="height: 34px; padding: 0 6px; display: flex; align-items: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div role="group" aria-label="Owner" style="display: flex; gap: 6px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div role="group" aria-label="Currency" style="display: flex; padding: 2px; gap: 1px; background: #F1F0F4; border-radius: 10px"><sc-for list="{{currencies}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+</div>
+</header>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="padding: 36px 22px; border-radius: 24px; background: #FFFFFF; border: 1px dashed #E4E2EA; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 60px; height: 60px; border-radius: 20px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M6 16V9M11 16V5M16 16v-5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700">Build your monthly plan</span><span style="font-size: 14px; line-height: 20px; color: #55555F">Set simple limits for the areas you want to keep an eye on.</span></span>
+<button onClick="{{openAdd}}" style="width: 100%; height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; margin-top: 4px">Create budget</button>
+<button style="width: 100%; height: 46px; border-radius: 16px; background: #F5F4F8; font-size: 14px; font-weight: 600">Use recent spending</button>
+<span style="font-size: 12px; color: #8A8896">You don’t need to budget every category.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{hasBudget}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+
+<sc-if value="{{isLive}}" hint-placeholder-val="{{true}}">
+<section aria-label="Budget summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Remaining</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 38px; line-height: 42px; font-weight: 700; letter-spacing: -0.02em; color: #1A6B46; font-variant-numeric: tabular-nums">CA$882</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Budget used</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #5134C9">79%</span></span>
+</div>
+<div style="position: relative; height: 12px; background: #EEEDF2; border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 79.5%; background: #5134C9; border-radius: 999px"></div><div style="position: absolute; left: 80%; top: -4px; width: 2px; height: 20px; margin-left: -1px; background: #2A2540; border-radius: 1px"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums"><span>Spent <b style="color: #111114; font-weight: 700">CA$3,428</b> of <b style="color: #111114; font-weight: 700">CA$4,310</b></span><span>Today · 80% of month</span></div>
+<span style="font-size: 13px; color: #3A3A42">CA$882 left for the rest of September.</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">September so far</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700">CA$3,428</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4"><span style="font-size: 11px; color: #6B6B76">August by Sep 24</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #55555F">CA$3,660</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4"><span style="font-size: 11px; color: #6B6B76">Difference</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #1A6B46">−CA$232</b></span>
+</div>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3A3A42"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>You’re spending <b style="font-weight: 600; color: #1A6B46">6.3% less</b> than at this point in August.</span>
+</section>
+
+<section style="{{fc.boxStyle}}">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; font-weight: 600; color: #3A3A42">At your current spending pace</span><span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0">PROJECTED</span></div>
+<div style="position: relative; height: 10px; background: #FFFFFF; border-radius: 999px; box-shadow: inset 0 0 0 1px #E4E1EC"><div style="{{fc.fill}}"></div><div style="{{fc.marker}}"></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: 11px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">Month-end spending</span><b style="font-size: 14px; font-weight: 700">{{fc.projected}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">Budget</span><b style="font-size: 14px; font-weight: 700">CA$4,310</b></span>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">{{fc.label}}</span><b style="{{fc.valueStyle}}">{{fc.value}}</b></span>
+</div>
+<span style="font-size: 11px; color: #8A8896">An estimate based on this month’s pace, not a guarantee.</span>
+</section>
+</sc-if>
+
+<sc-if value="{{isMonthEnd}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76">SEPTEMBER IS DONE</span><span style="padding: 3px 8px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Under budget</span></div>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Under budget by</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 38px; line-height: 42px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">CA$260</span></span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; font-size: 13px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76; font-size: 11px">Budgeted</span><b style="font-weight: 700; font-size: 15px">CA$4,310</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76; font-size: 11px">Actual</span><b style="font-weight: 700; font-size: 15px">CA$4,050</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76; font-size: 11px">Categories under budget</span><b style="font-weight: 700; font-size: 15px; color: #1A6B46">5</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76; font-size: 11px">Categories over budget</span><b style="font-weight: 700; font-size: 15px">2</b></span>
+</div>
+<a href="Stats.dc.html" style="height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Review September</a>
+<button style="height: 44px; border-radius: 14px; background: #F4F1FD; color: #5134C9; font-size: 13px; font-weight: 600">Use September’s budget for October</button>
+</section>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Groups</h2><span style="font-size: 12px; color: #6B6B76">Tap for categories</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 4px 16px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<button onClick="{{g.pick}}" style="{{g.row}}">
+<span style="width: 100%; display: flex; justify-content: space-between; align-items: baseline"><span style="display: flex; align-items: center; gap: 8px"><span style="font-size: 15px; font-weight: 600">{{g.name}}</span><sc-if value="{{g.hasFlag}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #94580A"><span style="width: 6px; height: 6px; border-radius: 999px; background: #E0A33B"></span>{{g.flag}}</span></sc-if></span><span style="font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums"><b style="font-weight: 700; color: #111114">{{g.spent}}</b> of {{g.budget}}</span></span>
+<span style="width: 100%; height: 8px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="{{g.fill}}"></span></span>
+<span style="width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums"><span style="{{g.leftStyle}}">{{g.left}}</span><span style="font-weight: 600">{{g.pct}}</span></span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Fixed vs variable</h2><span style="font-size: 12px; color: #6B6B76">Spent so far</span></div>
+<div style="display: flex; height: 10px; gap: 2px"><span style="width: 75.5%; background: #2A2540; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #7FA0D8; border-radius: 3px 999px 999px 3px"></span></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; font-variant-numeric: tabular-nums"><span style="display: flex; align-items: center; gap: 6px; color: #55555F"><span style="width: 8px; height: 8px; border-radius: 2px; background: #2A2540"></span>Fixed <b style="color: #111114">CA$2,589</b></span><span style="display: flex; align-items: center; gap: 6px; color: #55555F"><span style="width: 8px; height: 8px; border-radius: 2px; background: #7FA0D8"></span>Variable <b style="color: #111114">CA$839</b></span></div>
+<span style="font-size: 12px; color: #6B6B76">60% of planned spending is fixed, so the flexible part of your budget is about CA$1,720.</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 14px">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #EAF1FC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 14px; font-weight: 600">Subscriptions</span><span style="font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">CA$186 expected recurring of CA$200 budget</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">CA$14</b><span style="font-size: 11px; color: #6B6B76">left</span></span>
+</section>
+
+<sc-if value="{{showSuggestion}}" hint-placeholder-val="{{true}}">
+<section style="padding: 16px; border-radius: 20px; background: #F4F1FD; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #5134C9">SUGGESTION</span>
+<span style="font-size: 14px; line-height: 20px; color: #2B1F66">Your average grocery spending over the last 3 months is <b>CA$710</b>. A budget of <b>CA$725</b> would fit it better than CA$700.</span>
+<div style="display: flex; gap: 8px"><button onClick="{{useSuggestion}}" style="height: 38px; padding: 0 14px; border-radius: 12px; background: #5134C9; color: #FFFFFF; font-size: 13px; font-weight: 600">Use CA$725</button><button onClick="{{ignoreSuggestion}}" style="height: 38px; padding: 0 14px; border-radius: 12px; background: #FFFFFF; color: #3A3A42; font-size: 13px; font-weight: 600">Ignore</button></div>
+</section>
+</sc-if>
+<sc-if value="{{suggestionUsed}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #1A6B46"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Groceries budget updated to CA$725 from next month.</span></sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #94580A"><span style="width: 22px; height: 22px; border-radius: 999px; background: #FDF1DC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5M12 16.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg></span>INSIGHT</span>
+<p style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 22px; font-weight: 700">Dining is currently CA$60 above last month.</p>
+<p style="margin: 0; font-size: 13px; color: #55555F">CA$420 of CA$450 used, with 6 days to go.</p>
+<a href="Insights.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9">View insight →</a>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button onClick="{{openAdd}}" style="height: 46px; border-radius: 14px; border: 1.5px dashed #DCD8E6; font-size: 13px; font-weight: 600; color: #5134C9; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Add budget category</button>
+<button style="height: 46px; border-radius: 14px; background: #F6F5F8; font-size: 13px; font-weight: 600; color: #3A3A42">Use last month’s budget</button>
+</div>
+<span style="margin-top: -12px; font-size: 11px; color: #8A8896; text-align: center">Copies groups, limits and savings contributions, not spending.</span>
+
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetGroup}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Budget group" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{grp.name}}</span><span style="font-size: 13px; color: #6B6B76">{{grp.summary}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<sc-if value="{{grp.isGoal}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #EEF7F2; font-size: 12px; color: #1F3B2D"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11a7 6 0 1 0-12.3 3.9L6 19h3l.6-1.4a8 8 0 0 0 4.8 0L15 19h3l-.3-2.8A6 6 0 0 0 19 11z"></path></svg>Contributions are savings, not spending.</span></sc-if>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{grp.items}}" as="c" hint-placeholder-count="4">
+<div style="{{c.wrap}}">
+<button onClick="{{c.toggle}}" aria-expanded="{{c.expanded}}" style="width: 100%; padding: 12px 0; display: flex; flex-direction: column; gap: 8px; text-align: left">
+<span style="width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 14px; font-weight: 600">{{c.name}}</span><span style="{{c.typeStyle}}">{{c.type}}</span></span><span style="font-size: 13px; color: #55555F; font-variant-numeric: tabular-nums"><b style="font-weight: 700; color: #111114">{{c.spent}}</b>{{c.ofText}}</span></span>
+<sc-if value="{{c.hasBar}}" hint-placeholder-val="{{true}}"><span style="width: 100%; height: 8px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="{{c.fill}}"></span></span></sc-if>
+<span style="width: 100%; display: flex; justify-content: space-between; font-size: 11px; font-variant-numeric: tabular-nums"><span style="{{c.leftStyle}}">{{c.left}}</span><span style="color: #6B6B76">{{c.pct}}</span></span>
+</button>
+<sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+<div style="margin: 0 0 12px; padding: 12px; border-radius: 14px; background: #F7F6FA; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: flex-end; gap: 14px">
+<div style="display: flex; align-items: flex-end; gap: 6px; height: 56px"><sc-for list="{{c.bars}}" as="b" hint-placeholder-count="3"><span style="display: flex; flex-direction: column; align-items: center; gap: 3px"><span style="{{b.style}}"></span><span style="font-size: 9px; color: #8A8896">{{b.m}}</span></span></sc-for></div>
+<div style="flex-grow: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; font-size: 11px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column"><span style="color: #6B6B76">This month</span><b style="font-size: 13px; font-weight: 700">{{c.now}}</b></span>
+<span style="display: flex; flex-direction: column"><span style="color: #6B6B76">Last month</span><b style="font-size: 13px; font-weight: 700">{{c.last}}</b></span>
+<span style="display: flex; flex-direction: column"><span style="color: #6B6B76">3-month average</span><b style="font-size: 13px; font-weight: 700">{{c.avg}}</b></span>
+<span style="display: flex; flex-direction: column"><span style="color: #6B6B76">Change</span><b style="{{c.changeStyle}}">{{c.change}}</b></span>
+</div>
+</div>
+<sc-if value="{{c.hasRollover}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #ECEAF1">
+<button role="switch" onClick="{{c.toggleRoll}}" aria-checked="{{c.rollAttr}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Carry unused budget forward</span><span style="font-size: 12px; color: #6B6B76">{{c.rollSub}}</span></span><span style="{{c.rollTrack}}"><span style="{{c.rollKnob}}"></span></span></button>
+<span style="display: flex; justify-content: space-between; font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums"><span>September CA$250 + August unused CA$40</span><b style="font-weight: 700; color: #111114">{{c.rollAvail}}</b></span>
+</div>
+</sc-if>
+<sc-if value="{{c.hasSubs}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 17px; color: #55555F">Expected recurring <b style="color: #111114">CA$186</b> is already counted, so it isn’t budgeted twice. <b style="color: #1A6B46">CA$14</b> left.</span></sc-if>
+<div style="display: flex; gap: 8px">
+<a href="{{c.txHref}}" style="flex: 1 1 0; height: 38px; border-radius: 12px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #5134C9; display: flex; align-items: center; justify-content: center">{{c.txLabel}}</a>
+<button onClick="{{c.edit}}" style="width: 72px; height: 38px; border-radius: 12px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #111114">Edit</button>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{grp.hasTrackNote}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; color: #8A8896">Track-only categories have no limit and aren’t counted in budget totals.</span></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetEdit}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Edit budget" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Edit Dining budget</span><span style="font-size: 13px; color: #6B6B76">Changes apply from September onward.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Monthly amount</span><input type="text" inputmode="decimal" value="CA$450" readonly style="height: 50px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; outline: none"></label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Budget type</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{editTypes}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">{{editTypeNote}}</span></div>
+<button role="switch" onClick="{{toggleEditRoll}}" aria-checked="{{editRollAttr}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Carry unused amount forward</span><span style="font-size: 12px; color: #6B6B76">Off by default</span></span><span style="{{editRollTrack}}"><span style="{{editRollKnob}}"></span></span></button>
+<div style="display: flex; flex-direction: column; background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<button style="height: 46px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; border-bottom: 1px solid #ECEAF1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14M15 5v14"></path></svg>Pause category</button>
+<button style="height: 46px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; border-bottom: 1px solid #ECEAF1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move to another group</button>
+<button style="height: 46px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; border-bottom: 1px solid #ECEAF1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg>Reset to last month’s amount</button>
+<button style="height: 46px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; color: #A3325A"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3325A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"></path></svg>Remove budget · spending history stays</button>
+</div>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Save</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetAdd}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add budget category" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add budget category</span><span style="font-size: 13px; color: #6B6B76">Only budget what you want to watch.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Category</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{addCats}}" as="o" hint-placeholder-count="6"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Monthly amount</span><input type="text" inputmode="decimal" placeholder="CA$0" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 16px; font-weight: 600; outline: none"></label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Budget type</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{addTypes}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{addOwners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{addCurs}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+</div>
+<button role="switch" onClick="{{toggleAddRoll}}" aria-checked="{{addRollAttr}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Carry unused amount forward</span><span style="font-size: 12px; color: #6B6B76">Optional</span></span><span style="{{addRollTrack}}"><span style="{{addRollKnob}}"></span></span></button>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Add category</button>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"owner": "Household", "currency": "Combined", "sheet": "group", "group": 2, "open": null, "rollover": false, "suggestion": null, "monthEnd": false, "forecastOver": false, "empty": false, "editType": "Flexible", "editRoll": false, "addCat": "Dining", "addType": "Flexible", "addOwner": "Household", "addCur": "CAD", "addRoll": false}; }
+  renderVals() {
+    const s = this.state;
+    const fmt = (n) => 'CA$' + Math.round(n).toLocaleString('en-US');
+    const chip = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #FFFFFF; color: #3A3A42; font-weight: 500; box-shadow: inset 0 0 0 1px #E9E7EF;');
+    const mini = (on) => 'height: 30px; padding: 0 8px; border-radius: 8px; font-size: 12px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const seg = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, st) => list.map((o) => ({ label: o, pressed: o === s[key] ? 'true' : 'false', style: st(o === s[key]), pick: () => this.setState({ [key]: o }) }));
+    const sw = (on) => ({ attr: on ? 'true' : 'false', track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; background: ' + (on ? '#5134C9' : '#DCDAE3') + ';',
+      knob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); left: ' + (on ? '21px' : '3px') + ';' });
+    // name, type, budget, spent, last, avg, bars[Jul,Aug,Sep]
+    const GROUPS = [
+      ['Needs', false, [['Housing', 'Fixed', 1500, 1500, 1500, 1500], ['Groceries', 'Flexible', 700, 720, 780, 710], ['Subscriptions', 'Fixed', 200, 100, 186, 186], ['Utilities & phone', 'Fixed', 400, 0, 396, 264]]],
+      ['Lifestyle', false, [['Dining', 'Flexible', 450, 420, 360, 385], ['Shopping', 'Flexible', 250, 180, 400, 330], ['Entertainment', 'Flexible', 120, 70, 95, 90], ['Personal', 'Flexible', 80, 50, 62, 58], ['Travel', 'Track only', 0, 388, 0, 129]]],
+      ['Goals', true, [['Emergency Fund', 'Savings', 300, 300, 300, 300], ['Travel Fund', 'Savings', 300, 200, 300, 280]]],
+      ['Future', true, [['RRSP', 'Savings', 250, 250, 250, 250], ['TFSA', 'Savings', 150, 150, 150, 150]]]
+    ];
+    const tsum = (items, idx) => items.filter((c) => c[1] !== 'Track only').reduce((a, c) => a + c[idx], 0);
+    const groups = GROUPS.map((g, i) => {
+      const b = tsum(g[2], 2), sp = tsum(g[2], 3), p = sp / b * 100, goal = g[1];
+      const near = g[2].filter((c) => c[1] !== 'Track only' && !goal && c[3] / c[2] >= 0.9 && c[3] <= c[2] && c[1] !== 'Fixed');
+      return {
+        name: g[0], budget: fmt(b) + (goal ? ' planned' : ''), spent: fmt(sp) + (goal ? ' done' : ''),
+        left: goal && sp >= b ? 'Complete' : fmt(b - sp) + ' left', pct: Math.round(p) + '%',
+        leftStyle: 'font-weight: 600; color: ' + (goal && sp >= b ? '#1A6B46' : '#3A3A42') + ';',
+        hasFlag: near.length > 0, flag: near.length ? near[0][0] + ' near limit' : '',
+        fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + Math.min(100, p).toFixed(1) + '%; background: ' + (goal ? (sp >= b ? '#2E9B69' : '#8FCFAE') : '#5134C9') + ';',
+        row: 'width: 100%; padding: 14px 0; display: flex; flex-direction: column; gap: 8px; text-align: left;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : ''),
+        pick: () => this.setState({ sheet: 'group', group: i, open: null })
+      };
+    });
+    const G = GROUPS[s.group || 0];
+    const goalG = G[1];
+    const TYPE = { 'Fixed': ['#55555F', '#F1F0F4'], 'Flexible': ['#2D5DB0', '#EAF1FC'], 'Track only': ['#6B6B76', '#FFFFFF'], 'Savings': ['#1A6B46', '#E6F4EC'] };
+    const grp = {
+      name: G[0], isGoal: goalG, hasTrackNote: G[2].some((c) => c[1] === 'Track only'),
+      summary: fmt(tsum(G[2], 3)) + ' of ' + fmt(tsum(G[2], 2)) + (goalG ? ' contributed' : ' spent') + ' · September',
+      items: G[2].map((c, i) => {
+        const track = c[1] === 'Track only', over = !track && c[3] > c[2], p = track ? 0 : c[3] / c[2] * 100;
+        const near = !over && !track && !goalG && p >= 90 && c[1] !== 'Fixed';
+        const open = s.open === c[0];
+        const roll = c[0] === 'Shopping';
+        const budgetShown = roll && s.rollover ? c[2] + 40 : c[2];
+        const pShown = track ? 0 : c[3] / budgetShown * 100;
+        const severe = over && (c[3] - c[2]) / c[2] > 0.15;
+        const ch = c[4] ? (c[3] - c[4]) / c[4] * 100 : 0;
+        const maxBar = Math.max(c[3], c[4], c[5], 1);
+        const bars = [['Jul', Math.max(0, 3 * c[5] - c[4] - c[3])], ['Aug', c[4]], ['Sep', c[3]]].map((b, j) => ({ m: b[0],
+          style: 'width: 14px; border-radius: 4px 4px 2px 2px; display: block; height: ' + Math.max(3, b[1] / maxBar * 44).toFixed(0) + 'px; background: ' + (j === 2 ? '#5134C9' : '#D9D5E3') + ';' }));
+        const rs = sw(!!s.rollover);
+        return {
+          name: c[0], type: c[1], typeStyle: 'padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 600; color: ' + TYPE[c[1]][0] + '; background: ' + TYPE[c[1]][1] + ';' + (track ? ' box-shadow: inset 0 0 0 1px #DCDAE3;' : ''),
+          spent: fmt(c[3]), ofText: track ? ' tracked' : ' of ' + fmt(budgetShown), hasBar: !track,
+          fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + Math.min(100, pShown).toFixed(1) + '%; background: ' + (severe ? '#D66A8E' : over ? '#2A2540' : near ? '#E0A33B' : goalG ? (c[3] >= c[2] ? '#2E9B69' : '#8FCFAE') : '#5134C9') + ';',
+          left: track ? 'No limit' : (c[1] === 'Fixed' && c[3] >= c[2]) ? 'Paid' : (c[1] === 'Fixed' && c[3] === 0) ? 'Due later this month' : over ? 'Over by ' + fmt(c[3] - c[2]) : goalG && c[3] >= c[2] ? 'Complete' : fmt(budgetShown - c[3]) + ' left' + (near ? ' · almost at budget' : ''),
+          leftStyle: 'font-weight: 600; color: ' + (over ? (severe ? '#A3325A' : '#3A3A42') : near ? '#94580A' : goalG && c[3] >= c[2] ? '#1A6B46' : '#3A3A42') + ';',
+          pct: track ? '' : Math.round(pShown) + '%',
+          open, expanded: open ? 'true' : 'false', toggle: () => this.setState({ open: open ? null : c[0] }),
+          now: fmt(c[3]), last: fmt(c[4]), avg: fmt(c[5]), change: (c[1] === 'Fixed' && c[3] < c[2]) ? 'Not all due yet' : c[4] ? (ch >= 0 ? '+' : '−') + Math.abs(ch).toFixed(1) + '%' : '—',
+          changeStyle: 'font-size: 13px; font-weight: 700; color: ' + (goalG ? '#111114' : ch > 0 ? '#A3325A' : ch < 0 ? '#1A6B46' : '#111114') + ';', bars,
+          hasRollover: roll, rollAttr: rs.attr, rollTrack: rs.track, rollKnob: rs.knob, toggleRoll: () => this.setState({ rollover: !s.rollover }),
+          rollSub: s.rollover ? 'On · CA$40 carried from August' : 'Off · optional', rollAvail: 'Available ' + fmt(s.rollover ? 290 : 250),
+          hasSubs: c[0] === 'Subscriptions',
+          txHref: c[0] === 'Dining' ? 'TxCategory.dc.html' : '#', txLabel: goalG ? 'See contributions →' : 'See transactions →',
+          edit: () => this.setState({ sheet: 'edit' }),
+          wrap: i > 0 ? 'border-top: 1px solid #F1F0F4;' : ''
+        };
+      })
+    };
+    const over = !!s.forecastOver;
+    const proj = over ? 4520 : 4180;
+    const fc = {
+      projected: fmt(proj), label: over ? 'Potential overage' : 'Projected remaining', value: over ? '+' + fmt(proj - 4310) : fmt(4310 - proj),
+      valueStyle: 'font-size: 14px; font-weight: 700; color: ' + (over ? '#94580A' : '#1A6B46') + ';',
+      boxStyle: 'padding: 14px 16px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; background: ' + (over ? '#FDF6E8' : '#F5F8FD') + ';',
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + Math.min(100, proj / 4310 * 100 * 0.92).toFixed(1) + '%; background: repeating-linear-gradient(90deg, ' + (over ? '#E0A33B' : '#7FA0D8') + ' 0 6px, transparent 6px 9px);',
+      marker: 'position: absolute; left: 92%; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: #2A2540; border-radius: 1px;'
+    };
+    const et = s.editType || 'Flexible';
+    const er = sw(!!s.editRoll), ar = sw(!!s.addRoll);
+    return {
+      monthLabel: 'September 2026', owners: opts(['Juan', 'Karinna', 'Household'], 'owner', chip), currencies: opts(['CAD', 'USD', 'Combined'], 'currency', mini),
+      isEmpty: !!s.empty, hasBudget: !s.empty, isLive: !s.monthEnd, isMonthEnd: !!s.monthEnd,
+      groups, grp, fc,
+      showSuggestion: !s.suggestion, suggestionUsed: s.suggestion === 'used', useSuggestion: () => this.setState({ suggestion: 'used' }), ignoreSuggestion: () => this.setState({ suggestion: 'ignored' }),
+      editTypes: opts(['Fixed', 'Flexible', 'Track only'], 'editType', seg),
+      editTypeNote: et === 'Fixed' ? 'Same amount every month, like rent.' : et === 'Flexible' ? 'A guide you can go over without it being treated as a problem.' : 'No limit. Kipu just shows what you spend.',
+      editRollAttr: er.attr, editRollTrack: er.track, editRollKnob: er.knob, toggleEditRoll: () => this.setState({ editRoll: !s.editRoll }),
+      addCats: opts(['Dining', 'Groceries', 'Shopping', 'Entertainment', 'Personal', 'Travel', 'Kids', '+ Other'], 'addCat', pill), addTypes: opts(['Fixed', 'Flexible', 'Track only'], 'addType', seg),
+      addOwners: opts(['Juan', 'Karinna', 'Household'], 'addOwner', seg), addCurs: opts(['CAD', 'USD'], 'addCur', seg),
+      addRollAttr: ar.attr, addRollTrack: ar.track, addRollKnob: ar.knob, toggleAddRoll: () => this.setState({ addRoll: !s.addRoll }),
+      openEdit: () => this.setState({ sheet: 'edit' }), openAdd: () => this.setState({ sheet: 'add' }), closeSheet: () => this.setState({ sheet: null }),
+      sheetGroup: s.sheet === 'group', sheetEdit: s.sheet === 'edit', sheetAdd: s.sheet === 'add'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kipu Insights, full scroll</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+</style>
+</helmet>
+<div style="width: 393px; height: 5320px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow: hidden; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 24px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">SMART FINANCIAL GUIDANCE</div>
+<button aria-label="Filters" style="width: 40px; height: 40px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+</button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Insights</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Kipu highlights what deserves your attention.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Stats.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Statistics</a><a href="Insights.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Insights</a><a href="Review.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Reviews</a><a href="Projections.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Forecast</a></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+<div style="position: relative">
+<button onClick="{{f.toggle}}" aria-haspopup="listbox" aria-expanded="{{f.expanded}}" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 10px 0 12px; background: #FFFFFF; border: 1px solid #E9E7EF; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; text-align: left">
+<span style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+<span style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: #6B6B76">{{f.label}}</span>
+<span style="font-size: 13px; font-weight: 600; color: #111114; white-space: nowrap">{{f.value}}</span>
+</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{f.open}}" hint-placeholder-val="{{false}}">
+<div role="listbox" style="position: absolute; top: 54px; left: 0; right: 0; z-index: 20; padding: 5px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 14px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.12); display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{f.options}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" role="option" aria-selected="{{o.selectedAttr}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</header>
+
+<section aria-label="Most important" style="background: #F4F1FD; border: 1px solid #E6E0FA; border-radius: 24px; overflow: hidden">
+<button onClick="{{open.top}}" aria-label="Open insight: Your spending is trending lower this month." style="width: 100%; padding: 20px 20px 18px; display: flex; flex-direction: column; gap: 14px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between">
+<span style="display: flex; align-items: center; gap: 8px"><span style="padding: 4px 9px; border-radius: 999px; background: #5134C9; color: #FFFFFF; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">Most important</span><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>PROGRESS</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; color: #111114">Your spending is trending lower this month.</span>
+<span style="font-size: 14px; line-height: 20px; color: #3A3A42">You’re currently spending <b style="font-weight: 600; color: #1A6B46">CA$260 less</b> than your usual monthly pace.</span>
+</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="position: relative; height: 14px; background: #FFFFFF; border-radius: 999px; box-shadow: inset 0 0 0 1px #E6E0FA">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; width: 74.4%; background: #5134C9; border-radius: 999px"></div>
+<div style="position: absolute; left: 74.4%; top: 3px; bottom: 3px; width: 5.6%; border: 1.5px dashed #9C8BE0; border-left: 0; border-radius: 0 999px 999px 0; box-sizing: border-box"></div>
+<div style="position: absolute; left: 80%; top: -5px; width: 2px; height: 24px; margin-left: -1px; background: #2B1F66; border-radius: 1px"></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 1px"><span>Spent so far</span><b style="font-size: 14px; color: #111114; font-weight: 700">CA$3,428</b></span>
+<span style="display: flex; flex-direction: column; gap: 1px; align-items: center"><span>Gap</span><b style="font-size: 14px; color: #1A6B46; font-weight: 700">−CA$260</b></span>
+<span style="display: flex; flex-direction: column; gap: 1px; text-align: right"><span>Usual by Sep 24</span><b style="font-size: 14px; color: #111114; font-weight: 700">CA$3,688</b></span>
+</div>
+</div>
+<span style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #FFFFFF; border-radius: 14px; font-size: 13px; color: #3A3A42">
+<span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 999px; background: #E0A33B"></span>Dining remains your fastest growing category.</span>
+</button>
+<a href="Stats.dc.html" style="display: block; padding: 0 20px 18px; font-size: 14px; font-weight: 600; color: #5134C9">View spending →</a>
+</section>
+
+<section aria-label="Financial signals" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Financial signals</h2><span style="font-size: 12px; color: #6B6B76">vs last 3 months</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px 8px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13px; font-weight: 600; color: #111114">Spending</span><span style="font-size: 11px; font-weight: 600; color: #1A6B46">Improving</span></span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13px; font-weight: 600; color: #111114">Savings</span><span style="font-size: 11px; font-weight: 600; color: #1A6B46">Improving</span></span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13px; font-weight: 600; color: #111114">Debt</span><span style="font-size: 11px; font-weight: 600; color: #1A6B46">Improving</span></span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: #EEF1F5; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13px; font-weight: 600; color: #111114">Credit</span><span style="font-size: 11px; font-weight: 600; color: #475467">Stable</span></span></div>
+</div>
+</section>
+
+
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Spending</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.dining}}" aria-label="Open insight: Dining increased 16.7%" style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #94580A"><span style="width: 22px; height: 22px; border-radius: 999px; background: #FDF1DC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.5h.01"></path></svg></span>ATTENTION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Dining increased 16.7%</span><span style="font-size: 13px; line-height: 19px; color: #55555F">You spent CA$420 on dining this month, 16.7% more than August.</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px"><span style="display: grid; grid-template-columns: 34px minmax(0, 1fr) 64px; align-items: center; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums"><span style="color: #6B6B76; font-weight: 400">Aug</span><span style="height: 8px; background: #F4F3F7; border-radius: 999px; position: relative; display: block"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 85.7%; background: #D9D5E3; border-radius: 999px"></span></span><span style="text-align: right; color: #111114; font-weight: 400">CA$360</span></span><span style="display: grid; grid-template-columns: 34px minmax(0, 1fr) 64px; align-items: center; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums"><span style="color: #6B6B76; font-weight: 600">Sep</span><span style="height: 8px; background: #F4F3F7; border-radius: 999px; position: relative; display: block"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 100.0%; background: #E0A33B; border-radius: 999px"></span></span><span style="text-align: right; color: #111114; font-weight: 600">CA$420</span></span></span>
+</button>
+<a href="Transactions.dc.html" style="display: block; padding: 12px 16px; border-top: 1px solid #F4F3F7; font-size: 13px; font-weight: 600; color: #5134C9">See dining history →</a>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.shopping}}" aria-label="Open insight: Unusual shopping this month" style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #94580A"><span style="width: 22px; height: 22px; border-radius: 999px; background: #FDF1DC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.5h.01"></path></svg></span>ATTENTION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Unusual shopping this month</span><span style="font-size: 13px; line-height: 19px; color: #55555F">You spent CA$280 more than usual on shopping. Mostly from 3 transactions.</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; height: 12px; gap: 2px">
+<span style="width: 42.9%; background: #E0A33B; border-radius: 999px 3px 3px 999px"></span>
+<span style="width: 25.7%; background: #E9BD6F; border-radius: 3px"></span>
+<span style="width: 17.1%; background: #F1D39E; border-radius: 3px"></span>
+<span style="flex-grow: 1; background: #ECEAF1; border-radius: 3px 999px 999px 3px"></span>
+</span>
+<span style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums"><span>3 transactions · <b style="color: #111114">CA$240</b></span><span>Other · CA$40</span></span>
+</span>
+</button>
+<a href="Transactions.dc.html" style="display: block; padding: 12px 16px; border-top: 1px solid #F4F3F7; font-size: 13px; font-weight: 600; color: #5134C9">Review transactions →</a>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.groceries}}" aria-label="Open insight: Groceries are stable" style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #475467"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EEF1F5; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg></span>INFORMATION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Groceries are stable</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Groceries have stayed within 3% of your three-month average.</span></span>
+<span style="position: relative; display: block; width: 321px; height: 46px">
+<span style="position: absolute; left: 0; right: 0; top: 14px; height: 2px; background: #EEEDF2; border-radius: 1px"></span>
+<span style="position: absolute; left: 107px; width: 118px; top: 7px; height: 16px; background: #E4ECF8; border-radius: 6px"></span>
+<span style="position: absolute; left: 165px; top: 4px; width: 2px; height: 22px; background: #475467; border-radius: 1px"></span>
+<span style="position: absolute; left: 101px; top: 9px; width: 12px; height: 12px; border-radius: 999px; background: #2D5DB0; border: 2px solid #FFFFFF; box-sizing: border-box; box-shadow: 0 0 0 1px #2D5DB0"></span>
+<span style="position: absolute; left: 44px; top: 30px; font-size: 11px; color: #2D5DB0; font-weight: 600; font-variant-numeric: tabular-nums">Sep CA$720</span>
+<span style="position: absolute; left: 172px; top: 30px; font-size: 11px; color: #475467; font-variant-numeric: tabular-nums">3-mo avg CA$742 · ±3% band</span>
+</span>
+</button>
+
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Goals</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.travel}}" aria-label="Open insight: Travel Fund could arrive 2 months sooner" style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #5134C9"><span style="width: 22px; height: 22px; border-radius: 999px; background: #F1EEFB; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg></span>OPPORTUNITY</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Travel Fund could arrive 2 months sooner</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Reducing dining by CA$150 per month could help you reach this goal about 2 months earlier.</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px; font-size: 12px">
+<span style="display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px"><span style="color: #6B6B76">Current pace</span><span style="height: 8px; background: #D9D5E3; border-radius: 999px; display: block"></span></span>
+<span style="display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px"><span style="color: #111114; font-weight: 600">−CA$150 dining</span><span style="display: flex; align-items: center; gap: 6px"><span style="width: 83%; height: 8px; background: #5134C9; border-radius: 999px; display: block"></span><span style="font-size: 10px; font-weight: 700; color: #5134C9; white-space: nowrap">−2 mo</span></span></span>
+<span style="font-size: 11px; color: #6B6B76">Time to reach your Travel Fund goal</span>
+</span>
+</button>
+
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.emergency}}" aria-label="Open insight: Emergency Fund is 58% of the way there" style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>PROGRESS</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Emergency Fund is 58% of the way there</span><span style="font-size: 13px; line-height: 19px; color: #55555F">At your current contribution pace, you may reach CA$10,000 in about 8 months.</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px">
+<span style="position: relative; height: 12px; background: #F1F0F4; border-radius: 999px; display: block">
+<span style="position: absolute; left: 0; top: 0; bottom: 0; width: 58%; background: #2E9B69; border-radius: 999px"></span>
+<span style="position: absolute; left: 58%; right: 0; top: 2px; bottom: 2px; border: 1.5px dashed #9FD2B7; border-left: 0; border-radius: 0 999px 999px 0; box-sizing: border-box"></span>
+</span>
+<span style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums"><span><b style="color: #111114">CA$5,800</b> saved · 58%</span><span>≈ 8 months to CA$10,000</span></span>
+</span>
+</button>
+
+</div>
+</section>
+
+<sc-if value="{{showAll}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 24px">
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Savings</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.rate}}" aria-label="Open insight: Your savings rate improved from 14.6% to 18.7%." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>PROGRESS</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Your savings rate improved from 14.6% to 18.7%.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">That puts you CA$240 ahead of last month.</span></span>
+<span style="display: flex; align-items: flex-end; gap: 14px; height: 84px">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">14.6%</span><span style="width: 36px; height: 44px; background: #D9D5E3; border-radius: 8px 8px 3px 3px; display: block"></span><span style="font-size: 11px; color: #6B6B76">Aug</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="font-size: 11px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">18.7%</span><span style="width: 36px; height: 56px; background: #2E9B69; border-radius: 8px 8px 3px 3px; display: block"></span><span style="font-size: 11px; color: #111114; font-weight: 600">Sep</span></span>
+<span style="flex-grow: 1; align-self: center; display: flex; flex-direction: column; gap: 2px; padding-left: 8px; border-left: 1px solid #F1F0F4"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">+CA$240</span><span style="font-size: 11px; color: #6B6B76">ahead of last month</span></span>
+</span>
+</button>
+
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.savproj}}" aria-label="Open insight: You could save about CA$14,600 over the next 12 months." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #2D5DB0"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EAF1FC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5V12l3 2"></path><path d="M20.5 12a8.5 8.5 0 1 1-2.4-5.9"></path><path d="M19.5 3v4h-4"></path></svg></span>PROJECTION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">You could save about CA$14,600 over the next 12 months.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Projection at your current savings pace. Actual results will vary.</span></span>
+<span style="position: relative; display: block; width: 321px; height: 78px">
+<svg width="321" height="78" viewBox="0 0 321 78" style="position: absolute; left: 0; top: 0; overflow: visible">
+<path d="M6 62H315" stroke="#EEEDF2" stroke-width="1"></path>
+<path d="M6 62 L160.5 38 L315 12" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"></path>
+<path d="M6 62 L160.5 38 L315 12 L315 62 Z" fill="#2D5DB0" fill-opacity="0.06"></path>
+<circle cx="6" cy="62" r="4" fill="#2D5DB0"></circle><circle cx="160.5" cy="38" r="3.5" fill="#FFFFFF" stroke="#2D5DB0" stroke-width="1.8"></circle><circle cx="315" cy="12" r="4" fill="#FFFFFF" stroke="#2D5DB0" stroke-width="2"></circle>
+</svg>
+<span style="position: absolute; left: 0; top: 66px; font-size: 10px; color: #6B6B76">Now</span>
+<span style="position: absolute; left: 132px; top: 66px; font-size: 10px; color: #6B6B76; font-variant-numeric: tabular-nums">6 mo ≈ 7,300</span>
+<span style="position: absolute; right: 0; top: 66px; font-size: 10px; color: #2D5DB0; font-weight: 600; font-variant-numeric: tabular-nums">12 mo ≈ 14,600</span>
+</span>
+</button>
+
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Credit</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.credproj}}" aria-label="Open insight: Upcoming card payments could bring utilization to about 12%." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #2D5DB0"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EAF1FC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5V12l3 2"></path><path d="M20.5 12a8.5 8.5 0 1 1-2.4-5.9"></path><path d="M19.5 3v4h-4"></path></svg></span>PROJECTION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Upcoming card payments could bring utilization to about 12%.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Payments scheduled before your statement dates would lower household utilization.</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px">
+<span style="position: relative; display: block; width: 321px; height: 30px">
+<span style="position: absolute; left: 4px; right: 4px; top: 13px; height: 4px; background: #F1F0F4; border-radius: 999px"></span>
+<span style="position: absolute; left: 97.9px; width: 50.1px; top: 14px; height: 0; border-top: 2px dashed #2D5DB0"></span>
+<span style="position: absolute; left: 142.0px; top: 9px; width: 12px; height: 12px; border-radius: 999px; background: #5134C9"></span>
+<span style="position: absolute; left: 90.9px; top: 8px; width: 14px; height: 14px; border-radius: 999px; background: #FFFFFF; border: 2px dashed #2D5DB0; box-sizing: border-box"></span>
+<span style="position: absolute; left: 238.8px; top: 5px; width: 2px; height: 20px; background: #A09EAB; border-radius: 1px"></span>
+</span>
+<span style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums"><span>Now <b style="color: #5134C9">18.4%</b> → after payments <b style="color: #2D5DB0">≈ 12%</b></span><span>30% ref.</span></span>
+<span style="font-size: 11px; line-height: 15px; color: #8A8896">Utilization is one of several factors in a credit score.</span>
+</span>
+</button>
+
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.credit}}" aria-label="Open insight: Household utilization is 18.4%." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #475467"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EEF1F5; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg></span>INFORMATION</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Household utilization is 18.4%.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Juan is at 20% and Karinna is at 16.5%.</span></span>
+<span style="position: relative; display: block; width: 321px; height: 50px">
+<span style="position: absolute; left: 4px; right: 4px; top: 22px; height: 4px; background: #F1F0F4; border-radius: 999px"></span>
+<span style="position: absolute; left: 238.8px; top: 14px; width: 2px; height: 20px; background: #A09EAB; border-radius: 1px"></span>
+<span style="position: absolute; left: 222.8px; top: 38px; font-size: 10px; color: #6B6B76">30% ref.</span>
+<span style="position: absolute; left: 128.1px; top: 19px; width: 10px; height: 10px; border-radius: 999px; background: #B7A9EC"></span>
+<span style="position: absolute; left: 155.5px; top: 19px; width: 10px; height: 10px; border-radius: 999px; background: #2A2540"></span>
+<span style="position: absolute; left: 141.0px; top: 17px; width: 14px; height: 14px; border-radius: 999px; background: #5134C9; border: 2px solid #FFFFFF; box-sizing: border-box; box-shadow: 0 0 0 1px #5134C9"></span>
+<span style="position: absolute; left: 95.1px; top: 0; font-size: 10px; color: #6B6B76">Karinna 16.5</span>
+<span style="position: absolute; left: 162.5px; top: 0; font-size: 10px; color: #3A3A42">Juan 20</span>
+<span style="position: absolute; left: 118.0px; top: 38px; font-size: 10px; font-weight: 700; color: #5134C9">Household</span>
+<span style="position: absolute; left: 0; top: 38px; font-size: 10px; color: #A09EAB">0%</span>
+</span>
+</button>
+
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Loans</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.loans}}" aria-label="Open insight: Your vehicle loans decreased by CA$850 over the last 3 months." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>PROGRESS</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Your vehicle loans decreased by CA$850 over the last 3 months.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">Every scheduled payment was made on time.</span></span>
+<span style="display: flex; align-items: center; gap: 14px">
+<svg width="120" height="40" viewBox="0 0 120 40" style="flex-shrink: 0; overflow: visible"><path d="M4 8 L41.3 16.7 L78.7 25.3 L116 34" fill="none" stroke="#2E9B69" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="4" cy="8" r="2.6" fill="#FFFFFF" stroke="#2E9B69" stroke-width="1.6"></circle><circle cx="41.3" cy="16.7" r="2.6" fill="#FFFFFF" stroke="#2E9B69" stroke-width="1.6"></circle><circle cx="78.7" cy="25.3" r="2.6" fill="#FFFFFF" stroke="#2E9B69" stroke-width="1.6"></circle><circle cx="116" cy="34" r="3.2" fill="#2E9B69"></circle></svg>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">−CA$850</span><span style="font-size: 11px; color: #6B6B76">Jun → Sep, both loans</span></span>
+</span>
+</button>
+
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<button onClick="{{open.loan1}}" aria-label="Open insight: Vehicle Loan 1 is 64% paid off." style="width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left">
+<span style="width: 100%; display: flex; align-items: center; justify-content: space-between"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #1A6B46"><span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>PROGRESS</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 21px; font-weight: 700; letter-spacing: -0.01em; color: #111114">Vehicle Loan 1 is 64% paid off.</span><span style="font-size: 13px; line-height: 19px; color: #55555F">At the current payment schedule, the estimated payoff date is June 2029.</span></span>
+<span style="display: flex; align-items: center; gap: 16px">
+<span style="position: relative; width: 64px; height: 64px; flex-shrink: 0; display: block">
+<svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#EEEBF8" stroke-width="7"></circle><circle cx="32" cy="32" r="26" fill="none" stroke="#5134C9" stroke-width="7" stroke-linecap="round" stroke-dasharray="104.6 163.4" transform="rotate(-90 32 32)"></circle></svg>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700">64%</span>
+</span>
+<span style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">
+<span>Remaining <b style="color: #111114">CA$18,420</b></span>
+<span style="display: flex; align-items: center; gap: 6px">Est. payoff <b style="color: #2D5DB0">Jun 2029</b><span style="padding: 1px 6px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; color: #2D5DB0">Projected</span></span>
+</span>
+</span>
+</button>
+<a href="ProjScenario.dc.html" style="display: block; padding: 12px 16px; border-top: 1px solid #F4F3F7; font-size: 13px; font-weight: 600; color: #5134C9">Explore faster payoff →</a>
+</div>
+</section>
+
+
+
+
+</div>
+</sc-if>
+
+<button onClick="{{toggleMore}}" aria-expanded="{{moreExpanded}}" style="width: 100%; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E9E7EF; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; text-align: left">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600; color: #111114">{{moreLabel}}</span><span style="font-size: 12px; color: #6B6B76">Savings · Credit · Loans · Recurring costs · Trips</span></span>
+<span style="width: 32px; height: 32px; border-radius: 999px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{moreIcon}}"></path></svg></span>
+</button>
+
+<section style="display: flex; flex-direction: column; gap: 10px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Looking ahead</h2><a href="Bills.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EEEDF2; color: #111114">
+<span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Upcoming payments</span><span style="font-size: 12px; color: #6B6B76">Everything due, in Bills & recurring</span></span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a><a href="Projections.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EEEDF2; color: #111114">
+<span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Forecast</span><span style="font-size: 12px; color: #6B6B76">Where cash flow, savings and debt are heading</span></span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a></section>
+<section aria-label="Ask Kipu" style="border-top: 1px solid #ECEBF0; padding-top: 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 3px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Ask Kipu</h2><p style="margin: 0; font-size: 13px; color: #6B6B76">Ask a question about your finances.</p></div>
+<button style="height: 48px; padding: 0 6px 0 16px; background: #FFFFFF; border: 1px solid #E9E7EF; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #8A8896">
+<span>Type a question…</span>
+<span style="width: 36px; height: 36px; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+</button>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="padding: 8px 12px; border-radius: 999px; background: #F5F4F8; font-size: 12px; color: #3A3A42">How am I doing this month?</button>
+<button style="padding: 8px 12px; border-radius: 999px; background: #F5F4F8; font-size: 12px; color: #3A3A42">Can I afford a large purchase?</button>
+<button style="padding: 8px 12px; border-radius: 999px; background: #F5F4F8; font-size: 12px; color: #3A3A42">What changed since last month?</button>
+<button style="padding: 8px 12px; border-radius: 999px; background: #F5F4F8; font-size: 12px; color: #3A3A42">When will I finish paying my car loan?</button>
+</div>
+</section>
+
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 600">Stats</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+</nav>
+
+<sc-if value="{{detailOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{close}}" aria-label="Close insight" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="{{d.title}}" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 772px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="{{d.chipStyle}}">{{d.typeLabel}}</span>
+<button onClick="{{close}}" aria-label="Close" style="width: 36px; height: 36px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{d.title}}</h2>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #6B6B76">WHY KIPU SURFACED THIS</span>
+<p style="margin: 0; font-size: 14px; line-height: 21px; color: #3A3A42">{{d.why}}</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #6B6B76">THE DATA</span><span style="font-size: 12px; color: #6B6B76">{{d.compare}}</span></div>
+<div style="background: #F7F6FA; border-radius: 16px; padding: 4px 14px">
+<sc-for list="{{d.rows}}" as="r" hint-placeholder-count="3">
+<div style="{{r.style}}"><span style="color: #55555F">{{r.k}}</span><span style="font-weight: 600; color: #111114; font-variant-numeric: tabular-nums">{{r.v}}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #6B6B76">RELATED</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{d.related}}" as="x" hint-placeholder-count="3">
+<a href="#" style="padding: 7px 12px; border-radius: 999px; border: 1px solid #E9E7EF; font-size: 12px; font-weight: 500; color: #111114">{{x.label}}</a>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{d.hasNext}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; gap: 12px; padding: 14px; background: #F4F1FD; border-radius: 16px">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #5134C9">SUGGESTED NEXT STEP</span><span style="font-size: 14px; line-height: 20px; color: #2B1F66">{{d.next}}</span></span>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":5320}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { period: 'This month', owner: 'Household', currency: 'Combined', openFilter: null, detail: null, showAll: true };
+  }
+  renderVals() {
+    const s = this.state;
+    const filterDefs = [
+      { key: 'owner', label: 'OWNER', options: ['Juan', 'Karinna', 'Household'] },
+      { key: 'period', label: 'PERIOD', options: ['This week', 'This month', 'Last month', 'This year'] },
+      { key: 'currency', label: 'CURRENCY', options: ['CAD', 'USD', 'PEN', 'Combined'] }
+    ];
+    const optRow = 'height: 38px; padding: 0 10px; border-radius: 10px; font-size: 13px; text-align: left; white-space: nowrap; ';
+    const filters = filterDefs.map((f) => ({
+      label: f.label,
+      value: s[f.key],
+      open: s.openFilter === f.key,
+      expanded: s.openFilter === f.key ? 'true' : 'false',
+      toggle: () => this.setState({ openFilter: s.openFilter === f.key ? null : f.key }),
+      options: f.options.map((o) => ({
+        label: o,
+        selectedAttr: o === s[f.key] ? 'true' : 'false',
+        pick: () => this.setState({ [f.key]: o, openFilter: null }),
+        style: optRow + (o === s[f.key] ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'background: transparent; color: #111114; font-weight: 500;')
+      }))
+    }));
+
+    const TYPES = {"progress": ["PROGRESS", "#1A6B46", "#E6F4EC"], "attention": ["ATTENTION", "#94580A", "#FDF1DC"], "projection": ["PROJECTION", "#2D5DB0", "#EAF1FC"], "opportunity": ["OPPORTUNITY", "#5134C9", "#F1EEFB"], "information": ["INFORMATION", "#475467", "#EEF1F5"]};
+    const DETAILS = {"top": ["progress", "Your spending is trending lower this month.", "Month-to-date spending is below the pace you usually keep by Sep 24. It is the biggest change in your finances this month.", [["Spent so far", "CA$3,428"], ["Usual by Sep 24", "CA$3,688"], ["Difference", "−CA$260"], ["Fastest growing", "Dining +16.7%"]], "vs your Mar–Aug pace", ["Dining", "Shopping", "Groceries"], "Dining is the one category above its usual level. Check it before month end if you want to keep the lead."], "payments": ["attention", "CA$1,347 in scheduled payments over the next 10 days.", "Four scheduled payments are due between today and Oct 3. Kipu flags payment clusters so nothing catches you off guard.", [["Car payment · Sep 27", "CA$507"], ["Visa payment · Sep 30", "CA$620"], ["Phone & internet · Oct 1", "CA$140"], ["Home insurance · Oct 3", "CA$80"], ["Available cash today", "CA$4,100"]], "Sep 24 – Oct 3", ["Car payment", "Visa", "Phone & internet", "Home insurance"], "Your available cash covers all four payments. No action needed."], "cfproj": ["projection", "About CA$1,840 available at month end.", "This is an estimate based on your usual daily spending and payments already scheduled through Sep 30.", [["Available today", "CA$4,100"], ["Scheduled payments", "−CA$1,127"], ["Expected day-to-day spending", "−CA$1,133"], ["Projected Sep 30", "≈ CA$1,840"]], "Sep 24 – Sep 30", ["Car payment", "Visa payment", "Day-to-day spending"], ""], "dining": ["attention", "Dining increased 16.7%", "Dining grew faster than any other category compared with August.", [["September", "CA$420"], ["August", "CA$360"], ["Change", "+CA$60 · +16.7%"], ["Share of spending", "10.4%"]], "September vs August", ["Restaurants", "Coffee", "Food delivery"], "If you want to slow it down, a dining limit near your August level (CA$360) would keep it in check."], "shopping": ["attention", "Unusual shopping this month", "Shopping is CA$280 above your usual level. Most of the difference comes from 3 transactions.", [["Transaction · Sep 12", "CA$120"], ["Transaction · Sep 18", "CA$72"], ["Transaction · Sep 21", "CA$48"], ["Other shopping above usual", "CA$40"]], "vs your 3-month average", ["Shopping"], "Review these 3 transactions to confirm they were planned or one-off."], "groceries": ["information", "Groceries are stable", "Groceries stayed within 3% of your three-month average. Shown so you know this category needs no attention.", [["September", "CA$720"], ["3-month average", "CA$742"], ["Difference", "−3.0%"]], "Jun – Aug average", ["Groceries"], ""], "travel": ["opportunity", "Travel Fund could arrive 2 months sooner", "Dining is your fastest growing category, and your Travel Fund is your nearest active goal. Moving part of one to the other shortens the timeline.", [["Dining this month", "CA$420"], ["Suggested reduction", "CA$150 / month"], ["Time saved", "≈ 2 months"]], "At your last 3 months of contributions", ["Travel Fund", "Dining"], "Try moving CA$150 from dining to the Travel Fund for one month and see how it feels."], "emergency": ["progress", "Emergency Fund is 58% of the way there", "You have contributed every month since this goal started.", [["Saved", "CA$5,800"], ["Goal", "CA$10,000"], ["Remaining", "CA$4,200"], ["Estimated time", "≈ 8 months"]], "At your current contribution pace", ["Emergency Fund"], ""], "rate": ["progress", "Your savings rate improved to 18.7%.", "Your savings rate is the share of income you kept. It rose this month.", [["Last month", "14.6%"], ["This month", "18.7%"], ["Extra saved", "+CA$240"]], "September vs August", ["Savings", "Income"], ""], "savproj": ["projection", "About CA$14,600 in the next 12 months.", "This is a projection that assumes you keep saving at your current pace. Actual results will vary.", [["Current monthly pace", "≈ CA$1,217"], ["In 6 months", "≈ CA$7,300"], ["In 12 months", "≈ CA$14,600"]], "Based on your recent savings pace", ["Savings", "Goals"], ""], "credproj": ["projection", "Utilization could fall to about 12%.", "Card payments scheduled before your statement dates would lower reported balances. Utilization is one of several factors in a credit score.", [["Household utilization now", "18.4%"], ["Scheduled card payments", "CA$1,600"], ["Projected after payments", "≈ 12%"]], "Before next statements", ["CIBC Costco Mastercard", "Visa"], ""], "credit": ["information", "Household utilization is 18.4%.", "A summary of how much of your available credit is in use across the household.", [["Juan", "20%"], ["Karinna", "16.5%"], ["Household", "18.4%"]], "Current balances", ["Credit cards"], ""], "loans": ["progress", "Vehicle loans down CA$850 in 3 months.", "Both vehicle loans are shrinking on schedule.", [["June balance (both loans)", "CA$46,120"], ["September balance", "CA$45,270"], ["Change", "−CA$850"]], "Jun – Sep", ["Vehicle loan 1", "Vehicle loan 2"], ""], "loan1": ["progress", "Vehicle Loan 1 is 64% paid off.", "This loan is closest to payoff, so extra payments here finish soonest.", [["Remaining", "CA$18,420"], ["Paid", "64%"], ["Estimated payoff", "June 2029"]], "At the current payment schedule", ["Vehicle loan 1", "Car payment"], "Explore how an extra monthly payment would move the payoff date."], "subs": ["information", "CA$186 per month in subscriptions", "Recurring charges add up over a year, so Kipu shows the annual total.", [["Monthly", "CA$186"], ["Yearly", "≈ CA$2,232"]], "Active subscriptions", ["Subscriptions", "Adobe"], "Review subscriptions you haven’t used in the last 60 days."], "fixed": ["information", "Fixed costs are 48% of income.", "Fixed bills and debt payments are due no matter what, so this is the part of income you can’t easily change.", [["Fixed bills", "CA$2,420"], ["Debt payments", "CA$720"], ["Total", "CA$3,140"], ["Share of income", "48%"]], "September", ["Housing", "Car payment", "Insurance"], ""], "trip": ["information", "Peru 2026", "Trip spending is tracked separately so it does not distort your monthly picture.", [["Total spent", "CA$1,760"], ["In soles", "S/ 4,850"], ["Juan", "CA$940"], ["Karinna", "CA$820"], ["Dining", "33% of trip"]], "Whole trip", ["Dining", "Lodging", "Transport"], ""]};
+    const open = {};
+    Object.keys(DETAILS).forEach((id) => { open[id] = () => this.setState({ detail: id }); });
+    const raw = s.detail ? DETAILS[s.detail] : DETAILS.top;
+    const t = TYPES[raw[0]];
+    const rows = raw[3].map((r, i) => ({
+      k: r[0], v: r[1],
+      style: 'display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; font-size: 14px;' + (i < raw[3].length - 1 ? ' border-bottom: 1px solid #ECEAF1;' : '')
+    }));
+    const d = {
+      typeLabel: t[0].charAt(0) + t[0].slice(1).toLowerCase(),
+      chipStyle: 'padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: ' + t[1] + '; background: ' + t[2] + ';' + (raw[0] === 'projection' ? ' border: 1px dashed #9DB6E3;' : ''),
+      title: raw[1], why: raw[2], rows, compare: raw[4],
+      related: raw[5].map((label) => ({ label })),
+      next: raw[6], hasNext: !!raw[6]
+    };
+    return {
+      filters, open, d,
+      detailOpen: !!s.detail,
+      close: () => this.setState({ detail: null }),
+      showAll: s.showAll,
+      moreExpanded: s.showAll ? 'true' : 'false',
+      moreLabel: s.showAll ? 'Show fewer insights' : 'Show 9 more insights',
+      moreIcon: s.showAll ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6',
+      toggleMore: () => this.setState({ showAll: !s.showAll })
+    };
+  }
+}
+</script>
+</body>
+</html>

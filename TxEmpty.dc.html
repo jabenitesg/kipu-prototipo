@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transactions, empty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Money.dc.html" aria-label="Back to Money" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">ACTIVITY</span></div>
+<button onClick="{{focusSearch}}" aria-label="Search" style="width: 40px; height: 40px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM16 16l4 4"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Transactions</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Everything coming in and going out.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Money.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Accounts</a><a href="Cards.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Cards</a><a href="Loans.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Loans</a><a href="Transactions.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Activity</a><a href="Household.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Household</a></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px">
+<div role="group" aria-label="Owner" style="display: flex; gap: 6px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div style="position: relative">
+<button onClick="{{toggleCur}}" aria-haspopup="listbox" aria-expanded="{{curExpanded}}" aria-label="Currency" style="height: 36px; padding: 0 10px 0 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600">{{curLabel}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{curOpen}}" hint-placeholder-val="{{false}}"><div role="listbox" style="position: absolute; top: 42px; right: 0; z-index: 25; width: 150px; padding: 5px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 14px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.12); display: flex; flex-direction: column; gap: 2px"><sc-for list="{{currencies}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></sc-if>
+</div>
+</div>
+</header>
+
+<label style="height: 46px; padding: 0 14px; border-radius: 14px; background: #F6F5F8; display: flex; align-items: center; gap: 10px">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM16 16l4 4"></path></svg>
+<input type="search" aria-label="Search transactions" placeholder="Search transactions" value="{{query}}" onChange="{{onQuery}}" style="flex-grow: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 15px">
+</label>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<div class="kipu-noscroll" style="flex-grow: 1; min-width: 0; overflow-x: auto; margin-left: -20px; padding-left: 20px"><div style="display: flex; gap: 6px; width: max-content; padding-right: 8px"><sc-for list="{{types}}" as="o" hint-placeholder-count="6"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<button onClick="{{openAdv}}" aria-label="More filters" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path></svg></button>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button aria-label="August" style="height: 32px; padding: 0 8px; font-size: 13px; font-weight: 600; color: #6B6B76; display: flex; align-items: center; gap: 2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Aug</button>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">September 2026</span>
+<button disabled aria-label="October" style="height: 32px; padding: 0 8px; font-size: 13px; font-weight: 600; color: #C9C7CF; display: flex; align-items: center; gap: 2px; cursor: default">Oct<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C7CF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+
+<sc-if value="{{hasTx}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<section aria-label="September summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Income</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #1A6B46">CA$6,590</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4"><span style="font-size: 11px; color: #6B6B76">Spent</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">CA$4,050</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4"><span style="font-size: 11px; color: #6B6B76">Net</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #1A6B46">+CA$2,540</b></span>
+</div>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3A3A42"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>Spending is <b style="font-weight: 600; color: #1A6B46">6.1% lower</b> than August.</span>
+</section>
+
+<sc-if value="{{showTripBanner}}" hint-placeholder-val="{{false}}">
+<a href="TxTrip.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: #F4F1FD; color: inherit"><span style="width: 32px; height: 32px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600; color: #2B1F66">Peru 2026</span><span style="font-size: 12px; color: #55506E">CA$1,760 · Juan CA$940 · Karinna CA$820</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a>
+</sc-if>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76">{{g.label}}</span><span style="font-size: 11px; color: #8A8896; font-variant-numeric: tabular-nums">{{g.total}}</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 18px; padding: 2px 14px; overflow: hidden">
+<sc-for list="{{g.rows}}" as="t" hint-placeholder-count="3">
+<div style="{{t.wrapStyle}}">
+<sc-if value="{{t.swipeL}}" hint-placeholder-val="{{false}}"><button onClick="{{t.edit}}" style="position: absolute; right: 0; top: 6px; bottom: 6px; width: 84px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg>Edit</button></sc-if>
+<sc-if value="{{t.swipeR}}" hint-placeholder-val="{{false}}"><button onClick="{{t.markReviewed}}" style="position: absolute; left: 0; top: 6px; bottom: 6px; width: 104px; border-radius: 14px; background: #1A6B46; color: #FFFFFF; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Mark reviewed</button></sc-if>
+<a href="{{t.href}}" aria-label="{{t.aria}}" style="{{t.rowStyle}}">
+<span style="{{t.iconWrap}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="display: flex; align-items: center; gap: 5px; min-width: 0"><span style="font-size: 15px; font-weight: 600; color: #111114; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.merchant}}</span>
+<sc-for list="{{t.badges}}" as="b" hint-placeholder-count="1"><span title="{{b.label}}" aria-label="{{b.label}}" style="display: flex; flex-shrink: 0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{b.icon}}"></path></svg></span></sc-for></span>
+<span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.meta}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+<span style="{{t.amountStyle}}">{{t.amount}}</span>
+<sc-if value="{{t.hasSub}}" hint-placeholder-val="{{false}}"><span style="{{t.subStyle}}">{{t.sub}}</span></sc-if>
+</span>
+</a>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+<sc-if value="{{noMatches}}" hint-placeholder-val="{{false}}"><span style="padding: 24px 0; text-align: center; font-size: 14px; color: #6B6B76">No transactions match these filters.</span></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="padding: 36px 20px; border-radius: 24px; background: #FFFFFF; border: 1px dashed #E4E2EA; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">No transactions yet</span><span style="font-size: 14px; line-height: 20px; color: #55555F">Add your first expense or import a statement.</span></span>
+<div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 6px">
+<a href="AddExpense.dc.html" style="height: 48px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Add expense</a>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<a href="ScanCamera.dc.html" style="height: 44px; border-radius: 14px; background: #F5F4F8; color: #111114; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">Scan receipt</a>
+<a href="StmtUpload.dc.html" style="height: 44px; border-radius: 14px; background: #F5F4F8; color: #111114; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">Upload statement</a>
+</div></div>
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#111114"></circle></svg><span style="font-size: 11px; font-weight: 600">Money</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetAdv}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Filters" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Filters</span><span style="font-size: 13px; color: #6B6B76">Narrow down your transactions</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<sc-for list="{{adv}}" as="f" hint-placeholder-count="7">
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">{{f.label}}</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{f.opts}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+</sc-for>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Amount range</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<input type="text" inputmode="decimal" aria-label="Minimum amount" placeholder="Min CA$" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 14px; outline: none">
+<input type="text" inputmode="decimal" aria-label="Maximum amount" placeholder="Max CA$" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 14px; outline: none">
+</div></div>
+<div style="display: flex; gap: 10px">
+<button onClick="{{resetAdv}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 15px; font-weight: 600">Reset</button>
+<button onClick="{{closeSheet}}" style="flex: 2 1 0; height: 50px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Show 34 transactions</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"owner": "Household", "currency": "Combined", "curOpen": false, "type": "All", "query": "", "sheet": null, "swipe": [], "reviewed": {}, "adv": {}, "empty": true}; this.onQuery = (e) => this.setState({ query: e.target.value }); }
+  renderVals() {
+    const s = this.state;
+
+    const ICONS = {"Groceries": "M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9", "Transportation": "M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2", "Dining": "M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M17 21V3c-2 0-3.5 2.5-3.5 6s1.5 4 3.5 4", "Subscriptions": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Income": "M12 19V5M6 11l6-6 6 6", "Transfer": "M4 8h13l-3-3M20 16H7l3 3", "Card payment": "M2.5 5h19v14h-19zM2.5 10h19M6.5 15h3", "Shopping": "M5.5 8h13l-1 12.5h-11zM9 8V6.5a3 3 0 0 1 6 0V8", "Home": "M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z", "Travel": "M3 13.5l18-7-7 18-2.5-8.5z", "Uncategorized": "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01", "Clip": "M21 12.5 12.6 21a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8", "Repeat": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Plane": "M3 13.5l18-7-7 18-2.5-8.5z"};
+    const fmt = (n) => 'CA$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const rowOf = (t, i, s) => {
+      const inc = t.kind === 'inc', xf = t.kind === 'xfer' || t.kind === 'cardpay', exp = t.kind === 'expected';
+      const sw = (s.swipe || []).find((x) => x.id === t.id); const swiped = sw ? sw.dir : null;
+      const reviewed = (s.reviewed || {})[t.id];
+      const needs = t.review && !reviewed;
+      const badges = [];
+      if (t.receipt) badges.push({ icon: ICONS.Clip, label: 'Receipt attached' });
+      if (t.rec) badges.push({ icon: ICONS.Repeat, label: 'Recurring ' + t.rec.toLowerCase() });
+      if (t.trip) badges.push({ icon: ICONS.Plane, label: 'Trip ' + t.trip });
+      let sub = '', subStyle = 'font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums; white-space: nowrap;';
+      const chip = (fg, bg, dashed) => 'padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: ' + fg + '; background: ' + bg + ';' + (dashed ? ' box-shadow: inset 0 0 0 1px #CFCCD8;' : '');
+      if (t.orig) sub = '≈ ' + fmt(t.amt);
+      else if (needs) { sub = 'Needs category'; subStyle = chip('#94580A', '#FDF1DC'); }
+      else if (t.dup) { sub = 'Possible duplicate'; subStyle = chip('#94580A', '#FDF1DC'); }
+      else if (exp) { sub = 'Expected'; subStyle = chip('#6B6B76', '#FFFFFF', true); }
+      else if (t.pending) { sub = 'Pending'; subStyle = chip('#6B6B76', '#F1F0F4'); }
+      else if (xf) { sub = 'Not spending'; subStyle = 'font-size: 11px; color: #2D5DB0; white-space: nowrap;'; }
+      else if (t.rec) sub = t.rec;
+      const catLabel = needs ? 'No category' : (reviewed && t.review ? 'Shopping' : t.cat);
+      const tile = needs ? ['#FDF1DC', '#94580A'] : inc ? ['#E6F4EC', '#1A6B46'] : xf ? ['#EEF3FB', '#2D5DB0'] : ['#F5F4F8', '#2A2540'];
+      const tx = swiped === 'left' ? 'transform: translateX(-92px);' : swiped === 'right' ? 'transform: translateX(112px);' : '';
+      return {
+        merchant: t.m, badges, href: t.href || '#', aria: t.m + ', ' + (t.orig || fmt(t.amt)),
+        meta: [catLabel, t.owner, t.via].concat(t.trip ? [t.trip] : []).join(' · '),
+        icon: ICONS[needs ? 'Uncategorized' : (reviewed && t.review ? 'Shopping' : t.cat)] || ICONS.Uncategorized, iconColor: tile[1],
+        iconWrap: 'width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: ' + tile[0] + ';' + (exp ? ' box-shadow: inset 0 0 0 1.5px #DCDAE3; background: #FFFFFF;' : ''),
+        amount: (inc ? '+' : '') + (t.orig || fmt(t.amt)),
+        amountStyle: "font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: " + (inc ? '#1A6B46' : xf ? '#2D5DB0' : exp ? '#8A8896' : '#111114') + ';',
+        hasSub: !!sub, sub, subStyle,
+        swipeL: swiped === 'left', swipeR: swiped === 'right',
+        edit: () => this.setState({ swipe: (s.swipe || []).filter((x) => x.id !== t.id) }), markReviewed: () => this.setState({ swipe: (s.swipe || []).filter((x) => x.id !== t.id), reviewed: Object.assign({}, s.reviewed, { [t.id]: true }) }),
+        wrapStyle: 'position: relative;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : ''),
+        rowStyle: 'position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 12px 0; background: #FFFFFF; color: inherit; transition: transform 0.2s;' + tx
+      };
+    };
+
+    const TX = s.empty ? [] : [{"id": "internet", "m": "Internet", "cat": "Home", "owner": "Household", "via": "Shared Chequing", "amt": 106.0, "kind": "expected", "g": "TODAY", "rec": "Monthly"}, {"id": "costco", "m": "Costco", "cat": "Groceries", "owner": "Karinna", "via": "CIBC Costco Mastercard", "amt": 320.47, "kind": "exp", "g": "TODAY", "receipt": true, "href": "TxDetail.dc.html"}, {"id": "costco2", "m": "Costco", "cat": "Groceries", "owner": "Karinna", "via": "CIBC Costco Mastercard", "amt": 320.47, "kind": "exp", "g": "TODAY", "dup": true, "href": "TxDuplicate.dc.html"}, {"id": "shell", "m": "Shell", "cat": "Transportation", "owner": "Juan", "via": "CIBC Visa", "amt": 72.3, "kind": "exp", "g": "TODAY", "pending": true}, {"id": "salary", "m": "Salary", "cat": "Income", "owner": "Juan", "via": "CIBC Chequing", "amt": 2400.0, "kind": "inc", "g": "YESTERDAY"}, {"id": "adobe", "m": "Adobe", "cat": "Subscriptions", "owner": "Juan", "via": "American Express", "amt": 75.4, "orig": "US$55.00", "cur": "USD", "kind": "exp", "g": "YESTERDAY", "rec": "Monthly"}, {"id": "xfer", "m": "Transfer to Savings", "cat": "Transfer", "owner": "Household", "via": "CIBC Chequing → Emergency Savings", "amt": 300.0, "kind": "xfer", "g": "YESTERDAY"}, {"id": "cardpay", "m": "CIBC Mastercard Payment", "cat": "Card payment", "owner": "Juan", "via": "Chequing → CIBC Costco Mastercard", "amt": 980.0, "kind": "cardpay", "g": "SEP 22"}, {"id": "central", "m": "Central Restaurante", "cat": "Dining", "owner": "Juan", "via": "CIBC Visa", "amt": 67.14, "orig": "S/ 180.00", "cur": "PEN", "kind": "exp", "g": "SEP 22", "trip": "Peru 2026", "receipt": true, "href": "TxDetailForeign.dc.html"}, {"id": "rest", "m": "Restaurant", "cat": "Dining", "owner": "Household", "via": "CIBC Visa", "amt": 86.0, "kind": "exp", "g": "SEP 20"}, {"id": "amazon", "m": "Amazon", "cat": "Uncategorized", "owner": "Karinna", "via": "American Express", "amt": 112.4, "kind": "exp", "g": "SEP 20", "review": true}];
+    const chip = (on, dark) => 'height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; ' + (on ? (dark ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F4F1FD; color: #2B1F66; font-weight: 600; box-shadow: inset 0 0 0 1.5px #5134C9;') : 'background: #FFFFFF; color: #3A3A42; font-weight: 500; box-shadow: inset 0 0 0 1px #E9E7EF;');
+    const owners = ['Juan', 'Karinna', 'Household'].map((o) => ({ label: o, pressed: o === s.owner ? 'true' : 'false', style: chip(o === s.owner, true), pick: () => this.setState({ owner: o }) }));
+    const currencies = ['CAD', 'USD', 'PEN', 'Combined'].map((c) => ({ label: c, pressed: c === s.currency ? 'true' : 'false', pick: () => this.setState({ currency: c, curOpen: false }),
+      style: 'height: 38px; padding: 0 10px; border-radius: 10px; font-size: 13px; text-align: left; ' + (c === s.currency ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'color: #111114; font-weight: 500;') }));
+    const types = ['All', 'Expenses', 'Income', 'Transfers', 'Recurring', 'Trips'].map((t) => ({ label: t, pressed: t === s.type ? 'true' : 'false', style: chip(t === s.type, false), pick: () => this.setState({ type: t }) }));
+    const q = (s.query || '').trim().toLowerCase();
+    const typeOk = (t) => s.type === 'All' || (s.type === 'Expenses' && (t.kind === 'exp' || t.kind === 'expected')) || (s.type === 'Income' && t.kind === 'inc') ||
+      (s.type === 'Transfers' && (t.kind === 'xfer' || t.kind === 'cardpay')) || (s.type === 'Recurring' && !!t.rec) || (s.type === 'Trips' && !!t.trip);
+    const curOk = (t) => s.currency === 'Combined' || (t.cur || 'CAD') === s.currency;
+    const text = (t) => [t.m, t.cat, t.owner, t.via, t.trip || '', t.orig || '', t.amt.toFixed(2)].join(' ').toLowerCase();
+    const vis = TX.filter((t) => (s.owner === 'Household' || t.owner === s.owner) && typeOk(t) && curOk(t) && (!q || text(t).indexOf(q) >= 0));
+    const order = ['TODAY', 'YESTERDAY', 'SEP 22', 'SEP 20'];
+    const groups = order.map((g) => {
+      const list = vis.filter((t) => t.g === g);
+      if (!list.length) return null;
+      const spent = list.filter((t) => t.kind === 'exp' && !t.dup).reduce((a, t) => a + t.amt, 0);
+      return { label: g, total: spent ? fmt(spent) + ' spent' : '', rows: list.map((t, i) => rowOf(t, i, s)) };
+    }).filter(Boolean);
+    const segOpt = (key, o) => { const cur = (s.adv || {})[key]; const on = cur === o;
+      return { label: o, pressed: on ? 'true' : 'false', pick: () => this.setState({ adv: Object.assign({}, s.adv, { [key]: on ? null : o }) }),
+        style: 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;') }; };
+    const ADV = [['date', 'Date range', ['This month', 'Last month', 'Last 3 months', 'Custom']], ['cat', 'Category', ['Groceries', 'Dining', 'Transportation', 'Subscriptions', 'Shopping']],
+      ['acct', 'Account or card', ['CIBC Costco MC', 'CIBC Visa', 'Amex', 'CIBC Chequing']], ['cur', 'Currency', ['CAD', 'USD', 'PEN']], ['trip', 'Trip', ['Peru 2026']],
+      ['src', 'Source', ['Manual', 'Receipt scan', 'Statement', 'CSV', 'Recurring']]];
+    const adv = ADV.map((f) => ({ label: f[1], opts: f[2].map((o) => segOpt(f[0], o)) }));
+    return {
+      owners, currencies, types, curLabel: s.currency, curOpen: !!s.curOpen, curExpanded: s.curOpen ? 'true' : 'false', toggleCur: () => this.setState({ curOpen: !s.curOpen }),
+      query: s.query || '', onQuery: this.onQuery, focusSearch: () => {},
+      hasTx: TX.length > 0, isEmpty: TX.length === 0, groups, noMatches: TX.length > 0 && vis.length === 0, showTripBanner: s.type === 'Trips',
+      openAdv: () => this.setState({ sheet: 'adv' }), closeSheet: () => this.setState({ sheet: null }), sheetAdv: s.sheet === 'adv', adv, resetAdv: () => this.setState({ adv: {} })
+    };
+  }
+}
+</script>
+</body>
+</html>

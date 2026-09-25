@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peru 2026 trip, edit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<a href="Trips.dc.html" aria-label="Back to Trips" style="width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a>
+<div style="position: relative">
+<button onClick="{{toggleMenu}}" aria-label="Trip actions" aria-haspopup="menu" aria-expanded="{{menuAttr}}" style="width: 40px; height: 40px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#2A2540"><circle cx="5.5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18.5" cy="12" r="1.6"></circle></svg></button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" style="position: absolute; top: 46px; right: 0; z-index: 30; width: 200px; padding: 6px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 16px; box-shadow: 0 14px 34px rgba(24, 16, 64, 0.14); display: flex; flex-direction: column">
+<button role="menuitem" onClick="{{openEdit}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit trip</button>
+<button role="menuitem" onClick="{{openEdit}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16 7.5c-.6-1.5-2.2-2.5-4-2.5-2.2 0-4 1.3-4 3.2 0 4.3 8 2.3 8 6.6 0 1.9-1.8 3.2-4 3.2-1.9 0-3.5-1-4.1-2.6"></path></svg>Change budget</button>
+<button role="menuitem" onClick="{{openEdit}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM22 20v-1a4 4 0 0 0-3-3.87M16 4.13a4 4 0 0 1 0 7.75"></path></svg>Manage members</button>
+<button role="menuitem" onClick="{{closeMenu}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17v4h-17zM5 8.5v11h14v-11M10 12.5h4"></path></svg>Archive trip</button>
+<div style="height: 1px; background: #F1F0F4; margin: 4px 6px"></div>
+<button role="menuitem" onClick="{{closeMenu}}" style="height: 38px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 13px; text-align: left; color: #A3325A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A3325A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"></path></svg>Delete trip</button>
+</div>
+</sc-if>
+</div>
+</div>
+
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">TRIP</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Peru 2026</h1>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #55555F"><span>Sep 9 – Oct 2</span><span style="{{t.statusStyle}}">{{t.status}}</span><span style="font-size: 12px; color: #8A8896">{{t.dayLabel}}</span></span>
+</header>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; overflow: hidden">
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; font-variant-numeric: tabular-nums"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #6B6B76">Spent</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em">CA$1,760</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 13px; color: #6B6B76">Remaining</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #1A6B46">CA$1,740</span></span></div>
+<div style="height: 12px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 50.3%; background: #5134C9; border-radius: 999px"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #55555F"><span><b style="color: #111114">50%</b> of CA$3,500 budget used</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 20px; border-top: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Daily average</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$110</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Projected final<span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0; white-space: nowrap">EST.</span></span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #2D5DB0">{{fc.total}}</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">{{fc.cushionLabel}}<span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0; white-space: nowrap">EST.</span></span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums{{fc.cushionColor}}">{{fc.cushion}}</b></span></div>
+</section>
+
+<div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px">
+<a href="AddExpenseForeign.dc.html" style="height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 18px rgba(81, 52, 201, 0.25)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Add trip expense</a>
+<a href="ScanCamera.dc.html" style="height: 50px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10h6M9 14h4"></path></svg>Scan receipt</a>
+</div>
+<span style="margin-top: -14px; font-size: 11px; color: #8A8896; text-align: center">New expenses are tagged Peru 2026 automatically. You can remove the tag.</span>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 3px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Budget pace</h2><span style="font-size: 12px; color: #6B6B76">Are you spending too quickly?</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums">
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr) 40px; align-items: center; gap: 8px"><span style="color: #55555F">Budget used</span><span style="height: 10px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50.3%; background: #5134C9; border-radius: 999px"></span></span><b style="text-align: right">50%</b></div>
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr) 40px; align-items: center; gap: 8px"><span style="color: #55555F">Time used</span><span style="height: 10px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 66.7%; background: #B7A9EC; border-radius: 999px"></span></span><b style="text-align: right">67%</b></div>
+</div>
+<span style="font-size: 13px; color: #1A6B46; font-weight: 600">Spending is slower than time. The pace looks comfortable.</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-top: 12px; border-top: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Trip length</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">24 days</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Days completed</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">16</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Current daily average</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$110</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Left per day, 8 days</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">CA$217</b></span></div>
+<span style="font-size: 11px; color: #8A8896">Or about CA$165 a day after the planned expenses below.</span>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; overflow: hidden">
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #6B6B76">Total spent</span><span style="padding: 3px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">CA$260 under budget</span></span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">CA$3,240</span>
+<div style="height: 12px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 92.6%; background: #2E9B69; border-radius: 999px"></div></div>
+<span style="font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums">of CA$3,500 budget · S/ 8,920 in PEN</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 16px 20px; border-top: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">FX fees</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$76</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Daily average</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$135</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Largest category</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">Dining</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Most used payment</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CIBC Visa</b></span></div>
+<a href="Stats.dc.html" style="display: flex; justify-content: space-between; align-items: center; padding: 13px 20px; border-top: 1px solid #F4F3F7; font-size: 14px; font-weight: 600; color: #5134C9">View full trip review<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a>
+</section>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Currencies</h2><span style="font-size: 12px; color: #6B6B76">1 CAD ≈ 2.76 PEN</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 8px 0"><span style="padding: 3px 7px; border-radius: 7px; background: #EEF3FB; color: #2D5DB0; font-size: 11px; font-weight: 700">PEN</span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{t.pen}}</b><span style="font-size: 11px; color: #6B6B76">{{t.penSub}}</span></span><span style="font-size: 13px; color: #55555F; font-variant-numeric: tabular-nums">{{t.penCad}}</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #F1F0F4"><span style="padding: 3px 7px; border-radius: 7px; background: #EEF3FB; color: #2D5DB0; font-size: 11px; font-weight: 700">USD</span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">US$120</b><span style="font-size: 11px; color: #6B6B76">Tour booked online</span></span><span style="font-size: 13px; color: #55555F; font-variant-numeric: tabular-nums">≈ CA$164</span></div>
+<div style="display: flex; justify-content: space-between; padding: 10px 0 0; border-top: 1px solid #F1F0F4; font-size: 14px; font-variant-numeric: tabular-nums"><span style="font-weight: 600">CAD equivalent</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">{{t.total}}</b></div>
+<span style="font-size: 11px; line-height: 16px; color: #8A8896">Each transaction keeps the rate from its own date. Live rates only change estimates and new entries.</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><div style="display: flex; flex-direction: column; gap: 3px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Daily spending</h2><span style="font-size: 12px; color: #6B6B76">Which days were expensive? Tap a day.</span></div></div>
+<div style="position: relative; height: 140px">
+<div style="position: absolute; left: 0; right: 0; bottom: 18px; top: 8px; display: flex; align-items: flex-end; gap: 3px">
+<sc-for list="{{daily}}" as="d" hint-placeholder-count="16"><button onClick="{{d.pick}}" aria-label="{{d.aria}}" aria-pressed="{{d.pressed}}" style="flex: 1 1 0; height: 100%; display: flex; align-items: flex-end"><span style="{{d.style}}"></span></button></sc-for>
+</div>
+<span style="{{avgLine}}"></span><span style="{{avgLab}}">Avg CA$110</span>
+<span style="position: absolute; left: 0; bottom: 0; font-size: 10px; color: #8A8896">Sep 9</span><span style="position: absolute; right: 0; bottom: 0; font-size: 10px; color: #8A8896">Sep 24</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Average</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$110</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Highest day</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">Sep 12 · CA$230</b></span></div>
+<sc-if value="{{day.open}}" hint-placeholder-val="{{false}}">
+<div style="padding: 12px; border-radius: 14px; background: #F7F6FA; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 13px; font-variant-numeric: tabular-nums"><b style="font-weight: 700">{{day.label}}</b><span style="color: #55555F">{{day.total}}</span></div>
+<sc-for list="{{day.rows}}" as="r" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-variant-numeric: tabular-nums"><span style="color: #3A3A42">{{r.m}} · <span style="color: #8A8896">{{r.c}}</span></span><b style="font-weight: 600">{{r.a}}</b></div></sc-for>
+</div>
+</sc-if>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">By category</h2><span style="font-size: 12px; color: #6B6B76">With trip budgets</span></div>
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<div style="{{c.row}}">
+<div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-variant-numeric: tabular-nums"><span style="font-weight: 600">{{c.name}}</span><span style="font-size: 13px; color: #55555F"><b style="color: #111114; font-weight: 700">{{c.spent}}</b>{{c.of}}</span></div>
+<div style="height: 8px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="{{c.fill}}"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76"><span style="{{c.noteStyle}}">{{c.note}}</span><span>{{c.share}} of trip</span></div>
+</div>
+</sc-for>
+</section>
+
+<sc-if value="{{hasMembers}}" hint-placeholder-val="{{true}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">By person</h2>
+<div style="display: flex; height: 10px; gap: 2px"><sc-for list="{{members}}" as="m" hint-placeholder-count="2"><span style="{{m.bar}}"></span></sc-for></div>
+<sc-for list="{{members}}" as="m" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px"><span style="{{m.avatar}}">{{m.initial}}</span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">{{m.name}}</span><span style="font-size: 11px; color: #6B6B76">{{m.meta}}</span></span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{m.amount}}</b></div>
+</sc-for>
+<span style="font-size: 11px; color: #8A8896">Private card details stay private. Only trip totals are shared.</span>
+</section>
+</sc-if>
+<sc-if value="{{isPersonal}}" hint-placeholder-val="{{false}}"><div style="display: flex; justify-content: space-between; padding: 12px 16px; border-radius: 16px; background: #F6F5F8; font-size: 13px"><span style="color: #55555F">Owner</span><b style="font-weight: 600">Personal</b></div></sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Payment methods</h2><span style="font-size: 12px; color: #6B6B76">Tap to filter</span></div>
+<sc-for list="{{pays}}" as="p" hint-placeholder-count="4">
+<button onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="{{p.btn}}"><span style="{{p.thumb}}"></span><span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{p.name}}</span><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{p.orig}}</span></span><b style="font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums">{{p.v}}</b></button>
+</sc-for>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Currency costs</h2>
+<div style="margin-top: 4px"><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Foreign transaction fees</span><b style="font-weight: 600; color: #111114">{{t.fxFees}}</b></div><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">ATM fees</span><b style="font-weight: 600; color: #111114">{{t.atmFees}}</b></div><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Currency exchange fees</span><b style="font-weight: 600; color: #111114">{{t.exFees}}</b></div></div>
+<div style="display: flex; justify-content: space-between; padding: 8px 0 2px; font-size: 14px; font-variant-numeric: tabular-nums"><span style="font-weight: 600">Total currency costs</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">{{t.fxTotal}}</b></div>
+<span style="font-size: 12px; line-height: 17px; color: #55555F">{{t.fxNote}}</span>
+</section>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Cash</h2>
+<div style="display: flex; height: 10px; gap: 2px"><span style="width: 67.7%; background: #2A2540; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #BFE3CF; border-radius: 3px 999px 999px 3px"></span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Withdrawn</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">S/ 1,100</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Spent</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">S/ 745</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Left, estimated</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">≈ S/ 355</b></span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #EEF3FB; font-size: 12px; line-height: 17px; color: #1F2F4D"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"></path></svg><span>ATM withdrawals are transfers into cash, not spending. Cash counts when you record what it bought.</span></div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Planned expenses</h2><button style="font-size: 12px; font-weight: 600; color: #5134C9">+ Add</button></div>
+<sc-for list="{{planned}}" as="p" hint-placeholder-count="4"><div style="{{p.row}}"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">{{p.n}}</span><span style="font-size: 11px; color: #6B6B76">{{p.d}}</span></span><span style="padding: 1px 7px; border-radius: 999px; box-shadow: inset 0 0 0 1px #CFCCD8; font-size: 10px; font-weight: 600; color: #6B6B76">Planned</span><span style="display: flex; flex-direction: column; align-items: flex-end; min-width: 70px; font-variant-numeric: tabular-nums"><b style="font-size: 14px; font-weight: 700">{{p.a}}</b><span style="font-size: 11px; color: #6B6B76">{{p.c}}</span></span></div></sc-for>
+<span style="font-size: 11px; color: #8A8896">Planned expenses feed the forecast but don’t count as spending until they happen.</span>
+</section>
+
+<section style="{{fc.box}}">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Trip forecast</h2><span style="padding: 2px 7px; border: 1px dashed #9DB6E3; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #2D5DB0; white-space: nowrap">PROJECTED</span></div>
+<div style="display: flex; height: 12px; gap: 2px; position: relative"><span style="{{fc.b1}}"></span><span style="{{fc.b2}}"></span><span style="{{fc.b3}}"></span><span style="flex-grow: 1; background: #FFFFFF; border-radius: 3px 999px 999px 3px"></span><span style="{{fc.budgetMark}}"></span></div>
+<div><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Spent so far · actual</span><b style="font-weight: 600; color: #111114">CA$1,760</b></div><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Known future expenses · planned</span><b style="font-weight: 600; color: #111114">{{fc.planned}}</b></div><div style="display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Expected day-to-day spending</span><b style="font-weight: 600; color: #111114">{{fc.variable}}</b></div><div style="display: flex; justify-content: space-between; padding: 9px 0; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Projected final spend</span><b style="font-weight: 700; color: #2D5DB0">{{fc.total}}</b></div></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-variant-numeric: tabular-nums"><span>{{fc.diffLabel}}</span><b style="{{fc.diffStyle}}">{{fc.diff}}</b></div>
+<span style="font-size: 11px; line-height: 16px; color: #6B6B76">Uses actual trip spending, the {{fc.days}} days left at your CA$110 daily average, and planned expenses. Budget CA$3,500.</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Trip fund</h2><a href="GoalDetailPeru.dc.html" style="font-size: 12px; font-weight: 600; color: #5134C9">Peru 2026 goal ›</a></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Saved before trip</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$3,500</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Spent so far</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,760</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76; display: flex; align-items: center; gap: 5px">Remaining fund</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">CA$1,740</b></span></div>
+<span style="font-size: 11px; color: #8A8896">Travel Savings is the source of truth. The fund shows what’s left there for the trip.</span>
+</section>
+</div>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">Recent transactions</h2><sc-if value="{{payFilterOn}}" hint-placeholder-val="{{false}}"><button onClick="{{clearPay}}" style="height: 30px; padding: 0 10px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 12px; font-weight: 600">{{payFilterLabel}} ✕</button></sc-if></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{txs}}" as="x" hint-placeholder-count="4">
+<div style="{{x.row}}"><span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 14px; font-weight: 600">{{x.m}}</span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{x.meta}}</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{x.a1}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{x.a2}}</span></span></div>
+</sc-for>
+<sc-if value="{{noTx}}" hint-placeholder-val="{{false}}"><span style="display: block; padding: 14px 0; font-size: 13px; color: #6B6B76">No recent trip transactions with this card.</span></sc-if>
+</div>
+<a href="TxTrip.dc.html" style="align-self: center; padding: 6px 12px; font-size: 13px; font-weight: 600; color: #5134C9">View all trip transactions</a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{insights}}" as="i" hint-placeholder-count="2"><div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 999px; background: #EEF1F5; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475467" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v5M12 7.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg></span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; line-height: 21px; font-weight: 700">{{i.t}}</span></div></sc-for>
+</section>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetEdit}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Edit trip" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Edit trip</span><span style="font-size: 13px; color: #6B6B76">Past transactions keep their original values.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Trip name</span><input type="text" inputmode="text" placeholder="" value="Peru 2026" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Destination</span><input type="text" inputmode="text" placeholder="" value="Lima and Cusco" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Start</span><input type="text" inputmode="text" placeholder="" value="Sep 9, 2026" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">End</span><input type="text" inputmode="text" placeholder="" value="Oct 2, 2026" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; align-items: end"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Budget</span><input type="text" inputmode="decimal" placeholder="" value="CA$3,500" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{eBud}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Local currencies</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{eLocal}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for><button style="height: 34px; padding: 0 12px; border-radius: 999px; background: #F6F5F8; font-size: 13px; font-weight: 500; color: #3A3A42">+ Add</button></div></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #EEF3FB"><span style="font-size: 13px; line-height: 18px; color: #1F2F4D">This trip has a USD charge. Add USD as a travel currency?</span><button style="height: 32px; padding: 0 12px; border-radius: 999px; background: #FFFFFF; color: #2D5DB0; font-size: 12px; font-weight: 600; white-space: nowrap">Add USD</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Members</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{eMembers}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">Not everyone has to join. Trips work without a household too.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Linked goal</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{eGoal}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" value="Flights paid separately in July." readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Save trip</button>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"members": [["Juan", 940, 18], ["Karinna", 820, 16]], "day": null, "pay": null, "review": false, "over": false, "personal": false, "menu": false, "sheet": "edit", "eBudCur": "CAD", "eLoc": ["PEN"], "eMem": ["Juan", "Karinna"], "eGoalSel": "Peru 2026"}; }
+  renderVals() {
+    const s = this.state;
+    const review = !!s.review, over = !!s.over, personal = !!s.personal;
+    const K = review ? 3240 / 1760 : 1;
+    const fmt = (n) => 'CA$' + Math.round(n).toLocaleString('en-US');
+    const t = {
+      status: review ? 'Completed' : 'Active', dayLabel: review ? '24 days' : 'Day 16 of 24',
+      statusStyle: 'padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; ' + (review ? 'background: #F1F0F4; color: #55555F;' : 'background: #E6F4EC; color: #1A6B46;'),
+      pen: review ? 'S/ 8,920' : 'S/ 4,410', penSub: review ? 'Cards S/ 7,210 · cash S/ 1,710' : 'Cards S/ 3,665 · cash S/ 745', penCad: review ? '≈ CA$3,076' : '≈ CA$1,597',
+      total: review ? 'CA$3,240' : 'CA$1,760',
+      fxFees: review ? 'CA$76.00' : 'CA$42.80', atmFees: review ? 'CA$24.00' : 'CA$12.00', exFees: review ? 'CA$8.00' : 'CA$8.00', fxTotal: review ? 'CA$108.00' : 'CA$62.80',
+      fxNote: review ? 'CIBC Visa accounted for CA$51 of foreign transaction fees on this trip.' : 'CIBC Visa has generated CA$28.40 in FX fees on this trip, and CIBC Costco Mastercard CA$14.40.'
+    };
+    const DAILY = [120, 185, 95, 230, 60, 88, 72, 140, 64, 98, 110, 45, 132, 76, 90, 155];
+    const POOL = [['Restaurant Central', 'Dining'], ['Taxi', 'Transportation'], ['Artisan market', 'Shopping'], ['Museum tickets', 'Entertainment'], ['Café', 'Dining'], ['Pharmacy', 'Other'], ['Family lunch', 'Family'], ['Bus to Cusco', 'Transportation']];
+    const sel = s.day;
+    const daily = DAILY.map((v, i) => ({ aria: 'Sep ' + (9 + i) + ', CA$' + v, pressed: i === sel ? 'true' : 'false', pick: () => this.setState({ day: sel === i ? null : i }),
+      style: 'width: 100%; border-radius: 3px 3px 1px 1px; display: block; height: ' + (v / 240 * 114).toFixed(0) + 'px; background: ' + (i === sel ? '#5134C9' : v === 230 ? '#8C78E0' : '#CFC6F2') + ';' }));
+    const yOf = (v) => (18 + v / 240 * 114).toFixed(0);
+    const avgLine = 'position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px solid #2A2540; pointer-events: none; bottom: ' + yOf(110) + 'px;';
+    const avgLab = 'position: absolute; right: 0; font-size: 10px; font-weight: 600; color: #2A2540; background: #FFFFFF; padding-left: 4px; pointer-events: none; bottom: ' + (+yOf(110) + 3) + 'px;';
+    const day = sel == null ? { open: false, label: '', total: '', rows: [] } : (() => {
+      const v = DAILY[sel]; const n = v > 150 ? 3 : 2; const parts = n === 3 ? [0.52, 0.3, 0.18] : [0.64, 0.36];
+      return { open: true, label: 'Sep ' + (9 + sel), total: fmt(v) + ' · ' + n + ' transactions', rows: parts.map((p, j) => { const it = POOL[(sel + j * 3) % POOL.length]; return { m: it[0], c: it[1], a: 'S/ ' + Math.round(v * p / 0.3622) + ' ≈ ' + fmt(v * p) }; }) };
+    })();
+    const CATS = [['Dining', 580, 900], ['Transportation', 310, 500], ['Shopping', 280, 600], ['Family', 240, null], ['Entertainment', 190, 300], ['Other', 160, 1200]];
+    const tot = 1760 * K;
+    const cats = CATS.map((c, i) => { const v = c[1] * K; const p = c[2] ? v / c[2] * 100 : null; const near = p != null && p >= 85 && !review; return {
+      name: c[0], spent: fmt(v), of: c[2] && !review ? ' of ' + fmt(c[2]) : '', share: Math.round(v / tot * 100) + '%',
+      note: review ? '' : c[2] ? Math.round(p) + '% of category budget' : 'No category budget', noteStyle: near ? 'color: #94580A; font-weight: 600;' : '',
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: ' + (near ? '#E0A33B' : i === 0 ? '#5134C9' : '#B7A9EC') + '; width: ' + (review || !c[2] ? v / (580 * K) * 100 : p).toFixed(1) + '%;',
+      row: 'display: flex; flex-direction: column; gap: 6px; padding: 10px 0;' + (i > 0 ? ' border-top: 1px solid #F4F3F7;' : '') }; });
+    const MEM = review && !personal ? [['Juan', 1710, 31], ['Karinna', 1530, 28]] : s.members;
+    const mtot = MEM.reduce((a, m) => a + m[1], 0);
+    const COL = ['#2A2540', '#B7A9EC', '#7FA0D8'];
+    const members = MEM.map((m, i) => ({ name: m[0], initial: m[0].charAt(0), amount: fmt(m[1]), meta: Math.round(m[1] / mtot * 100) + '% · ' + m[2] + ' transactions',
+      avatar: 'width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #FFFFFF; background: ' + COL[i] + ';',
+      bar: 'width: ' + (m[1] / mtot * 100).toFixed(1) + '%; background: ' + COL[i] + '; border-radius: ' + (i === 0 ? '999px 3px 3px 999px' : '3px 999px 999px 3px') + ';' }));
+    const PAYS = [['CIBC Visa', 720, 'S/ 1,988 in PEN', 'linear-gradient(135deg, #7358E6, #2B1B78)'], ['CIBC Costco Mastercard', 460, 'S/ 817 + US$120', 'linear-gradient(135deg, #3A3552, #111018)'],
+      ['American Express', 310, 'S/ 856 in PEN', 'linear-gradient(135deg, #F4F2F8, #BBB5CC)'], ['Cash', 270, 'S/ 745 in PEN', 'linear-gradient(135deg, #F7EBD4, #E9CF9D)']];
+    const pays = PAYS.map((p) => { const on = s.pay === p[0]; return { name: p[0], v: fmt(p[1] * K), orig: review ? '' : p[2], pressed: on ? 'true' : 'false', pick: () => this.setState({ pay: on ? null : p[0] }),
+      thumb: 'width: 30px; height: 20px; flex-shrink: 0; border-radius: 4px; background: ' + p[3] + '; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.18);',
+      btn: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; ' + (on ? 'background: #F4F1FD; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #FFFFFF; box-shadow: inset 0 0 0 1px #F1F0F4;') }; });
+    const TX = [['Restaurant Central', 'Dining', 'Juan', 'CIBC Visa', 'S/ 180', '≈ CA$67', 'Sep 22'], ['Taxi', 'Transportation', 'Karinna', 'Cash', 'S/ 45', '≈ CA$16', 'Sep 22'],
+      ['Artisan market', 'Shopping', 'Karinna', 'American Express', 'S/ 320', '≈ CA$116', 'Sep 21'], ['Tour booking', 'Entertainment', 'Juan', 'CIBC Costco Mastercard', 'US$120', '≈ CA$164', 'Sep 20']];
+    const vis = TX.filter((x) => !s.pay || x[3] === s.pay);
+    const txs = vis.map((x, i) => ({ m: x[0], meta: x[1] + ' · ' + (personal ? '' : x[2] + ' · ') + x[3] + ' · ' + x[6], a1: x[4], a2: x[5], row: 'display: flex; align-items: center; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }));
+    const planned = over ? [['Machu Picchu train', 'Sep 27', 'S/ 1,100', '≈ CA$398'], ['Hotel upgrade, Cusco', 'Sep 28', 'S/ 650', '≈ CA$235'], ['Family dinner', 'Sep 30', 'S/ 300', '≈ CA$109'], ['Airport taxi', 'Oct 2', 'S/ 80', '≈ CA$29']]
+      : [['Machu Picchu train', 'Sep 27', 'S/ 650', '≈ CA$235'], ['Family dinner', 'Sep 30', 'S/ 300', '≈ CA$109'], ['Museum tickets', 'Oct 1', 'S/ 120', '≈ CA$43'], ['Airport taxi', 'Oct 2', 'S/ 80', '≈ CA$29']];
+    const plannedRows = planned.map((p, i) => ({ n: p[0], d: p[1], a: p[2], c: p[3], row: 'display: flex; align-items: center; gap: 10px; padding: 10px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }));
+    const pl = over ? 771 : 416, vr = over ? 1229 : 904, total = 1760 + pl + vr;
+    const W = (v) => (v / Math.max(total, 3500) * 100).toFixed(1);
+    const fc = {
+      planned: '≈ ' + fmt(pl), variable: '≈ ' + fmt(vr), total: '≈ ' + fmt(total), days: 8,
+      cushionLabel: over ? 'Possible overage' : 'Projected cushion', cushion: over ? '+' + fmt(total - 3500) : fmt(3500 - total), cushionColor: over ? '; color: #94580A' : '; color: #1A6B46',
+      diffLabel: over ? 'Potential difference' : 'Projected difference', diff: over ? fmt(total - 3500) + ' over budget' : fmt(3500 - total) + ' under budget',
+      diffStyle: 'font-weight: 700; color: ' + (over ? '#94580A' : '#1A6B46') + ';',
+      box: 'padding: 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 12px; background: ' + (over ? '#FDF6E8' : '#F5F8FD') + ';',
+      b1: 'width: ' + W(1760) + '%; background: #2A2540; border-radius: 999px 3px 3px 999px;', b2: 'width: ' + W(pl) + '%; background: repeating-linear-gradient(90deg, #7FA0D8 0 5px, #C9D8F0 5px 8px); border-radius: 3px;',
+      b3: 'width: ' + W(vr) + '%; background: repeating-linear-gradient(90deg, ' + (over ? '#E0A33B' : '#B7A9EC') + ' 0 5px, #FFFFFF 5px 8px); border-radius: 3px;',
+      budgetMark: 'position: absolute; top: -4px; width: 2px; height: 20px; margin-left: -1px; background: #2E9B69; border-radius: 1px; left: ' + W(3500) + '%;'
+    };
+    const insights = review ? [{ t: 'Peru 2026 finished CA$260 under its CA$3,500 budget.' }, { t: 'Dining was the largest category at 33% of trip spending.' }]
+      : over ? [{ t: 'Known bookings in the last week could take the trip about CA$260 over budget.' }, { t: 'Dining represents 33% of trip spending so far.' }]
+      : [{ t: 'At the current pace, the trip is projected to finish about CA$420 under budget.' }, { t: 'Cash is 15% of trip spending. Currency costs total CA$62.80 so far.' }];
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const segW = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const multi = (list, key) => list.map((o) => { const on = (s[key] || []).indexOf(o) >= 0; return { label: (on ? '✓ ' : '') + o, pressed: on ? 'true' : 'false', style: pill(on), pick: () => this.setState({ [key]: on ? s[key].filter((x) => x !== o) : (s[key] || []).concat([o]) }) }; });
+    const one = (list, key, st) => list.map((o) => ({ label: o, pressed: o === s[key] ? 'true' : 'false', style: st(o === s[key]), pick: () => this.setState({ [key]: o }) }));
+    return {
+      t, daily, avgLine, avgLab, day, cats, members, hasMembers: !personal, isPersonal: personal, pays, txs, noTx: txs.length === 0,
+      payFilterOn: !!s.pay, payFilterLabel: s.pay || '', clearPay: () => this.setState({ pay: null }), planned: plannedRows, fc, insights,
+      isActive: !review, isReview: review,
+      eBud: one(['CAD', 'USD'], 'eBudCur', segW), eLocal: multi(['PEN'], 'eLoc'), eMembers: multi(['Juan', 'Karinna'], 'eMem'), eGoal: one(['Peru 2026', 'None'], 'eGoalSel', pill),
+      menuOpen: !!s.menu, menuAttr: s.menu ? 'true' : 'false', toggleMenu: () => this.setState({ menu: !s.menu }), closeMenu: () => this.setState({ menu: false }),
+      openEdit: () => this.setState({ menu: false, sheet: 'edit' }), closeSheet: () => this.setState({ sheet: null }), sheetEdit: s.sheet === 'edit'
+    };
+  }
+}
+</script>
+</body>
+</html>

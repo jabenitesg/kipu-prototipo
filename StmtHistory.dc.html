@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement history</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+@keyframes kipu-spin{to{transform:rotate(360deg)}}
+@keyframes kipu-in{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:none}}
+@keyframes kipu-sweep{0%{top:6%}50%{top:88%}100%{top:6%}}
+@keyframes kipu-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 132px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; height: 40px"><a href="Cards.dc.html" style="display: flex; align-items: center; gap: 4px; margin-left: -6px; font-size: 14px; font-weight: 600; color: #2A2540"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Credit Cards</a></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 52px; height: 34px; border-radius: 6px; background: linear-gradient(135deg, #3A3552, #111018); box-shadow: 0 2px 6px rgba(24, 16, 64, 0.2)"></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">CIBC Costco Mastercard</span><span style="font-size: 12px; color: #6B6B76">Juan · •••• 4821</span></span></div>
+<div role="tablist" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #ECEBF0">
+<a href="CardDetail.dc.html" role="tab" style="height: 42px; font-size: 13px; color: #6B6B76; display: flex; align-items: center; justify-content: center">Overview</a>
+<a href="CardDetailTransactions.dc.html" role="tab" style="height: 42px; font-size: 13px; color: #6B6B76; display: flex; align-items: center; justify-content: center">Transactions</a>
+<span role="tab" aria-selected="true" style="height: 42px; font-size: 13px; font-weight: 600; color: #111114; border-bottom: 2px solid #5134C9; display: flex; align-items: center; justify-content: center; box-sizing: border-box">Statements</span>
+<a href="CardDetailRewards.dc.html" role="tab" style="height: 42px; font-size: 13px; color: #6B6B76; display: flex; align-items: center; justify-content: center">Rewards</a>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start">
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">September 2026</span><span style="font-size: 12px; color: #6B6B76">Due Oct 12 · Aug 20 – Sep 19</span></span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,284.62</span>
+<span style="position: relative"><button onClick="{{toggleMenu}}" aria-label="Statement actions" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" style="width: 32px; height: 32px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="#2A2540"><circle cx="5.5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18.5" cy="12" r="1.6"></circle></svg></button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<span role="menu" style="position: absolute; top: 40px; right: 0; z-index: 30; width: 232px; padding: 6px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 16px; box-shadow: 0 14px 34px rgba(24, 16, 64, 0.14); display: flex; flex-direction: column">
+<button role="menuitem" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4"></path></svg>View original file</button>
+<button role="menuitem" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>View imported transactions</button>
+<button role="menuitem" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg>Reprocess statement</button>
+<button role="menuitem" onClick="{{askDelete}}" style="height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; color: #A3325A"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3325A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"></path></svg>Delete statement record</button>
+</span>
+</sc-if></span></span>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="padding: 3px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Imported</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3A3A42"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A3A42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4"></path></svg>34 transactions · PDF · 4 pages</span>
+</div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">August 2026</span><span style="font-size: 12px; color: #6B6B76">Due Sep 12</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,120.00</span><span style="padding: 1px 8px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Paid</span></span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">July 2026</span><span style="font-size: 12px; color: #6B6B76">Due Aug 12</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">CA$860.00</span><span style="padding: 1px 8px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Paid</span></span></div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{confirmOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 60; background: rgba(17, 17, 20, 0.34)">
+<div role="alertdialog" aria-label="Delete statement record" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; font-weight: 700">Delete statement record?</span><span style="font-size: 14px; line-height: 20px; color: #55555F">The September statement and its file are removed. The 34 transactions imported from it stay in Kipu.</span></span>
+<button onClick="{{toggleAlso}}" role="checkbox" aria-checked="{{alsoAttr}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #F6F5F8; text-align: left"><span style="{{alsoBox}}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="font-size: 14px; color: #3A3A42">Also delete the 34 imported transactions</span></button>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button onClick="{{cancelDelete}}" style="height: 52px; border-radius: 16px; background: #F5F4F8; font-size: 15px; font-weight: 600">Cancel</button>
+<button onClick="{{cancelDelete}}" style="height: 52px; border-radius: 16px; background: #FCEBF1; color: #A3325A; font-size: 15px; font-weight: 600">{{deleteLabel}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { menu: true, confirm: false, also: false }; }
+  renderVals() {
+    const s = this.state;
+    return {
+      menuOpen: !!s.menu, menuExpanded: s.menu ? 'true' : 'false', toggleMenu: () => this.setState({ menu: !s.menu }),
+      askDelete: () => this.setState({ menu: false, confirm: true }), confirmOpen: !!s.confirm, cancelDelete: () => this.setState({ confirm: false, also: false }),
+      alsoAttr: s.also ? 'true' : 'false', toggleAlso: () => this.setState({ also: !s.also }),
+      alsoBox: 'width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; ' + (s.also ? 'background: #A3325A;' : 'background: #FFFFFF; border: 2px solid #D2CEDC;'),
+      deleteLabel: s.also ? 'Delete all' : 'Delete record'
+    };
+  }
+}
+</script>
+</body>
+</html>

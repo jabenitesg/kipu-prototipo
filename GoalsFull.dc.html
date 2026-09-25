@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kipu Goals, full scroll</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 2240px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow: hidden; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Plan.dc.html" aria-label="Back to Plan" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">FINANCIAL GOALS</span></div>
+<button onClick="{{openAdd}}" aria-label="Add goal" style="width: 40px; height: 40px; border-radius: 999px; background: #5134C9; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Goals</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Save with purpose and see when you’ll get there.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Plan.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Overview</a><a href="Budget.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Budget</a><a href="Bills.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Bills &amp; recurring</a><a href="Goals.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Goals</a><a href="Trips.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Trips</a></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px">
+<div role="group" aria-label="Owner" style="display: flex; gap: 5px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+<div role="group" aria-label="Currency" style="display: flex; padding: 2px; gap: 1px; background: #F1F0F4; border-radius: 10px"><sc-for list="{{currencies}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+</div>
+</header>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="padding: 36px 22px; border-radius: 24px; background: #FFFFFF; border: 1px dashed #E4E2EA; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 60px; height: 60px; border-radius: 20px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700">What are you working toward?</span><span style="font-size: 14px; line-height: 20px; color: #55555F">Create a goal and Kipu will help you understand the path to reach it.</span></span>
+<button onClick="{{openAdd}}" style="width: 100%; height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; margin-top: 4px">Create goal</button>
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px"><button onClick="{{openAdd}}" style="height: 34px; padding: 0 12px; border-radius: 999px; background: #F5F4F8; font-size: 13px; font-weight: 500">Emergency Fund</button><button onClick="{{openAdd}}" style="height: 34px; padding: 0 12px; border-radius: 999px; background: #F5F4F8; font-size: 13px; font-weight: 500">Travel</button><button onClick="{{openAdd}}" style="height: 34px; padding: 0 12px; border-radius: 999px; background: #F5F4F8; font-size: 13px; font-weight: 500">Large purchase</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{hasGoals}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+
+<section aria-label="Goals summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Saved toward goals</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{sum.saved}}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Overall</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #1A6B46">{{sum.pct}}</span></span>
+</div>
+<div style="height: 10px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="{{sum.fill}}"></div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 12px; border-top: 1px solid #F1F0F4; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Total target</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">{{sum.target}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding-left: 14px; border-left: 1px solid #F1F0F4"><span style="font-size: 11px; color: #6B6B76">Monthly contributions</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">{{sum.monthly}}</b></span>
+</div>
+<span style="font-size: 13px; color: #3A3A42; font-variant-numeric: tabular-nums">{{sum.line}}</span>
+</section>
+
+<button onClick="{{openContrib}}" style="height: 48px; border-radius: 16px; background: #F4F1FD; color: #5134C9; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Add contribution</button>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Active goals</h2><span style="font-size: 12px; color: #6B6B76">{{countLabel}}</span></div>
+<sc-for list="{{goals}}" as="g" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden">
+<a href="{{g.href}}" aria-label="{{g.name}}" style="display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 14px; color: inherit">
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.name}}</span><sc-if value="{{g.primary}}" hint-placeholder-val="{{false}}"><span title="Primary goal" aria-label="Primary goal" style="display: flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg></span></sc-if></span>
+<span style="{{g.ownerStyle}}">{{g.owner}}</span>
+</span>
+<span style="display: flex; justify-content: space-between; align-items: baseline; font-variant-numeric: tabular-nums"><span style="font-size: 13px; color: #55555F"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: #111114">{{g.saved}}</b> of {{g.target}}</span><span style="font-size: 13px; font-weight: 700; color: {{g.pctColor}}">{{g.pct}}</span></span>
+<span style="height: 8px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="{{g.fill}}"></span><sc-if value="{{g.hasMarker}}" hint-placeholder-val="{{false}}"><span style="{{g.marker}}"></span></sc-if></span>
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">{{g.meta}}</span><span style="{{g.statusStyle}}">{{g.status}}</span></span>
+</a>
+<div style="display: flex; border-top: 1px solid #F4F3F7">
+<button onClick="{{g.contribute}}" style="flex: 1 1 0; height: 44px; font-size: 13px; font-weight: 600; color: #5134C9; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Add contribution</button>
+<a href="{{g.href}}" style="flex: 1 1 0; height: 44px; font-size: 13px; font-weight: 600; color: #3A3A42; display: flex; align-items: center; justify-content: center; border-left: 1px solid #F4F3F7">View goal ›</a>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">This month</h2><span style="font-size: 12px; color: #6B6B76">Also shown in Plan</span></div>
+<sc-for list="{{funding}}" as="f" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 82px; align-items: center; gap: 10px; font-size: 12px; font-variant-numeric: tabular-nums"><span style="color: #3A3A42; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.name}}</span><span style="height: 8px; background: #F1F0F4; border-radius: 999px; position: relative; display: block"><span style="{{f.fill}}"></span></span><span style="text-align: right; color: #55555F">{{f.text}}</span></div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #F1F0F4; font-size: 13px; font-variant-numeric: tabular-nums"><span style="color: #55555F">Planned <b style="color: #111114">CA$900</b> · contributed <b style="color: #111114">CA$550</b></span><b style="color: #5134C9; font-weight: 700">CA$350 to go</b></div>
+<span style="font-size: 11px; line-height: 16px; color: #8A8896">Scheduled contributions are counted as committed in Safe to Spend. You can change this per goal.</span>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; color: #2D5DB0"><span style="width: 22px; height: 22px; border-radius: 999px; background: #EAF1FC; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"></path></svg></span>INSIGHT · SIMULATION</span>
+<p style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 22px; font-weight: 700">Adding CA$50 a month to Camera Equipment could bring it forward by about 6 months.</p>
+<p style="margin: 0; font-size: 13px; color: #55555F">From Aug 2028 to Feb 2028, at CA$200 instead of CA$150.</p>
+<a href="Insights.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9">View insight →</a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Goal reached</h2>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 12px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Travel Fund</span><span style="font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums">CA$4,000 of CA$4,000 · completed Sep 2026</span></span></div>
+<div style="height: 6px; background: #2E9B69; border-radius: 999px"></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><button style="height: 36px; border-radius: 12px; background: #F5F4F8; font-size: 12px; font-weight: 600">Archive</button><button style="height: 36px; border-radius: 12px; background: #F5F4F8; font-size: 12px; font-weight: 600">Keep active</button><button style="height: 36px; border-radius: 12px; background: #F5F4F8; font-size: 12px; font-weight: 600">Increase target</button></div>
+</div>
+<a href="#" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 16px; background: #F6F5F8; color: inherit"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">2 archived goals</span><span style="font-size: 12px; color: #6B6B76">History kept · not in active totals</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a>
+</section>
+
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetContrib}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add contribution" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add contribution</span><span style="font-size: 13px; color: #6B6B76">Recorded as a transfer, not spending.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Goal</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{cGoals}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Amount</span><input type="text" inputmode="decimal" value="CA$300" readonly style="height: 54px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 700; outline: none"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Date</span><input type="text" inputmode="text" placeholder="Today" value="Today" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Note</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">From</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{cFrom}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #EEF3FB; font-size: 13px; color: #1F2F4D"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"></path></svg><span>{{cToLine}}</span></div>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Add contribution</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetAdd}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add goal" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add goal</span><span style="font-size: 13px; color: #6B6B76">A name, target and owner are enough to start.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 6px"><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: #5134C9"></span><span style="{{add.bar2}}"></span></div><span style="font-size: 12px; color: #6B6B76">Step {{add.step}} of 2 · {{add.stepName}}</span></div>
+<sc-if value="{{add.isStep1}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Start from a template</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.templates}}" as="o" hint-placeholder-count="9"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Goal name</span><input type="text" inputmode="text" placeholder="e.g. New laptop" value="{{add.nameVal}}" readonly style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Target</span><input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.curs}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.owners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+</div>
+</sc-if>
+<sc-if value="{{add.isStep2}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Already saved</span><input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Monthly contribution</span><input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Target date</span><input type="text" inputmode="text" placeholder="Optional · e.g. Jun 2027" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<button onClick="{{add.toggleOpt}}" aria-expanded="{{add.optAttr}}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid #F1F0F4; font-size: 13px; font-weight: 600; color: #3A3A42"><span>Optional · linked account, priority, notes</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{add.optIcon}}"></path></svg></button>
+<sc-if value="{{add.optOpen}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Linked savings account</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{add.accounts}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">A linked account’s balance counts toward the goal, so money isn’t entered twice.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Priority</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{add.prios}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+</div></sc-if>
+</div>
+</sc-if>
+<div style="display: flex; gap: 10px">
+<button onClick="{{add.secondary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 15px; font-weight: 600">{{add.secondaryLabel}}</button>
+<button onClick="{{add.primary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">{{add.primaryLabel}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":2240}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"owner": "All", "currency": "Combined", "sheet": null, "empty": false, "step": 1, "cGoal": "Emergency Fund", "cFrom": "CIBC Chequing", "aTpl": "Equipment", "aCur": "CAD", "aOwner": "Juan", "aAcct": "None", "aPrio": "Medium", "aOpt": false}; }
+  renderVals() {
+    const s = this.state;
+    const GOALS = [{"id": "emerg", "name": "Emergency Fund", "owner": "Household", "saved": 5800, "target": 10000, "monthly": 500, "targetIdx": 8, "primary": true, "linked": "Emergency Savings", "linkNote": "Uses the account balance automatically", "cat": "Safety", "prio": "High", "href": "GoalDetail.dc.html", "thisMonth": [500, 300], "history": [["Sep 12", 300, "Juan", "From CIBC Chequing"], ["Aug 28", 200, "Karinna", "From Everyday Chequing"], ["Aug 12", 300, "Juan", "From CIBC Chequing"]]}, {"id": "peru", "name": "Peru 2026", "owner": "Household", "saved": 1400, "target": 3500, "monthly": 250, "targetIdx": 2, "linked": "Travel Savings", "linkNote": "CA$1,400 allocated of CA$2,400 in the account", "cat": "Travel", "prio": "Medium", "href": "GoalDetailPeru.dc.html", "split": [["Juan", 800], ["Karinna", 600]], "thisMonth": [250, 250], "history": [["Sep 15", 250, "Juan", "From CIBC Chequing"], ["Sep 1", 250, "Karinna", "From Everyday Chequing"], ["Aug 15", 250, "Juan", "From CIBC Chequing"]]}, {"id": "camera", "name": "Camera Equipment", "owner": "Juan", "saved": 1000, "target": 4500, "monthly": 150, "targetIdx": null, "linked": null, "linkNote": "Tracked manually", "cat": "Purchase", "prio": "Low", "href": "#", "thisMonth": [150, 0], "history": []}, {"id": "personal", "name": "Personal Goal", "owner": "Karinna", "saved": 0, "target": 3500, "monthly": 0, "targetIdx": null, "linked": null, "linkNote": "Tracked manually", "cat": "Personal", "prio": "Medium", "href": "#", "thisMonth": [0, 0], "history": []}];
+
+    const MON = ['Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026', 'Jan 2027', 'Feb 2027', 'Mar 2027', 'Apr 2027', 'May 2027', 'Jun 2027', 'Jul 2027', 'Aug 2027', 'Sep 2027', 'Oct 2027', 'Nov 2027', 'Dec 2027', 'Jan 2028', 'Feb 2028', 'Mar 2028', 'Apr 2028', 'May 2028', 'Jun 2028', 'Jul 2028', 'Aug 2028', 'Sep 2028', 'Oct 2028'];
+    const fmt = (n) => 'CA$' + Math.round(n).toLocaleString('en-US');
+    const short = (i) => MON[Math.min(i, MON.length - 1)].replace(' 20', ' ’').replace('’', '’');
+    const monthsTo = (g, extra) => { const m = g.monthly + (extra || 0); return m > 0 ? (g.target - g.saved) / m : null; };
+    const statusOf = (g) => {
+      if (g.saved === 0 && g.monthly === 0) return ['Not started', '#55555F', '#F1F0F4'];
+      if (g.saved >= g.target) return ['Goal reached', '#1A6B46', '#E6F4EC'];
+      if (g.targetIdx == null) return ['No target date', '#2D5DB0', '#EAF1FC'];
+      const p = Math.floor(monthsTo(g));
+      if (p < g.targetIdx) return ['Ahead', '#1A6B46', '#E6F4EC'];
+      if (p === g.targetIdx) return ['On track', '#1A6B46', '#E6F4EC'];
+      return ['Behind target pace', '#94580A', '#FDF1DC'];
+    };
+    const chipS = (c) => 'padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: ' + c[1] + '; background: ' + c[2] + ';';
+
+    const chip = (on) => 'height: 34px; padding: 0 11px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #FFFFFF; color: #3A3A42; font-weight: 500; box-shadow: inset 0 0 0 1px #E9E7EF;');
+    const mini = (on) => 'height: 30px; padding: 0 8px; border-radius: 8px; font-size: 12px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const seg = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, st, extra) => list.map((o) => ({ label: o, pressed: o === s[key] ? 'true' : 'false', style: st(o === s[key]), pick: () => this.setState(Object.assign({ [key]: o }, extra ? extra(o) : {})) }));
+    const vis = GOALS.filter((g) => s.owner === 'All' || g.owner === s.owner);
+    const saved = vis.reduce((a, g) => a + g.saved, 0), target = vis.reduce((a, g) => a + g.target, 0), monthly = vis.reduce((a, g) => a + g.monthly, 0);
+    const sum = { saved: fmt(saved), target: fmt(target), monthly: fmt(monthly), pct: target ? Math.round(saved / target * 100) + '%' : '0%',
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #2E9B69; width: ' + (target ? saved / target * 100 : 0).toFixed(1) + '%;',
+      line: fmt(target - saved) + ' remaining across ' + vis.length + (vis.length === 1 ? ' goal.' : ' goals.') };
+    const goals = vis.map((g) => {
+      const p = g.saved / g.target * 100, st = statusOf(g), m = monthsTo(g);
+      const meta = g.monthly === 0 ? 'Add a monthly contribution to see a forecast' : fmt(g.monthly) + '/mo · ' + (g.targetIdx != null ? 'target ' + MON[g.targetIdx] + ' · ' : '') + 'est. ' + MON[Math.floor(m)];
+      return { name: g.name, owner: g.owner, primary: !!g.primary, href: g.href, saved: fmt(g.saved), target: fmt(g.target),
+        pct: g.saved === 0 ? '0%' : Math.round(p) + '%', pctColor: p >= 100 ? '#1A6B46' : '#111114', meta,
+        ownerStyle: 'flex-shrink: 0; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; ' + (g.owner === 'Household' ? 'background: #F4F1FD; color: #5134C9;' : 'background: #F1F0F4; color: #55555F;'),
+        fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + p.toFixed(1) + '%; background: ' + (st[0] === 'Behind target pace' ? '#E0A33B' : '#5134C9') + ';',
+        hasMarker: false, marker: '', status: st[0], statusStyle: chipS(st),
+        contribute: () => this.setState({ sheet: 'contrib', cGoal: g.name }) };
+    });
+    const funding = GOALS.filter((g) => g.thisMonth[0] > 0).map((g) => { const f = g.thisMonth, done = f[1] >= f[0]; return {
+      name: g.name, text: done ? 'Done' : fmt(f[1]) + ' of ' + fmt(f[0]),
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + (f[1] / f[0] * 100).toFixed(1) + '%; background: ' + (done ? '#2E9B69' : '#5134C9') + ';' }; });
+    const cg = GOALS.find((g) => g.name === s.cGoal) || GOALS[0];
+    const st = s.step || 1;
+    const TEMPL = ['Emergency Fund', 'Travel', 'Large purchase', 'Home', 'Education', 'Vehicle', 'Equipment', 'Debt payoff', 'Other'];
+    const add = {
+      step: st, stepName: st === 1 ? 'What and how much' : 'How you’ll get there', isStep1: st === 1, isStep2: st === 2,
+      bar2: 'flex: 1 1 0; height: 4px; border-radius: 999px; background: ' + (st === 2 ? '#5134C9' : '#E4E1EC') + ';',
+      templates: opts(TEMPL, 'aTpl', pill), nameVal: s.aTpl && s.aTpl !== 'Other' ? s.aTpl : '',
+      curs: opts(['CAD', 'USD'], 'aCur', seg), owners: opts(['Juan', 'Karinna', 'Household'], 'aOwner', seg),
+      accounts: opts(['Emergency Savings', 'Travel Savings', 'None'], 'aAcct', pill), prios: opts(['High', 'Medium', 'Low'], 'aPrio', seg),
+      optOpen: !!s.aOpt, optAttr: s.aOpt ? 'true' : 'false', optIcon: s.aOpt ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6', toggleOpt: () => this.setState({ aOpt: !s.aOpt }),
+      primaryLabel: st === 1 ? 'Next' : 'Create goal', secondaryLabel: st === 1 ? 'Save now' : 'Back',
+      primary: () => this.setState(st === 1 ? { step: 2 } : { sheet: null, step: 1 }), secondary: () => this.setState(st === 1 ? { sheet: null } : { step: 1 })
+    };
+    return {
+      owners: opts(['Juan', 'Karinna', 'Household', 'All'], 'owner', chip), currencies: opts(['CAD', 'USD', 'Combined'], 'currency', mini),
+      isEmpty: !!s.empty, hasGoals: !s.empty, sum, goals, funding, countLabel: goals.length + ' active',
+      cGoals: opts(GOALS.map((g) => g.name), 'cGoal', pill), cFrom: opts(['CIBC Chequing', 'Shared Chequing', 'Everyday Chequing'], 'cFrom', pill),
+      cToLine: cg.linked ? 'To ' + cg.linked + ' · counts toward ' + cg.name : cg.name + ' is tracked manually. Kipu adds this to its balance.',
+      add, openAdd: () => this.setState({ sheet: 'add', step: 1 }), openContrib: () => this.setState({ sheet: 'contrib' }), closeSheet: () => this.setState({ sheet: null }),
+      sheetContrib: s.sheet === 'contrib', sheetAdd: s.sheet === 'add'
+    };
+  }
+}
+</script>
+</body>
+</html>

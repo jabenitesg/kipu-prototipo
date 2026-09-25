@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Household, member permissions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Main.dc.html" aria-label="Back" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">SHARED FINANCES</span></div>
+<sc-if value="{{hasHH}}" hint-placeholder-val="{{true}}"><button aria-label="Household settings" style="width: 40px; height: 40px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button></sc-if>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Household</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Manage shared money while keeping personal finances clear.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Money.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Accounts</a><a href="Cards.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Cards</a><a href="Loans.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Loans</a><a href="Transactions.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Activity</a><a href="Household.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Household</a></div>
+</header>
+
+<sc-if value="{{noHH}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section style="padding: 26px 22px; border-radius: 24px; background: #FFFFFF; border: 1px solid #EEEDF2; display: flex; flex-direction: column; gap: 14px">
+<span style="width: 52px; height: 52px; border-radius: 16px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10.5h12v9.5H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"></path></svg></span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; letter-spacing: -0.02em">Your finances can stay personal.</span>
+<span style="font-size: 14px; line-height: 21px; color: #55555F">Create a Household only if you want to manage shared expenses, accounts, goals or budgets with someone else.</span>
+<button onClick="{{openCreate}}" style="height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; margin-top: 4px">Create Household</button>
+<span style="font-size: 12px; color: #6B6B76; text-align: center">You can keep using Kipu personally without creating one.</span>
+</section>
+<section style="display: flex; flex-direction: column; gap: 10px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">A Household can help you share</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><sc-for list="{{shareables}}" as="s" hint-placeholder-count="6"><span style="padding: 14px 8px; border-radius: 16px; background: #F6F5F8; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #3A3A42"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.icon}}"></path></svg>{{s.label}}</span></sc-for></div>
+<span style="font-size: 12px; line-height: 17px; color: #8A8896">You choose each item to share. Nothing personal is shared by default.</span>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{hasHH}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 14px; background: #EEF3FB; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700">{{hhName}}</span><span style="font-size: 12px; color: #6B6B76">{{memberCount}} · CAD · you’re the owner</span></span></div>
+
+<div role="group" aria-label="View" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{scopes}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+
+<sc-if value="{{isPersonal}}" hint-placeholder-val="{{false}}">
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #5134C9"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10.5h12v9.5H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"></path></svg>Personal view · only you see this</span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Your personal cash</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums">CA$9,360</span></span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Personal Safe to Spend</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,060</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Your cards</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$2,400 · 20%</b></span></div>
+<span style="font-size: 12px; color: #6B6B76">Switch to Household to see shared money. Personal and Household Safe to Spend are always calculated separately.</span>
+</section>
+</sc-if>
+
+<sc-if value="{{isHousehold}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 22px">
+<section aria-label="Household summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; overflow: hidden">
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #6B6B76">Household cash</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{sum.cash}}</span><span style="font-size: 12px; color: #2D5DB0">Shared accounts plus balances members chose to include</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 16px 20px; border-top: 1px solid #F1F0F4"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared monthly income</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$6,590</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared spending</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$4,050</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared debt</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$45,270</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared goals</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">CA$8,200</b></span></div>
+</section>
+
+<section style="padding: 16px; border-radius: 20px; background: #F4F1FD; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600; color: #2B1F66">Household Safe to Spend</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #2B1F66; font-variant-numeric: tabular-nums">CA$1,480</b></div>
+<div style="display: flex; height: 8px; gap: 2px"><span style="width: 63.9%; background: #B7A9EC; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #5134C9; border-radius: 3px 999px 999px 3px"></span></div>
+<span style="font-size: 12px; color: #55506E; font-variant-numeric: tabular-nums">CA$4,100 shared cash − CA$2,620 shared commitments. Your personal Safe to Spend is separate.</span>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Members</h2><button onClick="{{openInvite}}" style="height: 32px; padding: 0 12px; border-radius: 999px; background: #F4F1FD; color: #5134C9; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px">+ Invite</button></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{members}}" as="m" hint-placeholder-count="3">
+<button onClick="{{m.pick}}" style="{{m.row}}"><span style="{{m.avatar}}">{{m.initial}}</span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{m.name}}</span><span style="font-size: 12px; color: #6B6B76">{{m.sub}}</span></span><span style="{{m.roleStyle}}">{{m.role}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+</sc-for>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">This month</h2><span style="font-size: 12px; color: #6B6B76">Shared records only</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared income</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">CA$6,590</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared spending</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$4,050</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Shared savings</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,220</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Net cash flow</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1A6B46">+CA$1,220</b></span></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Shared accounts</h2><span style="font-size: 12px; color: #6B6B76">In Household totals</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><sc-for list="{{accounts}}" as="r" hint-placeholder-count="3"><div style="{{r.row}}"><span style="{{r.tile}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="{{r.tagStyle}}">{{r.tag}}</span></span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span><sc-if value="{{r.hasBar}}" hint-placeholder-val="{{false}}"><span style="height: 5px; background: #F1F0F4; border-radius: 999px; position: relative; display: block; margin-top: 3px"><span style="{{r.bar}}"></span></span></sc-if></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{r.right}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{r.rightSub}}</span></span></div></sc-for></div></section>
+<section style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Shared credit</h2><span style="font-size: 12px; color: #6B6B76">18.4% household use</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><sc-for list="{{cards}}" as="r" hint-placeholder-count="3"><div style="{{r.row}}"><span style="{{r.tile}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="{{r.tagStyle}}">{{r.tag}}</span></span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span><sc-if value="{{r.hasBar}}" hint-placeholder-val="{{false}}"><span style="height: 5px; background: #F1F0F4; border-radius: 999px; position: relative; display: block; margin-top: 3px"><span style="{{r.bar}}"></span></span></sc-if></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{r.right}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{r.rightSub}}</span></span></div></sc-for></div><span style="font-size: 11px; line-height: 16px; color: #8A8896">A card can belong to one person and still count in Household totals.</span></section>
+<section style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Shared loans</h2><span style="font-size: 12px; color: #6B6B76">CA$45,270</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><sc-for list="{{loans}}" as="r" hint-placeholder-count="3"><div style="{{r.row}}"><span style="{{r.tile}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="{{r.tagStyle}}">{{r.tag}}</span></span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span><sc-if value="{{r.hasBar}}" hint-placeholder-val="{{false}}"><span style="height: 5px; background: #F1F0F4; border-radius: 999px; position: relative; display: block; margin-top: 3px"><span style="{{r.bar}}"></span></span></sc-if></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{r.right}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{r.rightSub}}</span></span></div></sc-for></div></section>
+<section style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Shared bills</h2><a href="Bills.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9">All bills ›</a></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><sc-for list="{{bills}}" as="r" hint-placeholder-count="3"><div style="{{r.row}}"><span style="{{r.tile}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="{{r.tagStyle}}">{{r.tag}}</span></span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span><sc-if value="{{r.hasBar}}" hint-placeholder-val="{{false}}"><span style="height: 5px; background: #F1F0F4; border-radius: 999px; position: relative; display: block; margin-top: 3px"><span style="{{r.bar}}"></span></span></sc-if></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{r.right}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{r.rightSub}}</span></span></div></sc-for></div></section>
+<section style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Shared goals</h2><a href="Goals.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9">Goals ›</a></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><sc-for list="{{goals}}" as="r" hint-placeholder-count="3"><div style="{{r.row}}"><span style="{{r.tile}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{r.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span><span style="{{r.tagStyle}}">{{r.tag}}</span></span><span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span><sc-if value="{{r.hasBar}}" hint-placeholder-val="{{false}}"><span style="height: 5px; background: #F1F0F4; border-radius: 999px; position: relative; display: block; margin-top: 3px"><span style="{{r.bar}}"></span></span></sc-if></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{r.right}}</b><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{r.rightSub}}</span></span></div></sc-for></div></section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Contributions</h2><button role="switch" onClick="{{toggleContrib}}" aria-checked="{{contribAttr}}" aria-label="Track contributions" style="display: flex"><span style="{{contribSw.track}}"><span style="{{contribSw.knob}}"></span></span></button></div>
+<sc-if value="{{contribOn}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; height: 10px; gap: 2px"><sc-for list="{{contrib}}" as="c" hint-placeholder-count="3"><span style="{{c.bar}}"></span></sc-for></div>
+<sc-for list="{{contrib}}" as="c" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; font-size: 13px; font-variant-numeric: tabular-nums"><span style="display: flex; align-items: center; gap: 8px; color: #3A3A42"><span style="{{c.dot}}"></span>{{c.name}}</span><b style="font-weight: 600">{{c.v}}</b></div></sc-for>
+<span style="font-size: 11px; color: #8A8896">Income that goes into shared accounts this month. Shown for clarity, not comparison.</span>
+</div>
+</sc-if>
+<sc-if value="{{contribOff}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: #6B6B76">Off. Turn on to see how shared income is funded.</span></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Recent shared expenses</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F1F0F4"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 14px; font-weight: 600">Costco</span><span style="padding: 1px 6px; border-radius: 999px; background: #EAF1FC; color: #2D5DB0; font-size: 10px; font-weight: 600">Household</span></span><span style="font-size: 12px; color: #6B6B76">Groceries · paid by {{m2name}} · CIBC Costco Mastercard</span></span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$320.47</b></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 14px; font-weight: 600">Restaurant</span><span style="padding: 1px 6px; border-radius: 999px; background: #EAF1FC; color: #2D5DB0; font-size: 10px; font-weight: 600">Household</span></span><span style="font-size: 12px; color: #6B6B76">Dining · paid by {{m1name}} · split 50 / 50 (optional)</span></span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$86.00</b></div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Privacy & sharing</h2><span style="font-size: 12px; color: #6B6B76">Your items</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{privacy}}" as="p" hint-placeholder-count="6">
+<button onClick="{{p.pick}}" style="{{p.row}}"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{p.name}}</span><span style="font-size: 11px; color: #6B6B76">{{p.kind}}</span></span><span style="{{p.stateStyle}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg>{{p.state}}</span></button>
+</sc-for>
+</div>
+<span style="font-size: 11px; line-height: 16px; color: #8A8896">Personal is the default. Other members never see transaction details unless you share the item.</span>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Notifications</h2></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{notifs}}" as="n" hint-placeholder-count="5"><button role="switch" onClick="{{n.pick}}" aria-checked="{{n.checked}}" style="{{n.row}}"><span style="font-size: 14px; text-align: left">{{n.label}}</span><span style="{{n.track}}"><span style="{{n.knob}}"></span></span></button></sc-for>
+</div>
+<span style="font-size: 11px; color: #8A8896">Private activity never notifies other members.</span>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid #ECEBF0">
+<button style="height: 46px; border-radius: 14px; background: #F6F5F8; font-size: 13px; font-weight: 600; color: #3A3A42">Transfer ownership</button>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><button onClick="{{openLeave}}" style="height: 40px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #6B6B76">Leave (as a member)</button><button onClick="{{openClose}}" style="height: 40px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #A3325A">Close Household</button></div>
+<span style="font-size: 11px; color: #8A8896; text-align: center">Owners transfer ownership before leaving.</span>
+</section>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#111114"></circle></svg><span style="font-size: 11px; font-weight: 600">Money</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetCreate}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Create Household" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Create Household</span><span style="font-size: 13px; color: #6B6B76">You’ll be the owner. Invite people now or later.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 6px"><sc-for list="{{cr.bars}}" as="b" hint-placeholder-count="4"><span style="{{b.style}}"></span></sc-for></div><span style="font-size: 12px; color: #6B6B76">Step {{cr.step}} of 4 · {{cr.stepName}}</span></div>
+<sc-if value="{{cr.s1}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 8px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Household name</span><input type="text" inputmode="text" placeholder="Name your household" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><span style="font-size: 12px; color: #8A8896">Any name works. Only members see it.</span></div></sc-if>
+<sc-if value="{{cr.s2}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 10px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Icon or photo · optional</span><div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px"><sc-for list="{{cr.icons}}" as="i" hint-placeholder-count="5"><button onClick="{{i.pick}}" aria-label="{{i.label}}" aria-pressed="{{i.pressed}}" style="{{i.style}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{i.color}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.path}}"></path></svg></button></sc-for></div><button style="height: 44px; border-radius: 12px; border: 1.5px dashed #DCD8E6; font-size: 13px; font-weight: 600; color: #3A3A42">Upload a photo</button></div></sc-if>
+<sc-if value="{{cr.s3}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Default currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{cr.curs}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 12px; color: #8A8896">Shared totals show in this currency. Accounts keep their own.</span></div></sc-if>
+<sc-if value="{{cr.s4}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Invite someone</span><input type="text" inputmode="email" placeholder="Email address" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><button style="height: 44px; border-radius: 12px; background: #F6F5F8; font-size: 13px; font-weight: 600; color: #3A3A42; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A3A42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Copy invite link instead</button><span style="font-size: 12px; color: #8A8896">A Household works with just you. Invite someone whenever you’re ready.</span></div></sc-if>
+<div style="display: flex; gap: 10px"><button onClick="{{cr.secondary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 15px; font-weight: 600">{{cr.secondaryLabel}}</button><button onClick="{{cr.primary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">{{cr.primaryLabel}}</button></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetMember}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Member permissions" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{mem.name}}</span><span style="font-size: 13px; color: #6B6B76">{{mem.sub}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Role</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{roles}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">Viewer is coming later.</span></div>
+<div style="display: flex; flex-direction: column"><sc-for list="{{perms}}" as="p" hint-placeholder-count="4"><button role="switch" onClick="{{p.pick}}" aria-checked="{{p.checked}}" style="{{p.row}}"><span style="display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{p.label}}</span><span style="font-size: 12px; color: #6B6B76">{{p.sub}}</span></span><span style="{{p.track}}"><span style="{{p.knob}}"></span></span></button></sc-for></div>
+<div style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #F6F5F8; font-size: 12px; line-height: 17px; color: #3A3A42"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10.5h12v9.5H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"></path></svg><span>Roles only cover shared finances. They never give access to anyone’s personal accounts.</span></div>
+<button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600">Done</button>
+<button style="align-self: center; padding: 6px 10px; font-size: 13px; font-weight: 600; color: #A3325A">Remove from Household</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetInvite}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Invite to Household" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Invite to Household</span><span style="font-size: 13px; color: #6B6B76">They’ll only see what’s shared.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Email</span><input type="text" inputmode="email" placeholder="name@email.com" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Role</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{invRoles}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Message</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px"><button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Send invite</button><button style="height: 50px; border-radius: 16px; background: #F5F4F8; font-size: 14px; font-weight: 600">Copy link</button></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Invitations</span>
+<div style="background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 0; border-bottom: 1px solid #ECEAF1"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">alex@example.com</span><span style="font-size: 11px; color: #94580A; font-weight: 600">Pending · sent Sep 20</span></span><span style="display: flex; gap: 10px; font-size: 12px; font-weight: 600"><button style="color: #5134C9">Resend</button><button style="color: #A3325A">Revoke</button></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #ECEAF1"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">{{m2name}}</span><span style="font-size: 11px; color: #1A6B46; font-weight: 600">Accepted · Mar 2024</span></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 0"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">old.invite@example.com</span><span style="font-size: 11px; color: #6B6B76; font-weight: 600">Expired · Aug 2</span></span><button style="font-size: 12px; font-weight: 600; color: #5134C9">Resend</button></div>
+</div></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetShare}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Sharing setting" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{sh.name}}</span><span style="font-size: 13px; color: #6B6B76">{{sh.sub}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div role="radiogroup" style="display: flex; flex-direction: column; gap: 8px"><sc-for list="{{sh.opts}}" as="o" hint-placeholder-count="3"><button role="radio" onClick="{{o.pick}}" aria-checked="{{o.pressed}}" style="{{o.style}}"><span style="{{o.radio}}"><span style="{{o.dot}}"></span></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{o.label}}</span><span style="font-size: 12px; line-height: 16px; color: #6B6B76">{{o.sub}}</span></span></button></sc-for></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 12px"><span style="padding: 10px 12px; border-radius: 12px; background: #F6F5F8; display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76">Details</span><b style="font-weight: 700">{{sh.details}}</b></span><span style="padding: 10px 12px; border-radius: 12px; background: #F6F5F8; display: flex; flex-direction: column; gap: 2px"><span style="color: #6B6B76">Household totals</span><b style="font-weight: 700">{{sh.totals}}</b></span></div>
+<button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #111114; color: #FFFFFF; font-size: 15px; font-weight: 600">Save</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetLeave}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Leave Household" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Leave Household?</span><span style="font-size: 13px; color: #6B6B76">You can be invited again later.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<sc-for list="{{leaveRows}}" as="l" hint-placeholder-count="5"><div style="{{l.row}}"><span style="font-size: 13px; font-weight: 600">{{l.k}}</span><span style="font-size: 12px; line-height: 17px; color: #55555F">{{l.v}}</span></div></sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #F5F4F8; font-size: 15px; font-weight: 600">Stay</button><button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #FCEBF1; color: #A3325A; font-size: 15px; font-weight: 600">Leave</button></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetClose}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Close Household" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Close this Household?</span><span style="font-size: 13px; color: #6B6B76">This affects every member.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; background: #F6F5F8; border-radius: 16px; padding: 2px 14px">
+<sc-for list="{{closeRows}}" as="l" hint-placeholder-count="4"><div style="{{l.row}}"><span style="font-size: 13px; font-weight: 600">{{l.k}}</span><span style="font-size: 12px; line-height: 17px; color: #55555F">{{l.v}}</span></div></sc-for>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Type the Household name to confirm</span><input type="text" inputmode="text" placeholder="{{hhName}}" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><button onClick="{{closeSheet}}" style="height: 50px; border-radius: 16px; background: #F5F4F8; font-size: 15px; font-weight: 600">Keep it</button><button disabled style="height: 50px; border-radius: 16px; background: #F4E6EB; color: #C79AAC; font-size: 15px; font-weight: 600; cursor: default">Close Household</button></div>
+<span style="font-size: 11px; color: #8A8896; text-align: center">Want to leave instead? Transfer ownership first.</span>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"household": {"name": "Home", "members": [{"name": "Juan", "role": "Owner", "since": "Created Mar 2024"}, {"name": "Karinna", "role": "Member", "since": "Joined Mar 2024"}, {"name": "alex@example.com", "role": "Pending", "since": "Invite sent Sep 20"}]}, "priv": [["CIBC Chequing", "Account", "included"], ["USD Account", "Account", "excluded"], ["CIBC Costco Mastercard", "Credit card", "included"], ["Visa", "Credit card", "included"], ["Emergency Savings", "Account", "shared"], ["RRSP", "Investment", "excluded"], ["Cash wallet", "Cash", "excluded"]], "scope": "Household", "sheet": "member", "mem": 1, "shareIdx": 0, "contrib": true, "step": 1, "icon": 0}; }
+  renderVals() {
+    const s = this.state;
+    const HH = s.household;          // user-created data: { name, members: [{ name, role, since }] }
+    const M = HH ? HH.members : [];
+    const fmt = (n) => 'CA$' + Math.round(n).toLocaleString('en-US');
+    const seg = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, st, def) => list.map((o) => ({ label: o, pressed: o === (s[key] || def) ? 'true' : 'false', style: st(o === (s[key] || def)), pick: () => this.setState({ [key]: o }) }));
+    const sw = (on) => ({ track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; position: relative; display: block; background: ' + (on ? '#5134C9' : '#DCDAE3') + ';',
+      knob: 'position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.2); left: ' + (on ? '21px' : '3px') + ';' });
+    const TAG = { Household: ['#2D5DB0', '#EAF1FC'], Personal: ['#55555F', '#F1F0F4'], Included: ['#5134C9', '#F4F1FD'] };
+    const tagS = (t) => 'flex-shrink: 0; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 600; color: ' + TAG[t][0] + '; background: ' + TAG[t][1] + ';';
+    const mk = (list, icon, tileBg, tileFg) => list.map((r, i) => ({ title: r[0], sub: r[1], right: r[2], rightSub: r[3], tag: r[4], tagStyle: tagS(r[4]), icon: r[6] || icon, iconColor: tileFg,
+      hasBar: r[5] != null, bar: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: ' + (r[7] || '#2E9B69') + '; width: ' + (r[5] || 0) + '%;',
+      tile: 'width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: ' + tileBg + ';',
+      row: 'display: flex; align-items: center; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }));
+    const n1 = M[0] ? M[0].name : '', n2 = M[1] ? M[1].name : '';
+    const BANK = 'M3.5 9.5 12 4l8.5 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3.5 20h17', CARD = 'M2.5 5h19v14h-19zM2.5 10h19M6.5 15h3', CAR = 'M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2';
+    const BILL = 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5', GOAL = 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z';
+    const accounts = mk([
+      ['Shared Chequing', 'Chequing · CAD · everyone', 'CA$2,180', '', 'Household'], ['Emergency Savings', 'Savings · CAD · everyone', 'CA$5,800', '', 'Household'],
+      ['Travel Savings', 'Savings · CAD · everyone', 'CA$2,400', '', 'Household'], ['CIBC Chequing', 'Owned by ' + n1 + ' · details private', 'CA$3,420', 'in totals only', 'Included']], BANK, '#EEF3FB', '#2D5DB0');
+    const cards = mk([
+      ['CIBC Costco Mastercard', 'Owner ' + n1 + ' · limit CA$8,000', 'CA$1,240', '15.5% used', 'Included', 15.5, null, '#5134C9'], ['American Express', 'Owner ' + n2 + ' · limit CA$7,000', 'CA$840', '12% used', 'Included', 12, null, '#5134C9']], CARD, '#F5F4F8', '#2A2540');
+    const loans = mk([['Hyundai Tucson', 'Owner ' + n1 + ' · in Household debt', 'CA$18,420', 'remaining', 'Included'], ['Chevrolet', 'Joint · in Household debt', 'CA$26,850', 'remaining', 'Household']], CAR, '#F5F4F8', '#2A2540');
+    const bills = mk([['Rent', 'Monthly · Oct 5 · Shared Chequing', 'CA$1,500', 'Responsible: Household', 'Household'], ['Internet', 'Monthly · Sep 29 · Shared Chequing', 'CA$106', 'Autopay', 'Household'],
+      ['Insurance', 'Monthly · Oct 1 · Shared Chequing', 'CA$184', 'Responsible: ' + n1, 'Household']], BILL, '#F5F4F8', '#2A2540');
+    const goals = mk([['Emergency Fund', 'CA$5,800 of CA$10,000', '58%', '', 'Household', 58], ['Peru 2026', 'CA$1,400 of CA$3,500', '40%', '', 'Household', 40, null, '#E0A33B']], GOAL, '#E6F4EC', '#1A6B46');
+    const COL = ['#2A2540', '#B7A9EC', '#7FA0D8'];
+    const members = M.map((m, i) => ({ name: m.name + (i === 0 ? ' (you)' : ''), initial: m.name.charAt(0), role: m.role, sub: m.since,
+      roleStyle: 'padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; ' + (m.role === 'Owner' ? 'background: #F4F1FD; color: #5134C9;' : m.role === 'Pending' ? 'background: #FDF1DC; color: #94580A;' : 'background: #F1F0F4; color: #55555F;'),
+      avatar: 'width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #FFFFFF; background: ' + (m.role === 'Pending' ? '#D2CEDC' : COL[i % 3]) + ';',
+      pick: () => this.setState({ sheet: m.role === 'Pending' ? 'invite' : 'member', mem: i }),
+      row: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }));
+    const cm = [[n1, 3000], [n2, 2400], ['Other shared income', 1190]];
+    const contrib = cm.map((c, i) => ({ name: c[0], v: fmt(c[1]), dot: 'width: 8px; height: 8px; border-radius: 2px; background: ' + COL[i] + ';',
+      bar: 'width: ' + (c[1] / 6590 * 100).toFixed(1) + '%; background: ' + COL[i] + '; border-radius: ' + (i === 0 ? '999px 3px 3px 999px' : i === 2 ? '3px 999px 999px 3px' : '3px') + ';' }));
+    const STATES = { excluded: ['Personal', 'M6 10.5h12v9.5H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3', '#55555F', '#F1F0F4'], included: ['In totals', 'M12 5v14M5 12h14', '#5134C9', '#F4F1FD'], shared: ['Household', 'M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', '#2D5DB0', '#EAF1FC'] };
+    const PRIV = s.priv;
+    const privacy = PRIV.map((p, i) => { const st = STATES[p[2]]; return { name: p[0], kind: p[1], state: st[0], icon: st[1],
+      stateStyle: 'display: flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; color: ' + st[2] + '; background: ' + st[3] + ';',
+      pick: () => this.setState({ sheet: 'share', shareIdx: i }), row: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }; });
+    const si = s.shareIdx || 0, cur = PRIV[si] ? PRIV[si][2] : 'excluded';
+    const radio = (on) => ({ radio: 'width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid ' + (on ? '#5134C9' : '#D2CEDC') + ';', dot: 'width: 10px; height: 10px; border-radius: 999px; background: ' + (on ? '#5134C9' : 'transparent') + ';' });
+    const setPriv = (v) => this.setState({ priv: PRIV.map((p, i) => i === si ? [p[0], p[1], v] : p) });
+    const sh = { name: PRIV[si] ? PRIV[si][0] : '', sub: 'Choose what the Household can see',
+      details: cur === 'shared' ? 'Shared' : 'Private', totals: cur === 'excluded' ? 'Not included' : 'Included',
+      opts: [['excluded', 'Private and excluded', 'Only you see it. Not part of Household totals.'], ['included', 'Private details, included in totals', 'The balance counts in Household totals. Transactions stay private.'], ['shared', 'Fully shared', 'Members can see balance and transactions.']]
+        .map((o) => Object.assign({ label: o[1], sub: o[2], pressed: o[0] === cur ? 'true' : 'false', pick: () => setPriv(o[0]),
+          style: 'padding: 12px 14px; border-radius: 16px; display: flex; align-items: flex-start; gap: 12px; ' + (o[0] === cur ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }, radio(o[0] === cur))) };
+    const NT = ['New shared expense', 'Bill due', 'Goal contribution', 'Credit utilization change', 'Invite accepted'];
+    const nOn = s.notifs || {};
+    const notifs = NT.map((n, i) => { const on = nOn[n] !== false; return Object.assign({ label: n, checked: on ? 'true' : 'false', pick: () => this.setState({ notifs: Object.assign({}, nOn, { [n]: !on }) }),
+      row: 'width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') }, sw(on)); });
+    const mem = M[s.mem || 1] || M[0] || { name: '', role: '', since: '' };
+    const PERM = [['Add shared transactions', 'Record expenses as Household'], ['Manage shared goals', 'Create and edit shared goals'], ['Manage shared bills', 'Add, pause or edit bills'], ['Invite members', 'Owners only']];
+    const pOn = s.perms || {};
+    const perms = PERM.map((p, i) => { const locked = p[0] === 'Invite members' && mem.role !== 'Owner'; const on = locked ? false : pOn[p[0]] !== false; return Object.assign({ label: p[0], sub: p[1], checked: on ? 'true' : 'false',
+      pick: () => { if (!locked) this.setState({ perms: Object.assign({}, pOn, { [p[0]]: !on }) }); },
+      row: 'width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '') + (locked ? ' opacity: 0.5;' : '') }, sw(on)); });
+    const st = s.step || 1;
+    const ICONS = [['Home', 'M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z'], ['Leaf', 'M5 19c8 0 14-6 14-14-8 0-14 6-14 14zM5 19l7-7'], ['Star', 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'], ['Sun', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2'], ['Circle', 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z']];
+    const cr = { step: st, stepName: ['Name', 'Icon', 'Currency', 'Invite'][st - 1], s1: st === 1, s2: st === 2, s3: st === 3, s4: st === 4,
+      bars: [1, 2, 3, 4].map((k) => ({ style: 'flex: 1 1 0; height: 4px; border-radius: 999px; background: ' + (k <= st ? '#5134C9' : '#E4E1EC') + ';' })),
+      icons: ICONS.map((ic, i) => { const on = i === (s.icon || 0); return { label: ic[0], path: ic[1], pressed: on ? 'true' : 'false', color: on ? '#5134C9' : '#6B6B76', pick: () => this.setState({ icon: i }),
+        style: 'height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; ' + (on ? 'background: #F4F1FD; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }; }),
+      curs: opts(['CAD', 'USD', 'PEN'], 'cCur', seg, 'CAD'),
+      primaryLabel: st < 4 ? 'Next' : 'Send invite', secondaryLabel: st === 4 ? 'Skip for now' : st === 1 ? 'Cancel' : 'Back',
+      primary: () => this.setState(st < 4 ? { step: st + 1 } : { sheet: null, step: 1 }), secondary: () => this.setState(st === 4 ? { sheet: null, step: 1 } : st === 1 ? { sheet: null } : { step: st - 1 }) };
+    const SH = [['Accounts', 'M3.5 9.5 12 4l8.5 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3.5 20h17'], ['Expenses', 'M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9'], ['Bills', 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5'],
+      ['Goals', 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'], ['Budgets', 'M4 19h16M6 16V9M11 16V5M16 16v-5'], ['Trips', 'M3 13.5l18-7-7 18-2.5-8.5z']];
+    const rowsKV = (list) => list.map((l, i) => ({ k: l[0], v: l[1], row: 'display: flex; flex-direction: column; gap: 3px; padding: 11px 0;' + (i < list.length - 1 ? ' border-bottom: 1px solid #ECEAF1;' : '') }));
+    const scope = s.scope || 'Household';
+    const csw = sw(s.contrib !== false);
+    return {
+      hasHH: !!HH, noHH: !HH, hhName: HH ? HH.name : '', memberCount: M.filter((m) => m.role !== 'Pending').length + ' members' + (M.some((m) => m.role === 'Pending') ? ' · 1 invite pending' : ''),
+      scopes: opts(['Personal', 'Household'], 'scope', seg, 'Household'), isPersonal: scope === 'Personal', isHousehold: scope === 'Household',
+      sum: { cash: fmt(2180 + 5800 + 2400 + 3420) }, members, accounts, cards, loans, bills, goals, contrib,
+      contribOn: s.contrib !== false, contribOff: s.contrib === false, contribAttr: s.contrib !== false ? 'true' : 'false', toggleContrib: () => this.setState({ contrib: s.contrib === false }), contribSw: csw,
+      privacy, sh, notifs, mem: { name: mem.name, sub: mem.role + ' · ' + mem.since }, roles: opts(['Owner', 'Member', 'Viewer'], 'role', seg, mem.role === 'Owner' ? 'Owner' : 'Member'), perms,
+      invRoles: opts(['Member', 'Viewer (later)'], 'invRole', seg, 'Member'), m1name: n1, m2name: n2, cr, shareables: SH.map((x) => ({ label: x[0], icon: x[1] })),
+      leaveRows: rowsKV([['Your personal finances', 'Stay exactly as they are. Nothing personal is deleted.'], ['Shared transactions you added', 'Stay in the Household history, marked as added by you.'], ['Shared goals and bills', 'Stay with the Household. Your future contributions stop.'], ['Items you shared', 'Become personal again and leave Household totals.'], ['History', 'Past Household reports keep their numbers.']]),
+      closeRows: rowsKV([['Shared accounts, bills and goals', 'Go back to their owners as personal items. Joint items go to the owner.'], ['Shared transactions', 'Stay in each person’s history. Nothing is deleted.'], ['Members', 'Are removed and notified. Their personal finances are untouched.'], ['Household reports', 'Are archived. You can export them first.']]),
+      openCreate: () => this.setState({ sheet: 'create', step: 1 }), openInvite: () => this.setState({ sheet: 'invite' }), openLeave: () => this.setState({ sheet: 'leave' }), openClose: () => this.setState({ sheet: 'close' }),
+      closeSheet: () => this.setState({ sheet: null }),
+      sheetCreate: s.sheet === 'create', sheetMember: s.sheet === 'member', sheetInvite: s.sheet === 'invite', sheetShare: s.sheet === 'share', sheetLeave: s.sheet === 'leave', sheetClose: s.sheet === 'close'
+    };
+  }
+}
+</script>
+</body>
+</html>

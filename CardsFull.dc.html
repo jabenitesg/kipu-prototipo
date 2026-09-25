@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kipu Credit Cards, full scroll</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 2580px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow: hidden; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 24px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px">
+<button aria-label="Back to Money" style="width: 32px; height: 32px; margin-left: -6px; border-radius: 999px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">CREDIT OVERVIEW</span>
+</div>
+<button onClick="{{openAdd}}" aria-label="Add new card" style="width: 40px; height: 40px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Credit Cards</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">See what you owe, what’s available and what’s due next.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Money.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Accounts</a><a href="Cards.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Cards</a><a href="Loans.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Loans</a><a href="Transactions.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Activity</a><a href="Household.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Household</a></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px">
+<div role="group" aria-label="Owner" style="display: flex; gap: 6px">
+<sc-for list="{{owners}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div>
+<div style="position: relative">
+<button onClick="{{toggleCur}}" aria-haspopup="listbox" aria-expanded="{{curExpanded}}" aria-label="Currency" style="height: 36px; padding: 0 10px 0 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E9E7EF; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600">{{currency}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<sc-if value="{{curOpen}}" hint-placeholder-val="{{false}}">
+<div role="listbox" style="position: absolute; top: 42px; right: 0; z-index: 25; width: 140px; padding: 5px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 14px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.12); display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{currencies}}" as="o" hint-placeholder-count="3">
+<button role="option" onClick="{{o.pick}}" aria-selected="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</header>
+
+<section aria-label="Credit summary" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Total current balance</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{sum.balance}}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span style="font-size: 13px; color: #6B6B76">Utilization</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #5134C9; font-variant-numeric: tabular-nums">{{sum.util}}</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="position: relative; height: 10px; background: #F1F0F4; border-radius: 999px">
+<div style="{{sum.fillStyle}}"></div>
+<div style="position: absolute; left: 30%; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: #A09EAB; border-radius: 1px"></div>
+</div>
+<div style="position: relative; height: 14px; font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">
+<span style="position: absolute; left: 0">{{sum.split}}</span>
+<span style="position: absolute; left: 30%; transform: translateX(-50%); white-space: nowrap">30% ref.</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 14px; border-top: 1px solid #F1F0F4">
+<span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 12px; color: #6B6B76">Available credit</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: #1A6B46; font-variant-numeric: tabular-nums">{{sum.available}}</span></span>
+<span style="display: flex; flex-direction: column; gap: 3px; padding-left: 16px; border-left: 1px solid #F1F0F4"><span style="font-size: 12px; color: #6B6B76">Total credit limit</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">{{sum.limit}}</span></span>
+</div>
+</section>
+
+<section aria-label="Your cards" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Your cards</h2><span style="font-size: 12px; color: #6B6B76">{{cardCount}}</span></div>
+<div class="kipu-noscroll" style="margin: -8px -20px 0; padding: 8px 20px 18px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px">
+<div style="display: flex; gap: 12px; width: max-content">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="4">
+<button onClick="{{c.pick}}" aria-label="{{c.name}}, {{c.owner}}, ending {{c.last4}}" style="{{c.style}}; width: 300px; height: 189px">
+<span style="position: absolute; inset: 0; background: {{c.sheen}}; pointer-events: none"></span>
+<span style="position: absolute; right: -70.0px; bottom: -110.0px; width: 260.0px; height: 260.0px; border-radius: 999px; border: 1px solid {{c.ring}}; pointer-events: none"></span>
+<span style="position: absolute; right: -30.0px; bottom: -70.0px; width: 180.0px; height: 180.0px; border-radius: 999px; border: 1px solid {{c.ring}}; pointer-events: none"></span>
+<span style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
+<span style="font-size: 13.0px; font-weight: 600; letter-spacing: 0.01em; line-height: 1.25">{{c.name}}</span>
+<span style="{{c.pillStyle}}">{{c.owner}}</span>
+</span>
+<span style="position: relative; display: flex; align-items: center; gap: 10.0px">
+<span style="width: 34.0px; height: 26.0px; border-radius: 6.0px; background: linear-gradient(135deg, #E9D8A6 0%, #C9A961 50%, #E3CD8C 100%); box-shadow: inset 0 0 0 1px rgba(120, 90, 30, 0.25); position: relative; display: block">
+<span style="position: absolute; left: 30%; top: 0; bottom: 0; width: 1px; background: rgba(120, 90, 30, 0.35)"></span><span style="position: absolute; right: 30%; top: 0; bottom: 0; width: 1px; background: rgba(120, 90, 30, 0.35)"></span><span style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(120, 90, 30, 0.35)"></span>
+</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="opacity: 0.7"><path d="M8.5 7.5a6 6 0 0 1 0 9M12 5a9.5 9.5 0 0 1 0 14M15.5 3a13 13 0 0 1 0 18"></path></svg>
+<span style="margin-left: auto; font-size: 12.0px; letter-spacing: 0.14em; opacity: 0.85; font-variant-numeric: tabular-nums">•••• {{c.last4}}</span>
+</span>
+<span style="position: relative; display: flex; flex-direction: column; gap: 8.0px">
+<span style="display: flex; justify-content: space-between; align-items: flex-end">
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 10.0px; opacity: 0.7; letter-spacing: 0.04em">Current balance</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22.0px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums">{{c.balance}}</span></span>
+<span style="font-size: 11.0px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.8">{{c.network}}</span>
+</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-variant-numeric: tabular-nums">
+<span style="flex-grow: 1; height: 4.0px; border-radius: 999px; background: {{c.track}}; position: relative; display: block"><span style="{{c.fillStyle}}"></span></span>
+<span style="opacity: 0.85; white-space: nowrap">{{c.utilText}} of {{c.limitText}}</span>
+</span>
+</span>
+</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; justify-content: center; gap: 6px; margin-top: -6px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="4"><span style="{{d.style}}"></span></sc-for>
+</div>
+</section>
+
+
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Current vs statement balance</h2><span style="font-size: 12px; color: #6B6B76">{{selShort}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; height: 12px; gap: 2px">
+<div style="{{cvs.stmtStyle}}"></div>
+<div style="{{cvs.newStyle}}"></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 6px; color: #6B6B76"><span style="width: 8px; height: 8px; border-radius: 2px; background: #5134C9"></span>Statement balance</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">{{cvs.statement}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px; text-align: right"><span style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: #6B6B76"><span style="width: 8px; height: 8px; border-radius: 2px; background: #CFC6F2"></span>Current balance</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">{{cvs.current}}</b></span>
+</div>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 19px; color: #55555F">Your statement balance is what was billed for the last statement period. Your current balance includes newer transactions too.</p>
+</section>
+
+<section aria-label="Selected card" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+<span style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<span style="{{selThumb}}"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sel.name}}</span><span style="font-size: 12px; color: #6B6B76">{{sel.owner}} · •••• {{sel.last4}}</span></span>
+</span>
+<div style="position: relative; flex-shrink: 0"><button onClick="{{toggleMenu}}" aria-label="Card actions" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" style="width: 36px; height: 36px; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#2A2540"><circle cx="5.5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="18.5" cy="12" r="1.6"></circle></svg></button><sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" style="position: absolute; top: 44px; right: 0; z-index: 30; width: 200px; padding: 6px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 16px; box-shadow: 0 14px 34px rgba(24, 16, 64, 0.14); display: flex; flex-direction: column">
+<sc-for list="{{menuItems}}" as="m" hint-placeholder-count="5">
+<button role="menuitem" onClick="{{m.pick}}" style="{{m.style}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{m.color}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{m.icon}}"></path></svg>{{m.label}}</button>
+</sc-for>
+</div>
+</sc-if></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px">
+<sc-for list="{{metrics}}" as="k" hint-placeholder-count="8">
+<div style="{{k.style}}"><span style="font-size: 12px; color: #6B6B76">{{k.label}}</span><span style="{{k.valStyle}}">{{k.value}}</span></div>
+</sc-for>
+</div>
+<a href="CardDetail.dc.html" style="padding: 8px 0 2px; font-size: 13px; font-weight: 600; color: #5134C9">Open card details →</a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Recent transactions</h2><a href="CardDetailTransactions.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9; padding: 6px 0">See all ›</a></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px">
+<sc-for list="{{txs}}" as="t" hint-placeholder-count="4">
+<button onClick="{{t.pick}}" aria-label="{{t.aria}}" style="{{t.rowStyle}}">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600; color: #111114">{{t.merchant}}</span><span style="font-size: 12px; color: #6B6B76">{{t.cat}} · {{t.date}}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{t.amount}}</span><sc-if value="{{t.hasFx}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums">{{t.fx}}</span></sc-if></span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Statements</h2>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">September statement</span><span style="font-size: 12px; color: #6B6B76">{{sel.short}} · PDF</span></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px; background: #F7F6FA; border-radius: 14px; font-variant-numeric: tabular-nums">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Statement balance</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700">{{sel.statement}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Minimum payment</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700">{{sel.min}}</b></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Due date</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700">{{sel.due}}</b></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<a href="CardDetailStatements.dc.html" style="height: 46px; border-radius: 14px; background: #111114; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">View statement</a>
+<button onClick="{{openUpload}}" style="height: 46px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"></path></svg>Upload statement</button>
+</div>
+</div>
+</section>
+
+<a href="Bills.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EEEDF2; color: #111114">
+<span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Upcoming payments</span><span style="font-size: 12px; color: #6B6B76">Card due dates live in Bills & recurring</span></span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A09EAB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></a>
+
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#111114"></circle></svg><span style="font-size: 11px; font-weight: 600">Money</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+
+<sc-if value="{{sheetAdd}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add new card" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add new card</span><span style="font-size: 13px; color: #6B6B76">Only the card name is required. Add the rest any time.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; gap: 6px"><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: #5134C9"></span><span style="{{add.bar2}}"></span></div>
+<span style="font-size: 12px; color: #6B6B76">Step {{add.step}} of 2 · {{add.stepName}}</span>
+</div>
+<sc-if value="{{add.isStep1}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Card name</span>
+<input type="text" inputmode="text" placeholder="e.g. Costco Mastercard" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Institution</span>
+<input type="text" inputmode="text" placeholder="e.g. CIBC" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #3A3A42">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px">
+<sc-for list="{{add.owners}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px; align-items: end">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #3A3A42">Currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px">
+<sc-for list="{{add.currencies}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div></div>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Credit limit</span>
+<input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label>
+</div>
+<button onClick="{{add.toggleOptional}}" aria-expanded="{{add.optExpanded}}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid #F1F0F4; font-size: 13px; font-weight: 600; color: #3A3A42"><span>Optional · Last four digits, appearance</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{add.optIcon}}"></path></svg></button>
+<sc-if value="{{add.optOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: end">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Last four</span>
+<input type="text" inputmode="numeric" placeholder="••••" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #3A3A42">Appearance</span>
+<div style="display: flex; gap: 8px; height: 46px; align-items: center">
+<sc-for list="{{add.swatches}}" as="w" hint-placeholder-count="4">
+<button onClick="{{w.pick}}" aria-label="{{w.label}}" aria-pressed="{{w.pressed}}" style="{{w.style}}"></button>
+</sc-for>
+</div></div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{add.isStep2}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Current balance</span>
+<input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label><label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Statement balance</span>
+<input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Due date</span>
+<input type="text" inputmode="text" placeholder="Oct 12" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label><label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #3A3A42">Minimum payment</span>
+<input type="text" inputmode="decimal" placeholder="CA$0" style="height: 46px; box-sizing: border-box; padding: 0 14px; border: 1px solid #E4E2EA; border-radius: 12px; background: #FFFFFF; font-size: 15px; outline: none">
+</label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #3A3A42">Autopay</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px">
+<sc-for list="{{add.autopays}}" as="o" hint-placeholder-count="3">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #F7F6FA; border-radius: 14px; font-size: 13px; color: #3A3A42"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"></path></svg>Or upload a statement and Kipu fills these in.</div>
+</div>
+</sc-if>
+<div style="display: flex; gap: 10px">
+<button onClick="{{add.secondary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 15px; font-weight: 600">{{add.secondaryLabel}}</button>
+<button onClick="{{add.primary}}" style="flex: 1 1 0; height: 50px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">{{add.primaryLabel}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetUpload}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Upload statement" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Upload statement</span><span style="font-size: 13px; color: #6B6B76">Kipu reads the statement for you.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button style="padding: 16px; border: 1px solid #E4E2EA; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left"><span style="width: 36px; height: 36px; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">PDF</span><span style="font-size: 12px; color: #6B6B76">From your bank</span></span></button>
+<button style="padding: 16px; border: 1px solid #E4E2EA; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left"><span style="width: 36px; height: 36px; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Photo</span><span style="font-size: 12px; color: #6B6B76">Take a picture</span></span></button>
+<button style="padding: 16px; border: 1px solid #E4E2EA; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left"><span style="width: 36px; height: 36px; border-radius: 12px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="m20.5 16-5-5-8 8.5"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Image</span><span style="font-size: 12px; color: #6B6B76">Screenshot or scan</span></span></button>
+<button disabled aria-disabled="true" style="padding: 16px; border: 1px dashed #E4E2EA; border-radius: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left; cursor: default"><span style="width: 36px; height: 36px; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect><path d="M3.5 10h17M3.5 15h17M10 4.5v15"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600; color: #6B6B76">CSV</span><span style="font-size: 12px; color: #8A8896">Coming later</span></span></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #F7F6FA; border-radius: 16px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #6B6B76">KIPU WILL EXTRACT</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 13px; color: #3A3A42">
+<span style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Statement balance</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Minimum payment</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Due date</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Transactions</span>
+</div>
+<span style="font-size: 12px; line-height: 17px; color: #6B6B76">You review everything before it’s saved.</span>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{sheetTx}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Transaction detail" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">{{tx.merchant}}</span><span style="font-size: 13px; color: #6B6B76">{{tx.cat}} · {{tx.date}}</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{tx.amount}}</span><sc-if value="{{tx.hasFx}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #6B6B76; font-variant-numeric: tabular-nums">{{tx.fx}} · converted at posting</span></sc-if></div>
+<div style="background: #F7F6FA; border-radius: 16px; padding: 4px 14px">
+<sc-for list="{{tx.rows}}" as="r" hint-placeholder-count="5">
+<div style="{{r.style}}"><span style="color: #55555F">{{r.k}}</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{r.v}}</span></div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button style="height: 48px; border-radius: 14px; border: 1px solid #E4E2EA; font-size: 14px; font-weight: 600">Change category</button>
+<button style="height: 48px; border-radius: 14px; background: #111114; color: #FFFFFF; font-size: 14px; font-weight: 600">Edit transaction</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":2580}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {"owner": "Household", "currency": "CAD", "curOpen": false, "sel": 0, "sheet": null, "step": 1, "menu": false, "tx": 0, "addOwner": "Juan", "addCur": "CAD", "addAutopay": "Statement", "addColor": 0, "optOpen": false};
+  }
+  renderVals() {
+    const s = this.state;
+
+    const fmt = (n, dec) => 'CA$' + n.toLocaleString('en-US', { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 });
+    const ICON = {"Groceries": "M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9", "Gas": "M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M7 8h4", "Dining": "M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M17 21V3c-2 0-3.5 2.5-3.5 6s1.5 4 3.5 4", "Software": "M3.5 5h17v11h-17zM8 20h8M12 16v4", "Travel": "M3 13.5l18-7-7 18-2.5-8.5z", "Health": "M12 6v12M6 12h12", "Shopping": "M5.5 8h13l-1 12.5h-11zM9 8V6.5a3 3 0 0 1 6 0V8", "Subscriptions": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Home": "M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z", "Transportation": "M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2"};
+    const CARDS = [
+      { name: 'CIBC Costco Mastercard', owner: 'Juan', last4: '4821', network: 'Mastercard', current: 1240, statement: 980, limit: 8000, min: 30, due: 'Oct 12', autopay: 'Statement balance',
+        bg: 'linear-gradient(135deg, #3A3552 0%, #1D1A2B 52%, #111018 100%)', fg: '#FFFFFF', light: false, thumb: 'linear-gradient(135deg, #3A3552, #111018)',
+        tx: [['Costco', 'Groceries', 320.47, 'Sep 24', null], ['Shell', 'Gas', 72.30, 'Sep 22', null], ['Restaurant', 'Dining', 86.00, 'Sep 20', null], ['Adobe', 'Software', 75.40, 'Sep 19', 'US$55.00']] },
+      { name: 'American Express', owner: 'Karinna', last4: '2714', network: 'Amex', current: 840, statement: 840, limit: 7000, min: 25, due: 'Oct 18', autopay: 'Off',
+        bg: 'linear-gradient(135deg, #F4F2F8 0%, #DAD6E4 48%, #BBB5CC 100%)', fg: '#1F1B2E', light: true, thumb: 'linear-gradient(135deg, #F4F2F8, #BBB5CC)',
+        tx: [['Airline', 'Travel', 412.00, 'Sep 21', null], ['Pharmacy', 'Health', 38.60, 'Sep 19', null], ['Bookstore', 'Shopping', 24.99, 'Sep 16', null]] },
+      { name: 'Visa', owner: 'Juan', last4: '3095', network: 'Visa', current: 1160, statement: 1020, limit: 4000, min: 30, due: 'Oct 21', autopay: 'Minimum payment',
+        bg: 'linear-gradient(135deg, #7358E6 0%, #4C32BC 50%, #2B1B78 100%)', fg: '#FFFFFF', light: false, thumb: 'linear-gradient(135deg, #7358E6, #2B1B78)',
+        tx: [['Grocery store', 'Groceries', 64.12, 'Sep 23', null], ['Streaming service', 'Subscriptions', 21.90, 'Sep 18', 'US$15.99'], ['Hardware store', 'Home', 132.40, 'Sep 15', null]] },
+      { name: 'Everyday Mastercard', owner: 'Karinna', last4: '6630', network: 'Mastercard', current: 810, statement: 690, limit: 3000, min: 25, due: 'Oct 25', autopay: 'Statement balance',
+        bg: 'linear-gradient(135deg, #406274 0%, #264352 52%, #152833 100%)', fg: '#FFFFFF', light: false, thumb: 'linear-gradient(135deg, #406274, #152833)',
+        tx: [['Coffee shop', 'Dining', 6.45, 'Sep 24', null], ['Transit', 'Transportation', 50.00, 'Sep 22', null], ['Clothing store', 'Shopping', 88.00, 'Sep 17', null]] }
+    ];
+    const pct = (a, b) => { const v = a / b * 100; return (Math.abs(v - Math.round(v)) < 0.05 ? v.toFixed(0) : v.toFixed(1)) + '%'; };
+    const cardView = (c, selected, pick) => {
+      const u = c.current / c.limit * 100;
+      return {
+        name: c.name, owner: c.owner, last4: c.last4, network: c.network,
+        balance: fmt(c.current), limitText: fmt(c.limit), utilText: pct(c.current, c.limit),
+        sheen: c.light ? 'radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.7), rgba(255,255,255,0) 60%)' : 'radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0) 60%)',
+        ring: c.light ? 'rgba(31,27,46,0.07)' : 'rgba(255,255,255,0.08)',
+        track: c.light ? 'rgba(31,27,46,0.12)' : 'rgba(255,255,255,0.2)',
+        fillStyle: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; width: ' + u.toFixed(1) + '%; background: ' + (u >= 25 ? '#F2C572' : (c.light ? '#1F1B2E' : '#FFFFFF')) + ';',
+        pillStyle: 'flex-shrink: 0; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: ' + (c.light ? 'rgba(31,27,46,0.08)' : 'rgba(255,255,255,0.16)') + ';',
+        pick,
+        style: 'flex-shrink: 0; scroll-snap-align: start; position: relative; overflow: hidden; box-sizing: border-box; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; text-align: left; color: ' + c.fg + '; background: ' + c.bg + '; ' +
+          'box-shadow: ' + (selected ? '0 0 0 2px #FAFAF8, 0 0 0 4px #5134C9, ' : '') + '0 12px 24px rgba(24, 16, 64, 0.16), inset 0 1px 0 rgba(255,255,255,' + (c.light ? '0.9' : '0.12') + ');'
+      };
+    };
+    const txView = (t, i, pick) => ({
+      merchant: t[0], cat: t[1], date: t[3], icon: ICON[t[1]] || ICON.Shopping,
+      amount: t[4] ? t[4] : fmt(t[2], 2), fx: t[4] ? '≈ ' + fmt(t[2], 2) : '', hasFx: !!t[4],
+      aria: t[0] + ', ' + (t[4] || fmt(t[2], 2)) + ', ' + t[3], pick,
+      rowStyle: 'width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; text-align: left;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : '')
+    });
+    const metricsOf = (c) => [
+      ['Current balance', fmt(c.current), true], ['Statement balance', fmt(c.statement), false],
+      ['Credit limit', fmt(c.limit), false], ['Available credit', fmt(c.limit - c.current), false],
+      ['Utilization', pct(c.current, c.limit), false], ['Minimum payment', fmt(c.min), false],
+      ['Due date', c.due, false], ['Autopay', c.autopay, false]
+    ].map((m, i) => ({
+      label: m[0], value: m[1],
+      style: 'display: flex; flex-direction: column; gap: 3px; padding: 12px 0;' + (i < 6 ? ' border-bottom: 1px solid #F1F0F4;' : ''),
+      valStyle: "font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: " + (m[2] ? '18px' : '15px') + '; font-weight: 700; font-variant-numeric: tabular-nums; color: ' +
+        (m[0] === 'Autopay' && c.autopay === 'Minimum payment' ? '#94580A' : m[0] === 'Autopay' && c.autopay === 'Off' ? '#6B6B76' : '#111114') + ';'
+    }));
+    const cvsOf = (c) => ({
+      statement: fmt(c.statement), current: fmt(c.current),
+      newer: fmt(c.current - c.statement),
+      stmtStyle: 'width: ' + (c.statement / c.current * 100).toFixed(1) + '%; background: #5134C9; border-radius: 999px ' + (c.current > c.statement ? '3px 3px' : '999px 999px') + ' 999px;',
+      newStyle: c.current > c.statement ? 'flex-grow: 1; background: #CFC6F2; border-radius: 3px 999px 999px 3px;' : 'display: none;'
+    });
+    const MENU_DEFS = [
+      ['Edit card', 'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4'],
+      ['Upload statement', 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5'],
+      ['Add transaction', 'M12 5v14M5 12h14'],
+      ['Mark as paid', 'M20 6 9 17l-5-5'],
+      ['Archive card', 'M3.5 4.5h17v4h-17zM5 8.5v11h14v-11M10 12.5h4']
+    ];
+    const segStyle = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const rowsOf = (pairs) => pairs.map((r, i) => ({ k: r[0], v: r[1], style: 'display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; font-size: 14px;' + (i < pairs.length - 1 ? ' border-bottom: 1px solid #ECEAF1;' : '') }));
+    const menuItems = MENU_DEFS.map((m) => ({
+      label: m[0], icon: m[1], color: m[0] === 'Archive card' ? '#A3325A' : '#2A2540',
+      pick: () => this.setState(m[0] === 'Upload statement' ? { menu: false, sheet: 'upload' } : { menu: false }),
+      style: 'height: 42px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; text-align: left; color: ' + (m[0] === 'Archive card' ? '#A3325A' : '#111114') + ';'
+    }));
+    const txSheetOf = (t) => t ? {
+      merchant: t[0], cat: t[1], date: t[3], amount: t[4] ? t[4] : fmt(t[2], 2), fx: t[4] ? '≈ ' + fmt(t[2], 2) : '', hasFx: !!t[4],
+      rows: rowsOf([['Date', t[3] + ', 2026'], ['Category', t[1]], ['Card', t[5]], ['Owner', t[6]], ['Status', 'Posted']])
+    } : { merchant: '', cat: '', date: '', amount: '', fx: '', hasFx: false, rows: [] };
+
+    const visibleIdx = CARDS.map((c, i) => i).filter((i) => s.owner === 'Household' || CARDS[i].owner === s.owner);
+    const selIdx = visibleIdx.indexOf(s.sel) >= 0 ? s.sel : visibleIdx[0];
+    const c = CARDS[selIdx];
+    const chip = (on) => 'height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #FFFFFF; color: #3A3A42; font-weight: 500; box-shadow: inset 0 0 0 1px #E9E7EF;');
+    const owners = ['Juan', 'Karinna', 'Household'].map((o) => ({ label: o, pressed: o === s.owner ? 'true' : 'false', style: chip(o === s.owner),
+      pick: () => this.setState({ owner: o, sel: CARDS.findIndex((x) => o === 'Household' || x.owner === o) }) }));
+    const currencies = ['CAD', 'USD', 'Combined'].map((o) => ({ label: o, pressed: o === s.currency ? 'true' : 'false',
+      style: 'height: 38px; padding: 0 10px; border-radius: 10px; font-size: 13px; text-align: left; ' + (o === s.currency ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'color: #111114; font-weight: 500;'),
+      pick: () => this.setState({ currency: o, curOpen: false }) }));
+    const vis = visibleIdx.map((i) => CARDS[i]);
+    const bal = vis.reduce((a, x) => a + x.current, 0), lim = vis.reduce((a, x) => a + x.limit, 0);
+    const u = bal / lim * 100;
+    const sum = {
+      balance: fmt(bal), limit: fmt(lim), available: fmt(lim - bal), util: pct(bal, lim),
+      fillStyle: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #5134C9; width: ' + u.toFixed(1) + '%;',
+      split: s.owner === 'Household' ? 'Juan 20% · Karinna 16.5%' : s.owner + ' · ' + vis.length + ' cards'
+    };
+    const cards = visibleIdx.map((i) => cardView(CARDS[i], i === selIdx, () => this.setState({ sel: i })));
+    const dots = visibleIdx.map((i) => ({ style: 'height: 6px; border-radius: 999px; transition: width 0.2s; ' + (i === selIdx ? 'width: 18px; background: #5134C9;' : 'width: 6px; background: #D9D5E3;') }));
+    const txs = c.tx.map((t, j) => txView(t, j, () => this.setState({ sheet: 'tx', tx: j })));
+    const txRaw = s.sheet === 'tx' ? c.tx[s.tx || 0].concat([c.name + ' •••• ' + c.last4, c.owner]) : null;
+    const st = s.step || 1;
+    const addOwners = ['Juan', 'Karinna', 'Joint'].map((o) => ({ label: o, pressed: o === s.addOwner ? 'true' : 'false', style: segStyle(o === s.addOwner), pick: () => this.setState({ addOwner: o }) }));
+    const addCur = ['CAD', 'USD'].map((o) => ({ label: o, pressed: o === s.addCur ? 'true' : 'false', style: segStyle(o === s.addCur), pick: () => this.setState({ addCur: o }) }));
+    const autopays = ['Off', 'Minimum', 'Statement', 'Full'].map((o) => ({ label: o, pressed: o === s.addAutopay ? 'true' : 'false', style: segStyle(o === s.addAutopay), pick: () => this.setState({ addAutopay: o }) }));
+    const swatchBgs = [['Graphite', 'linear-gradient(135deg, #3A3552, #111018)'], ['Platinum', 'linear-gradient(135deg, #F4F2F8, #BBB5CC)'], ['Violet', 'linear-gradient(135deg, #7358E6, #2B1B78)'], ['Slate', 'linear-gradient(135deg, #406274, #152833)']];
+    const swatches = swatchBgs.map((w, i) => ({ label: w[0], pressed: i === (s.addColor || 0) ? 'true' : 'false', pick: () => this.setState({ addColor: i }),
+      style: 'width: 40px; height: 28px; border-radius: 6px; background: ' + w[1] + '; box-shadow: ' + (i === (s.addColor || 0) ? '0 0 0 2px #FFFFFF, 0 0 0 4px #5134C9' : 'inset 0 0 0 1px rgba(31, 27, 46, 0.1)') + ';' }));
+    const add = {
+      step: st, stepName: st === 1 ? 'The card' : 'Balances and payments', isStep1: st === 1, isStep2: st === 2,
+      bar2: 'flex: 1 1 0; height: 4px; border-radius: 999px; background: ' + (st === 2 ? '#5134C9' : '#E4E1EC') + ';',
+      owners: addOwners, currencies: addCur, autopays, swatches,
+      optOpen: !!s.optOpen, optExpanded: s.optOpen ? 'true' : 'false', optIcon: s.optOpen ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6',
+      toggleOptional: () => this.setState({ optOpen: !s.optOpen }),
+      primaryLabel: st === 1 ? 'Next' : 'Save card', secondaryLabel: st === 1 ? 'Save for now' : 'Add later',
+      primary: () => this.setState(st === 1 ? { step: 2 } : { sheet: null, step: 1 }),
+      secondary: () => this.setState({ sheet: null, step: 1 })
+    };
+    return {
+      owners, currencies, currency: s.currency, curOpen: !!s.curOpen, curExpanded: s.curOpen ? 'true' : 'false',
+      toggleCur: () => this.setState({ curOpen: !s.curOpen }),
+      sum, cards, dots, cardCount: vis.length + (vis.length === 1 ? ' card' : ' cards'),
+      sel: { name: c.name, short: c.name, owner: c.owner, last4: c.last4, statement: fmt(c.statement), min: fmt(c.min), due: c.due },
+      selShort: c.name,
+      selThumb: 'width: 44px; height: 28px; flex-shrink: 0; border-radius: 6px; background: ' + c.thumb + '; box-shadow: 0 2px 6px rgba(24, 16, 64, 0.18);',
+      cvs: cvsOf(c), metrics: metricsOf(c), txs,
+      menuOpen: !!s.menu, menuExpanded: s.menu ? 'true' : 'false', toggleMenu: () => this.setState({ menu: !s.menu }), menuItems,
+      openAdd: () => this.setState({ sheet: 'add', step: 1 }), openUpload: () => this.setState({ sheet: 'upload' }),
+      closeSheet: () => this.setState({ sheet: null }),
+      sheetAdd: s.sheet === 'add', sheetUpload: s.sheet === 'upload', sheetTx: s.sheet === 'tx',
+      tx: txSheetOf(txRaw), add
+    };
+  }
+}
+</script>
+</body>
+</html>

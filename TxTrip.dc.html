@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peru 2026 transactions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 132px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; height: 40px"><a href="Transactions.dc.html" style="display: flex; align-items: center; gap: 4px; margin-left: -6px; font-size: 14px; font-weight: 600; color: #2A2540"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Transactions</a></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 48px; height: 48px; border-radius: 16px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">TRIP</span><h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 26px; line-height: 30px; font-weight: 700; letter-spacing: -0.02em">Peru 2026</h1></span></div>
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px"><div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))"><span style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 11px; color: #6B6B76">Total spent</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #111114; font-variant-numeric: tabular-nums">CA$1,760</b></span><span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4;"><span style="font-size: 11px; color: #6B6B76">Juan</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #111114; font-variant-numeric: tabular-nums">CA$940</b></span><span style="display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 1px solid #F1F0F4;"><span style="font-size: 11px; color: #6B6B76">Karinna</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #111114; font-variant-numeric: tabular-nums">CA$820</b></span></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; height: 10px; gap: 2px"><span style="width: 53.4%; background: #2A2540; border-radius: 999px 3px 3px 999px"></span><span style="flex-grow: 1; background: #B7A9EC; border-radius: 3px 999px 999px 3px"></span></div><span style="font-size: 11px; color: #8A8896">Categories stay the same: trip spending also counts in Dining, Travel and the rest.</span></div></section>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; padding: 0 2px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76">SEPTEMBER</span><span style="font-size: 11px; color: #8A8896">5 shown</span></div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 18px; padding: 2px 14px; overflow: hidden">
+<sc-for list="{{rows}}" as="t" hint-placeholder-count="5">
+<div style="{{t.wrapStyle}}">
+<sc-if value="{{t.swipeL}}" hint-placeholder-val="{{false}}"><button onClick="{{t.edit}}" style="position: absolute; right: 0; top: 6px; bottom: 6px; width: 84px; border-radius: 14px; background: #5134C9; color: #FFFFFF; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg>Edit</button></sc-if>
+<sc-if value="{{t.swipeR}}" hint-placeholder-val="{{false}}"><button onClick="{{t.markReviewed}}" style="position: absolute; left: 0; top: 6px; bottom: 6px; width: 104px; border-radius: 14px; background: #1A6B46; color: #FFFFFF; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Mark reviewed</button></sc-if>
+<a href="{{t.href}}" aria-label="{{t.aria}}" style="{{t.rowStyle}}">
+<span style="{{t.iconWrap}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.iconColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="display: flex; align-items: center; gap: 5px; min-width: 0"><span style="font-size: 15px; font-weight: 600; color: #111114; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.merchant}}</span>
+<sc-for list="{{t.badges}}" as="b" hint-placeholder-count="1"><span title="{{b.label}}" aria-label="{{b.label}}" style="display: flex; flex-shrink: 0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{b.icon}}"></path></svg></span></sc-for></span>
+<span style="font-size: 12px; color: #6B6B76; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.meta}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+<span style="{{t.amountStyle}}">{{t.amount}}</span>
+<sc-if value="{{t.hasSub}}" hint-placeholder-val="{{false}}"><span style="{{t.subStyle}}">{{t.sub}}</span></sc-if>
+</span>
+</a>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#111114"></circle></svg><span style="font-size: 11px; font-weight: 600">Money</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {}; }
+  renderVals() {
+    const s = this.state;
+
+    const ICONS = {"Groceries": "M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9", "Transportation": "M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11M5 11h14a2 2 0 0 1 2 2v4H3v-4a2 2 0 0 1 2-2zM6 17v2M18 17v2", "Dining": "M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3M17 21V3c-2 0-3.5 2.5-3.5 6s1.5 4 3.5 4", "Subscriptions": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Income": "M12 19V5M6 11l6-6 6 6", "Transfer": "M4 8h13l-3-3M20 16H7l3 3", "Card payment": "M2.5 5h19v14h-19zM2.5 10h19M6.5 15h3", "Shopping": "M5.5 8h13l-1 12.5h-11zM9 8V6.5a3 3 0 0 1 6 0V8", "Home": "M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z", "Travel": "M3 13.5l18-7-7 18-2.5-8.5z", "Uncategorized": "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01", "Clip": "M21 12.5 12.6 21a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8", "Repeat": "M17 2.5 20 5.5l-3 3M4 11.5v-2a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 12.5v2a4 4 0 0 1-4 4H4", "Plane": "M3 13.5l18-7-7 18-2.5-8.5z"};
+    const fmt = (n) => 'CA$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const rowOf = (t, i, s) => {
+      const inc = t.kind === 'inc', xf = t.kind === 'xfer' || t.kind === 'cardpay', exp = t.kind === 'expected';
+      const sw = (s.swipe || []).find((x) => x.id === t.id); const swiped = sw ? sw.dir : null;
+      const reviewed = (s.reviewed || {})[t.id];
+      const needs = t.review && !reviewed;
+      const badges = [];
+      if (t.receipt) badges.push({ icon: ICONS.Clip, label: 'Receipt attached' });
+      if (t.rec) badges.push({ icon: ICONS.Repeat, label: 'Recurring ' + t.rec.toLowerCase() });
+      if (t.trip) badges.push({ icon: ICONS.Plane, label: 'Trip ' + t.trip });
+      let sub = '', subStyle = 'font-size: 11px; color: #6B6B76; font-variant-numeric: tabular-nums; white-space: nowrap;';
+      const chip = (fg, bg, dashed) => 'padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: ' + fg + '; background: ' + bg + ';' + (dashed ? ' box-shadow: inset 0 0 0 1px #CFCCD8;' : '');
+      if (t.orig) sub = '≈ ' + fmt(t.amt);
+      else if (needs) { sub = 'Needs category'; subStyle = chip('#94580A', '#FDF1DC'); }
+      else if (t.dup) { sub = 'Possible duplicate'; subStyle = chip('#94580A', '#FDF1DC'); }
+      else if (exp) { sub = 'Expected'; subStyle = chip('#6B6B76', '#FFFFFF', true); }
+      else if (t.pending) { sub = 'Pending'; subStyle = chip('#6B6B76', '#F1F0F4'); }
+      else if (xf) { sub = 'Not spending'; subStyle = 'font-size: 11px; color: #2D5DB0; white-space: nowrap;'; }
+      else if (t.rec) sub = t.rec;
+      const catLabel = needs ? 'No category' : (reviewed && t.review ? 'Shopping' : t.cat);
+      const tile = needs ? ['#FDF1DC', '#94580A'] : inc ? ['#E6F4EC', '#1A6B46'] : xf ? ['#EEF3FB', '#2D5DB0'] : ['#F5F4F8', '#2A2540'];
+      const tx = swiped === 'left' ? 'transform: translateX(-92px);' : swiped === 'right' ? 'transform: translateX(112px);' : '';
+      return {
+        merchant: t.m, badges, href: t.href || '#', aria: t.m + ', ' + (t.orig || fmt(t.amt)),
+        meta: [catLabel, t.owner, t.via].concat(t.trip ? [t.trip] : []).join(' · '),
+        icon: ICONS[needs ? 'Uncategorized' : (reviewed && t.review ? 'Shopping' : t.cat)] || ICONS.Uncategorized, iconColor: tile[1],
+        iconWrap: 'width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: ' + tile[0] + ';' + (exp ? ' box-shadow: inset 0 0 0 1.5px #DCDAE3; background: #FFFFFF;' : ''),
+        amount: (inc ? '+' : '') + (t.orig || fmt(t.amt)),
+        amountStyle: "font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: " + (inc ? '#1A6B46' : xf ? '#2D5DB0' : exp ? '#8A8896' : '#111114') + ';',
+        hasSub: !!sub, sub, subStyle,
+        swipeL: swiped === 'left', swipeR: swiped === 'right',
+        edit: () => this.setState({ swipe: (s.swipe || []).filter((x) => x.id !== t.id) }), markReviewed: () => this.setState({ swipe: (s.swipe || []).filter((x) => x.id !== t.id), reviewed: Object.assign({}, s.reviewed, { [t.id]: true }) }),
+        wrapStyle: 'position: relative;' + (i > 0 ? ' border-top: 1px solid #F1F0F4;' : ''),
+        rowStyle: 'position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 12px 0; background: #FFFFFF; color: inherit; transition: transform 0.2s;' + tx
+      };
+    };
+
+    const TX = [{"id": "central", "m": "Central Restaurante", "cat": "Dining", "owner": "Juan", "via": "CIBC Visa", "amt": 67.14, "orig": "S/ 180.00", "kind": "exp", "g": "SEP", "receipt": true, "href": "TxDetailForeign.dc.html"}, {"id": "t1", "m": "Hotel in Cusco", "cat": "Travel", "owner": "Karinna", "via": "American Express", "amt": 412.0, "orig": "S/ 1,140.00", "kind": "exp", "g": "SEP"}, {"id": "t2", "m": "Airport taxi", "cat": "Transportation", "owner": "Juan", "via": "Cash", "amt": 18.11, "orig": "S/ 50.00", "kind": "exp", "g": "SEP"}, {"id": "t3", "m": "Mercado San Pedro", "cat": "Groceries", "owner": "Karinna", "via": "Cash", "amt": 9.78, "orig": "S/ 27.00", "kind": "exp", "g": "SEP"}, {"id": "t4", "m": "Airline", "cat": "Travel", "owner": "Juan", "via": "CIBC Visa", "amt": 388.0, "kind": "exp", "g": "SEP"}];
+    return { rows: TX.map((t, i) => rowOf(t, i, s)) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kipu Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 24px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">FINANCIAL OVERVIEW</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="position: relative">
+<button onClick="{{toggleMenu}}" aria-haspopup="listbox" aria-expanded="{{menuExpanded}}" style="height: 32px; padding: 0 10px 0 10px; display: flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #E9E7EF; border-radius: 999px; font-size: 13px; font-weight: 500; color: #111114">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"></path><circle cx="9" cy="8" r="3.5"></circle><path d="M22 20v-1a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a4 4 0 0 1 0 7.75"></path></svg>
+<span>{{member}}</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="listbox" style="position: absolute; top: 40px; right: 0; z-index: 20; width: 176px; padding: 6px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 16px; box-shadow: 0 12px 32px rgba(24, 16, 64, 0.12); display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 8px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #6B6B76">VIEWING</div>
+<sc-for list="{{members}}" as="m" hint-placeholder-count="3">
+<button onClick="{{m.pick}}" role="option" aria-selected="{{m.selectedAttr}}" style="{{m.style}}">
+<span>{{m.label}}</span>
+<sc-if value="{{m.selected}}" hint-placeholder-val="{{false}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+</sc-if>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<a href="Settings.dc.html" aria-label="Profile and settings" style="width: 40px; height: 40px; border-radius: 999px; padding: 2px; box-sizing: border-box; border: 1.5px solid #E4DDFA; display: flex; align-items: center; justify-content: center">
+<span style="width: 100%; height: 100%; border-radius: 999px; background: #2A2540; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700">J</span>
+</a>
+</div>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em; color: #111114">Good afternoon, Juan</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Here’s where your money stands today.</p>
+</header>
+
+<section style="background: #F4F1FD; border: 1px solid #E6E0FA; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; color: #2B1F66">Safe to spend</h2>
+<div role="group" aria-label="Currency" style="display: flex; padding: 3px; gap: 2px; background: rgba(81, 52, 201, 0.08); border-radius: 999px">
+<sc-for list="{{currencies}}" as="c" hint-placeholder-count="3">
+<button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; gap: 2px; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; color: #111114; font-variant-numeric: tabular-nums">
+<span style="font-size: 26px; font-weight: 600; color: #5134C9">CA$</span>
+<span style="font-size: 52px; line-height: 56px; font-weight: 700; letter-spacing: -0.03em">1,480</span>
+</div>
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: #55555F">After upcoming bills, card payments and planned savings.</p>
+<a href="PlanSafeToSpend.dc.html" style="align-self: flex-start; margin-top: 2px; font-size: 13px; font-weight: 600; color: #5134C9">How it’s worked out ›</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; height: 8px; gap: 3px">
+<div style="width: 36%; background: #5134C9; border-radius: 999px"></div>
+<div style="flex-grow: 1; background: #D8D0F4; border-radius: 999px"></div>
+</div>
+<div style="display: flex; gap: 16px">
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #55555F"><span style="width: 6px; height: 6px; border-radius: 999px; background: #111114"></span>Available cash</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">CA$4,100</div>
+</div>
+<div style="width: 1px; background: #E0D9F7"></div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #55555F"><span style="width: 6px; height: 6px; border-radius: 999px; background: #B7A9EC"></span>Upcoming commitments</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">CA$2,620</div>
+</div>
+</div>
+</div>
+</section>
+
+<a href="Stats.dc.html" aria-label="This month, open Statistics" style="color: #111114; display: flex; align-items: stretch; padding: 0 4px">
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #55555F">
+<span style="width: 22px; height: 22px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1D7A50" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17"></path><path d="M16 17H7V8"></path></svg></span>Income</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">CA$6,590</div>
+</div>
+<div style="width: 1px; background: #ECEBF0; margin: 2px 14px"></div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #55555F">
+<span style="width: 22px; height: 22px; border-radius: 999px; background: #FCEBF1; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B23A62" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg></span>Spent</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">CA$4,050</div>
+</div>
+<div style="width: 1px; background: #ECEBF0; margin: 2px 14px"></div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #55555F">
+<span style="width: 22px; height: 22px; border-radius: 999px; background: #E9F0FC; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D64C4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg></span>Saved</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,220</div>
+</div>
+</a>
+
+<section style="display: flex; flex-direction: column; gap: 14px; padding-top: 4px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Quick add</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<a href="AddExpense.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 8px; color: #111114">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #5134C9; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(81, 52, 201, 0.28)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>
+<span style="font-size: 12px; font-weight: 600; color: #111114">Add expense</span>
+</a>
+<a href="ScanCamera.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 8px; color: #111114">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #FFFFFF; border: 1px solid #E9E7EF; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"></path><path d="M9 9h6M9 12h6M9 15h3.5"></path></svg></span>
+<span style="font-size: 12px; font-weight: 500; color: #3A3A42">Scan receipt</span>
+</a>
+<a href="StmtUpload.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 8px; color: #111114">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #FFFFFF; border: 1px solid #E9E7EF; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"></path></svg></span>
+<span style="font-size: 12px; font-weight: 500; color: #3A3A42; text-align: center">Upload statement</span>
+</a>
+<a href="AddExpense.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 8px; color: #111114">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #FFFFFF; border: 1px solid #E9E7EF; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8v8M8.8 12.8 12 16l3.2-3.2"></path></svg></span>
+<span style="font-size: 12px; font-weight: 500; color: #3A3A42">Add income</span>
+</a>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Upcoming</h2>
+<a href="Bills.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9; padding: 6px 0">See all ›</a>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 4px 16px; display: flex; flex-direction: column">
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F1F0F4">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11 6.6 6.9A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.4L19 11"></path><rect x="3" y="11" width="18" height="6" rx="2"></rect><path d="M6 17v2M18 17v2"></path><circle cx="7.5" cy="14" r="0.6" fill="#2A2540"></circle><circle cx="16.5" cy="14" r="0.6" fill="#2A2540"></circle></svg></span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; font-weight: 600; color: #111114">Car payment</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6B6B76"><span>Sep 27</span><span style="padding: 2px 8px; border-radius: 999px; background: #FCEBF1; color: #A3325A; font-weight: 600; font-size: 11px">Due soon</span></div>
+</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">CA$507</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F1F0F4">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20 5.5l-3 3"></path><path d="M4 11.5v-2a4 4 0 0 1 4-4h12"></path><path d="M7 21.5l-3-3 3-3"></path><path d="M20 12.5v2a4 4 0 0 1-4 4H4"></path></svg></span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; font-weight: 600; color: #111114">Adobe</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6B6B76"><span>Oct 07</span><span style="padding: 2px 8px; border-radius: 999px; background: #E9F0FC; color: #24539F; font-weight: 600; font-size: 11px">Recurring</span></div>
+</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">US$55</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 0">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"></rect><path d="M2.5 10h19M6.5 15h3"></path></svg></span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; font-weight: 600; color: #111114; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">CIBC Costco Mastercard</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6B6B76"><span>Due Oct 12</span><span style="padding: 2px 8px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-weight: 600; font-size: 11px">Autopay</span></div>
+</div>
+<div style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">CA$980</div>
+</div>
+
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.01em">Credit utilization</h2>
+<a href="Cards.dc.html" style="font-size: 13px; font-weight: 600; color: #5134C9; padding: 6px 0">Cards ›</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{credit}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 7px">
+<div style="display: flex; justify-content: space-between; font-size: 13px">
+<span style="{{r.nameStyle}}">{{r.name}}</span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; color: #111114">{{r.pct}}</span>
+</div>
+<div style="position: relative; height: 6px; background: #F0EFF4; border-radius: 999px">
+<div style="{{r.fillStyle}}"></div>
+<div style="position: absolute; left: 30%; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: #9A98A6; border-radius: 1px"></div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position: relative; height: 14px; font-size: 11px; color: #6B6B76">
+<span style="position: absolute; left: 30%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; white-space: nowrap">30% reference</span>
+</div>
+</section>
+
+
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="width: 24px; height: 24px; border-radius: 8px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg></span>
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #5134C9">INSIGHT</span>
+</div>
+<p style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; line-height: 23px; font-weight: 700; letter-spacing: -0.01em; color: #111114">You’re spending less than your usual pace this month.</p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: #55555F">Dining is still your fastest growing category.</p>
+<a href="Insights.dc.html" style="align-self: flex-start; margin-top: 2px; padding: 6px 0; font-size: 14px; font-weight: 600; color: #5134C9">View insights →</a>
+</section>
+
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 600">Home</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { member: 'Household', currency: 'CAD', menuOpen: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const pill = 'height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; ';
+    const currencies = ['CAD', 'USD', 'Combined'].map((c) => ({
+      label: c,
+      pressed: c === s.currency ? 'true' : 'false',
+      pick: () => this.setState({ currency: c }),
+      style: pill + (c === s.currency
+        ? 'background: #FFFFFF; color: #2B1F66; box-shadow: 0 1px 3px rgba(43, 31, 102, 0.14);'
+        : 'background: transparent; color: #5A5670;')
+    }));
+    const row = 'height: 40px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; text-align: left; ';
+    const members = ['Juan', 'Karinna', 'Household'].map((m) => ({
+      label: m,
+      selected: m === s.member,
+      selectedAttr: m === s.member ? 'true' : 'false',
+      pick: () => this.setState({ member: m, menuOpen: false }),
+      style: row + (m === s.member ? 'background: #F4F1FD; color: #2B1F66; font-weight: 600;' : 'background: transparent; color: #111114; font-weight: 500;')
+    }));
+    const credit = [
+      { name: 'Juan', pct: '20%', w: 20 },
+      { name: 'Karinna', pct: '16.5%', w: 16.5 },
+      { name: 'Household', pct: '18.4%', w: 18.4 }
+    ].map((r) => {
+      const on = r.name === s.member;
+      return {
+        name: r.name,
+        pct: r.pct,
+        nameStyle: on ? 'color: #111114; font-weight: 600;' : 'color: #55555F; font-weight: 500;',
+        fillStyle: 'position: absolute; left: 0; top: 0; bottom: 0; width: ' + r.w + '%; border-radius: 999px; background: ' + (on ? '#5134C9' : '#2A2540') + ';'
+      };
+    });
+    return {
+      member: s.member,
+      menuOpen: s.menuOpen,
+      menuExpanded: s.menuOpen ? 'true' : 'false',
+      toggleMenu: () => this.setState({ menuOpen: !s.menuOpen }),
+      members,
+      currencies,
+      credit
+    };
+  }
+}
+</script>
+</body>
+</html>

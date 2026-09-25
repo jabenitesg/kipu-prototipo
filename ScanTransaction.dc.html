@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transaction with receipt</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+@keyframes kipu-spin{to{transform:rotate(360deg)}}
+@keyframes kipu-in{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:none}}
+@keyframes kipu-sweep{0%{top:6%}50%{top:88%}100%{top:6%}}
+@keyframes kipu-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 58px 20px 132px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 4px; margin-left: -6px; font-size: 14px; font-weight: 600; color: #2A2540"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Transactions</a>
+<button style="height: 36px; padding: 0 14px; border-radius: 999px; background: #F5F4F8; font-size: 13px; font-weight: 600; color: #2A2540">Edit</button>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<span style="width: 56px; height: 56px; border-radius: 18px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.6 10.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8zM8.5 9 12 3.5 15.5 9"></path></svg></span>
+<span style="font-size: 15px; font-weight: 600">Costco</span>
+<span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 40px; line-height: 44px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">−CA$320.47</span>
+<span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 12px; font-weight: 600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5 12.6 21a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"></path></svg>Receipt attached</span>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 2px 16px"><div style="display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #6B6B76">Date</span><span style="font-weight: 600; text-align: right">Sep 24, 2026</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #6B6B76">Category</span><span style="font-weight: 600; text-align: right">Groceries</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #6B6B76">Paid with</span><span style="font-weight: 600; text-align: right">CIBC Costco Mastercard •••• 4821</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #F1F0F4; font-size: 14px"><span style="color: #6B6B76">Who spent it</span><span style="font-weight: 600; text-align: right">Karinna</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; font-size: 14px"><span style="color: #6B6B76">Added from</span><span style="font-weight: 600; text-align: right">Scanned receipt</span></div></div>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Receipt</h2>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 14px; display: flex; gap: 14px; align-items: center">
+<span style="width: 88px; height: 112px; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: radial-gradient(120% 80% at 50% 45%, #4A4652 0%, #26242C 70%); display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box"><span style="transform: scale(0.46); transform-origin: top center; display: block"><div style="width: 170.0px; padding: 14.6px 13.0px 17.8px; box-sizing: border-box; background: #FBFAF6; border-radius: 2.4px; box-shadow: 0 14.6px 32.4px rgba(0, 0, 0, 0.45); display: flex; flex-direction: column; gap: 8.1px; font-family: 'Courier New', monospace; color: #2A2830; transform: rotate(-2deg);">
+<span style="text-align: center; font-size: 12.1px; font-weight: 700; letter-spacing: 0.08em">COSTCO</span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 3.2px"><span style="height: 3.2px; width: 97.1px; background: #D6D3DA; border-radius: 2px; display: block"></span><span style="height: 3.2px; width: 72.9px; background: #D6D3DA; border-radius: 2px; display: block"></span></span>
+<span style="font-size: 7.3px; text-align: center; color: #6B6870">09/24/2026 14:32</span>
+<span style="border-top: 1px dashed #BDB9C3"></span>
+<span style="display: flex; flex-direction: column; gap: 5.7px"><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 77.7px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 22.7px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 58.3px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 19.4px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 89.0px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 24.3px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 68.0px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 21.0px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 51.8px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 17.8px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 81.0px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 22.7px; background: #C9C6CF; border-radius: 2px; display: block"></span></span><span style="display: flex; justify-content: space-between; gap: 8.1px"><span style="height: 4.0px; width: 61.5px; background: #C9C6CF; border-radius: 2px; display: block"></span><span style="height: 4.0px; width: 19.4px; background: #C9C6CF; border-radius: 2px; display: block"></span></span></span>
+<span style="border-top: 1px dashed #BDB9C3"></span>
+<span style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700"><span>TOTAL</span><span>320.47</span></span>
+<span style="display: flex; justify-content: space-between; font-size: 7.3px; color: #6B6870"><span>CARD ****4821</span><span>APPROVED</span></span>
+<span style="display: flex; justify-content: center; gap: 2px; margin-top: 3.2px"><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 2.4px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 2.4px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 2.4px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 2.4px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 2.4px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 0.8px; height: 17.8px; background: #3A3840; display: block"></span><span style="width: 1.6px; height: 17.8px; background: #3A3840; display: block"></span></span>
+</div></span></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 600">Costco receipt</span><span style="font-size: 12px; color: #6B6B76">Scanned Sep 24 · Photo</span><span style="font-size: 12px; color: #6B6B76">Merchant, total and date matched</span></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button style="height: 44px; border-radius: 14px; background: #F4F1FD; color: #5134C9; font-size: 13px; font-weight: 600">View receipt</button>
+<button style="height: 44px; border-radius: 14px; background: #F5F4F8; color: #111114; font-size: 13px; font-weight: 600">Replace</button>
+<button style="height: 44px; border-radius: 14px; background: #F5F4F8; color: #A3325A; font-size: 13px; font-weight: 600">Remove</button>
+</div>
+<span style="font-size: 12px; color: #8A8896">Receipts stay with the transaction and don’t appear in your transaction list.</span>
+</section>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 500">Plan</span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

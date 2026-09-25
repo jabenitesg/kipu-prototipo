@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add trip</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="height: 100%; overflow-y: auto; box-sizing: border-box; padding: 62px 20px 132px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 40px">
+<div style="display: flex; align-items: center; gap: 10px"><a href="Money.dc.html" aria-label="Back" style="width: 32px; height: 32px; margin-left: -6px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">TRAVEL SPENDING</span></div>
+<button onClick="{{openAdd}}" aria-label="Add trip" style="width: 40px; height: 40px; border-radius: 999px; background: #5134C9; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Trips</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Track travel spending without changing your everyday categories.</p>
+<div class="kipu-noscroll" role="navigation" aria-label="Sections" style="display: flex; gap: 6px; overflow-x: auto; margin: 2px -20px 0; padding: 0 20px"><a href="Plan.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Overview</a><a href="Budget.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Budget</a><a href="Bills.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Bills &amp; recurring</a><a href="Goals.dc.html" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #F1F0F4; color: #3A3A42; font-weight: 500">Goals</a><a href="Trips.dc.html" aria-current="page" style="flex-shrink: 0; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; white-space: nowrap; display: flex; align-items: center; background: #111114; color: #FFFFFF; font-weight: 600">Trips</a></div>
+<div role="group" aria-label="Status" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px; margin-top: 4px"><sc-for list="{{filters}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div>
+</header>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="padding: 36px 22px; border-radius: 24px; background: #FFFFFF; border: 1px dashed #E4E2EA; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 60px; height: 60px; border-radius: 20px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 21px; font-weight: 700">Track travel without losing the big picture</span><span style="font-size: 14px; line-height: 20px; color: #55555F">Create a trip to see spending, currencies and budget in one place.</span></span>
+<button onClick="{{openAdd}}" style="width: 100%; height: 50px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; margin-top: 4px">Create trip</button>
+</div>
+</sc-if>
+
+<sc-if value="{{hasTrips}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{showActive}}" hint-placeholder-val="{{true}}">
+<a href="TripDetail.dc.html" style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; border-radius: 24px; overflow: hidden; color: inherit; display: block">
+<span style="display: flex; flex-direction: column; gap: 14px; padding: 18px">
+<span style="display: flex; justify-content: space-between; align-items: flex-start"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700">Peru 2026</span><span style="font-size: 12px; color: #6B6B76">Sep 9 – Oct 2 · Household · day 16 of 24</span></span><span style="padding: 3px 9px; border-radius: 999px; background: #E6F4EC; color: #1A6B46; font-size: 11px; font-weight: 600">Active</span></span>
+<span style="display: flex; align-items: baseline; justify-content: space-between; font-variant-numeric: tabular-nums"><span style="font-size: 13px; color: #55555F"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 700; color: #111114">CA$1,760</b> of CA$3,500</span><span style="font-size: 13px; font-weight: 700; color: #1A6B46">CA$1,740 left</span></span>
+<span style="position: relative; height: 10px; background: #F1F0F4; border-radius: 999px; display: block"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50.3%; background: #5134C9; border-radius: 999px"></span><span style="position: absolute; left: 66.7%; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: #2A2540; border-radius: 1px"></span></span>
+<span style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6B76"><span>50% of budget spent</span><span>67% of trip days gone</span></span>
+<span style="display: flex; gap: 8px; flex-wrap: wrap"><span style="padding: 4px 9px; border-radius: 999px; background: #F6F5F8; font-size: 12px; color: #3A3A42; font-variant-numeric: tabular-nums">PEN · S/ 4,410</span><span style="padding: 4px 9px; border-radius: 999px; background: #F6F5F8; font-size: 12px; color: #3A3A42; font-variant-numeric: tabular-nums">USD · US$120</span></span>
+</span>
+<span style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid #F4F3F7; font-size: 13px; font-weight: 600; color: #5134C9">View trip<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+</a>
+</sc-if>
+
+<sc-if value="{{showUpcoming}}" hint-placeholder-val="{{true}}">
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">Vancouver World Cup</span><span style="font-size: 12px; color: #6B6B76">Dates not set · Household</span></span><span style="padding: 3px 9px; border-radius: 999px; background: #EAF1FC; color: #2D5DB0; font-size: 11px; font-weight: 600">Upcoming</span></div>
+<div style="height: 8px; background: #F1F0F4; border-radius: 999px; position: relative"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 66.7%; background: #2E9B69; border-radius: 999px"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #55555F; font-variant-numeric: tabular-nums"><span>Saved <b style="color: #111114">CA$800</b> of CA$1,200 budget</span><span style="font-weight: 600; color: #1A6B46">67%</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{showPast}}" hint-placeholder-val="{{true}}">
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5l18-7-7 18-2.5-8.5z"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Los Angeles</span><span style="font-size: 12px; color: #6B6B76">Mar 2026 · US$1,570 · Completed</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums">CA$2,140</b><span style="font-size: 11px; color: #6B6B76">total spent</span></span>
+</div>
+</sc-if>
+
+<section style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Travel in 2026</h2><span style="font-size: 12px; color: #6B6B76">Also in Statistics</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Spent so far</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$3,900</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">Trips</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">2</b></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6B6B76">FX fees</span><b style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">CA$71</b></span></div>
+<span style="font-size: 11px; color: #8A8896">Trip spending is part of your normal totals, never counted twice.</span>
+</section>
+
+</div>
+</sc-if>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #FAFAF8 55%); pointer-events: none"></div>
+<nav aria-label="Primary" style="position: absolute; left: 16px; right: 16px; bottom: 28px; height: 68px; background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 24px; box-shadow: 0 10px 30px rgba(24, 16, 64, 0.08); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 11px; font-weight: 500">Home</span></a>
+<a href="Money.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5"></path><circle cx="16.5" cy="13.75" r="1" fill="#6B6B76"></circle></svg><span style="font-size: 11px; font-weight: 500">Money</span></a>
+<div style="display: flex; justify-content: center"><a href="QuickAdd.dc.html" aria-label="Add" style="width: 58px; height: 58px; margin-top: -30px; border-radius: 999px; background: #5134C9; border: 4px solid #FAFAF8; box-sizing: content-box; box-shadow: 0 10px 24px rgba(81, 52, 201, 0.35); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></a></div>
+<a href="Plan.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #111114"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h6M15.5 17l2 2 3.5-4"></path></svg><span style="font-size: 11px; font-weight: 600">Plan</span><span style="width: 16px; height: 3px; border-radius: 999px; background: #5134C9"></span></a>
+<a href="Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 3px; color: #6B6B76; padding-bottom: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M11 20V5M17 20v-9M3 20.5h18"></path></svg><span style="font-size: 11px; font-weight: 500">Stats</span></a>
+</nav>
+<sc-if value="{{sheetAdd}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 40; background: rgba(17, 17, 20, 0.34)">
+<button onClick="{{closeSheet}}" aria-label="Close" style="position: absolute; inset: 0; width: 100%; height: 100%"></button>
+<div role="dialog" aria-modal="true" aria-label="Add trip" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 780px; overflow-y: auto; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(24, 16, 64, 0.14); padding: 10px 20px 36px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; justify-content: center"><span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span></div>
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em">Add trip</span><span style="font-size: 13px; color: #6B6B76">A name, dates and owner are enough to start.</span></span>
+<button onClick="{{closeSheet}}" aria-label="Close" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; background: #F5F4F8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Trip name</span><input type="text" inputmode="text" placeholder="e.g. Mexico City" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Destination</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Start date</span><input type="text" inputmode="text" placeholder="Dec 18" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">End date</span><input type="text" inputmode="text" placeholder="Jan 3" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{aOwners}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; align-items: end"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Trip budget</span><input type="text" inputmode="decimal" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Budget in</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{aBudCur}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Local currency</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{aLocal}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<button onClick="{{toggleOpt}}" aria-expanded="{{optAttr}}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid #F1F0F4; font-size: 13px; font-weight: 600; color: #3A3A42"><span>Optional · savings goal, category budgets, notes</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{optIcon}}"></path></svg></button>
+<sc-if value="{{optOpen}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 12px"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Linked savings goal</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{aGoals}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: #F6F5F8; font-size: 13px"><span>Category budgets</span><span style="color: #5134C9; font-weight: 600">Add later</span></div><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" style="height: 46px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 12px; background: #F6F5F8; font-size: 15px; outline: none"></label></div></sc-if>
+<span style="font-size: 11px; color: #8A8896">Status updates on its own from the dates: upcoming, active, then completed.</span>
+<button onClick="{{closeSheet}}" style="height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600">Create trip</button>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"filter": "All", "sheet": "add", "empty": false, "aOwner": "Household", "aBud": "CAD", "aLoc": "MXN", "aGoal": "None", "aOpt": true}; }
+  renderVals() {
+    const s = this.state;
+
+    const segW = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, st, def) => list.map((o) => ({ label: o, pressed: o === (s[key] || def) ? 'true' : 'false', style: st(o === (s[key] || def)), pick: () => this.setState({ [key]: o }) }));
+    const addVals = { aOwners: opts(['Juan', 'Karinna', 'Household'], 'aOwner', segW, 'Household'), aBudCur: opts(['CAD', 'USD'], 'aBud', segW, 'CAD'),
+      aLocal: opts(['MXN', 'USD', 'PEN', 'EUR', 'Other'], 'aLoc', pill, 'MXN'), aGoals: opts(['None', 'New trip goal', 'Travel Fund'], 'aGoal', pill, 'None'),
+      optOpen: !!s.aOpt, optAttr: s.aOpt ? 'true' : 'false', optIcon: s.aOpt ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6', toggleOpt: () => this.setState({ aOpt: !s.aOpt }) };
+
+    const seg = (on) => 'height: 34px; border-radius: 9px; font-size: 13px; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const f = s.filter;
+    return Object.assign({
+      filters: opts(['Upcoming', 'Active', 'Past', 'All'], 'filter', seg, 'All'),
+      isEmpty: !!s.empty, hasTrips: !s.empty, showActive: f === 'All' || f === 'Active', showUpcoming: f === 'All' || f === 'Upcoming', showPast: f === 'All' || f === 'Past',
+      openAdd: () => this.setState({ sheet: 'add' }), closeSheet: () => this.setState({ sheet: null }), sheetAdd: s.sheet === 'add'
+    }, addVals);
+  }
+}
+</script>
+</body>
+</html>

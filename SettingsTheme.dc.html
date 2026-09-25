@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appearance and theme</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 852px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="position: absolute; inset: 0; overflow-y: auto; padding: 58px 20px 44px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; gap: 8px; height: 40px"><a href="Settings.dc.html" aria-label="Back" style="width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></a><span style="font-size: 13px; color: #6B6B76">Settings</span></div>
+<header style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.02em">Appearance & theme</h1><p style="margin: 0; font-size: 14px; line-height: 20px; color: #55555F">Choose how bright Kipu is and which colors it uses.</p></header>
+<section style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76; padding: 0 4px">APPEARANCE</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{sg.appearance}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 12px; line-height: 17px; color: #6B6B76; padding: 0 4px">System follows your device. Brightness and color theme are set separately.</span></section>
+<section style="display: flex; flex-direction: column; gap: 12px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76; padding: 0 4px">THEME</span>
+<div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700">{{pv.name}}</span><span style="font-size: 12px; color: #6B6B76">{{pv.desc}}</span></span>
+<div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 10px"><sc-for list="{{sg.preview}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="{{pv.stage}}">
+<div style="{{pv.phone}}">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="{{pv.small}}">Good morning</span><span style="width: 18px; height: 18px; border-radius: 999px; {{pv.gradBg}}"></span></div>
+<div style="{{pv.hero}}"><span style="font-size: 8px; opacity: 0.8">Safe to Spend</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">CA$1,457</b><span style="height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.3)"><span style="display: block; width: 62%; height: 100%; border-radius: 999px; background: currentColor"></span></span></div>
+<div style="display: flex; gap: 6px">
+<div style="{{pv.cardBox}}"><span style="width: 14px; height: 10px; border-radius: 2px; background: rgba(255, 255, 255, 0.6)"></span><span style="font-size: 7px; letter-spacing: 0.08em; opacity: 0.9">•••• 4821</span></div>
+<div style="{{pv.chartBox}}"><div style="display: flex; align-items: flex-end; gap: 3px; height: 34px"><span style="{{pv.b1}}"></span><span style="{{pv.b2}}"></span><span style="{{pv.b3}}"></span><span style="{{pv.b4}}"></span><span style="{{pv.b5}}"></span></div>
+<div style="display: flex; gap: 4px; align-items: center"><span style="{{pv.dotG}}"></span><span style="{{pv.small}}">in</span><span style="{{pv.dotA}}"></span><span style="{{pv.small}}">watch</span></div></div>
+</div>
+<div style="{{pv.btn}}">Add expense</div>
+<div style="{{pv.nav}}"><span style="{{pv.navI}}"></span><span style="{{pv.navOn}}"></span><span style="{{pv.navAdd}}"></span><span style="{{pv.navI}}"></span><span style="{{pv.navI}}"></span></div>
+</div></div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px"><sc-for list="{{themes}}" as="t" hint-placeholder-count="7"><button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0"><span style="{{t.ring}}"><span style="{{t.dot}}"><span style="{{t.check}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></span></span><span style="{{t.labelStyle}}">{{t.name}}</span></button></sc-for>
+<button style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0"><span style="width: 48px; height: 48px; border-radius: 999px; border: 1.5px dashed #C9C5D6; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span><span style="font-size: 11px; color: #8A8896">Custom · later</span></button></div>
+<button onClick="{{apply}}" style="{{pv.apply}}">{{pv.applyLabel}}</button>
+<span style="text-align: center; font-size: 12px; color: #6B6B76">{{pv.applyNote}}</span>
+</div></section>
+<section style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76; padding: 0 4px">SAME IN EVERY THEME</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><span style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: #E6F4EC; font-size: 12px; font-weight: 600; color: #1A6B46"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Positive · green</span><span style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: #FDF1DC; font-size: 12px; font-weight: 600; color: #94580A"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 17h.01"></path></svg>Attention · amber</span><span style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: #FCEBF1; font-size: 12px; font-weight: 600; color: #A3325A"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A3325A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>Critical · red</span><span style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: #EAF1FC; font-size: 12px; font-weight: 600; color: #2D5DB0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"></path></svg>Transfers · blue</span></div>
+<span style="font-size: 12px; line-height: 17px; color: #6B6B76; padding: 0 4px">Status always comes with an icon and a label, never color alone. Charts use two theme colors plus neutral gray.</span></section>
+<section style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: #6B6B76; padding: 0 4px">ACCESSIBILITY</span><div style="background: #FFFFFF; border: 1px solid #EEEDF2; border-radius: 20px; overflow: hidden"><button onClick="{{t.reduceMotion.toggle}}" role="switch" aria-checked="{{t.reduceMotion.attr}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left"><span style="flex-grow: 1; display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F3F2F6"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Reduce motion</span><span style="font-size: 12px; line-height: 17px; color: #6B6B76">Follows your device setting</span></span><span style="{{t.reduceMotion.track}}"><span style="{{t.reduceMotion.knob}}"></span></span></span></button><button onClick="{{t.contrast.toggle}}" role="switch" aria-checked="{{t.contrast.attr}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left"><span style="flex-grow: 1; display: flex; align-items: center; gap: 12px; padding: 12px 0; "><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Increase contrast</span><span style="font-size: 12px; line-height: 17px; color: #6B6B76">Stronger text and borders in every theme</span></span><span style="{{t.contrast.track}}"><span style="{{t.contrast.knob}}"></span></span></span></button></div></section>
+</div>
+
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+const THEMES = {"Kipu Purple": {"desc": "Deep violet to electric blue", "gl": ["#4B2FC4", "#3D5BE0"], "gd": ["#6A4BFF", "#3F7BFF"], "l": {"bg": "#FAFAF8", "surf": "#FFFFFF", "tint": "#F4F1FD", "acc": "#5134C9", "hero": "#FFFFFF"}, "d": {"bg": "#0E1020", "surf": "#171A2B", "tint": "#221F45", "acc": "#A99BFF", "hero": "#FFFFFF"}}, "Aurora": {"desc": "Purple to cyan to soft blue", "gl": ["#6B4EE6", "#22B8CF", "#8FB8FF"], "gd": ["#8A6BFF", "#25C9E0", "#7FA8FF"], "l": {"bg": "#F6F8FC", "surf": "#FFFFFF", "tint": "#EAF4FB", "acc": "#5A3FD6", "hero": "#FFFFFF"}, "d": {"bg": "#0B1224", "surf": "#141C33", "tint": "#16283F", "acc": "#7FDDEB", "hero": "#FFFFFF"}}, "Ocean": {"desc": "Deep blue to bright azure", "gl": ["#1E4FD8", "#2FA8F5"], "gd": ["#2F6BFF", "#3CC4FF"], "l": {"bg": "#F7FAFD", "surf": "#FFFFFF", "tint": "#E8F1FC", "acc": "#1E4FD8", "hero": "#FFFFFF"}, "d": {"bg": "#081326", "surf": "#10203A", "tint": "#132B4D", "acc": "#6FB6FF", "hero": "#FFFFFF"}}, "Forest": {"desc": "Emerald to teal", "gl": ["#0F8A5F", "#139C9C"], "gd": ["#1FB57D", "#19B8B0"], "l": {"bg": "#F6FAF7", "surf": "#FFFFFF", "tint": "#E4F3EC", "acc": "#0F7A55", "hero": "#FFFFFF"}, "d": {"bg": "#0C1714", "surf": "#14221E", "tint": "#17302A", "acc": "#4FD3A6", "hero": "#FFFFFF"}}, "Sunset": {"desc": "Warm coral to pink to violet", "gl": ["#F0706A", "#E3558F", "#8B55D9"], "gd": ["#FF7F6E", "#F0609A", "#9A66F0"], "l": {"bg": "#FFF8F5", "surf": "#FFFFFF", "tint": "#FDEBEA", "acc": "#B83D6B", "hero": "#FFFFFF"}, "d": {"bg": "#1A0F1D", "surf": "#251729", "tint": "#341D35", "acc": "#FF9A8C", "hero": "#FFFFFF"}}, "Warm Sand": {"desc": "Beige to terracotta to soft peach", "gl": ["#E8CFA8", "#D98A63", "#F4C4A6"], "gd": ["#C9A274", "#C8673F", "#E8A27F"], "l": {"bg": "#FBF7F1", "surf": "#FFFFFF", "tint": "#F6EBDD", "acc": "#A4522F", "hero": "#2A1A10"}, "d": {"bg": "#17120F", "surf": "#221B16", "tint": "#2E231C", "acc": "#E3A37F", "hero": "#FFFFFF"}}, "Midnight": {"desc": "Indigo to deep purple", "gl": ["#3B3FB5", "#5B2A9E"], "gd": ["#5B5FFF", "#9340FF"], "l": {"bg": "#F6F6FA", "surf": "#FFFFFF", "tint": "#ECECF8", "acc": "#3B3FB5", "hero": "#FFFFFF"}, "d": {"bg": "#07091A", "surf": "#11142A", "tint": "#1B1D3F", "acc": "#A49BFF", "hero": "#FFFFFF"}}};
+const HH_ICONS = { Home: 'M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z', Heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z', Key: 'M15 9a4 4 0 1 1-3.5 6L8 18.5H5.5V16l3.5-3.5A4 4 0 0 1 15 9z', Leaf: 'M5 19C5 10 10 5 20 4c-1 10-6 15-15 15zM5 19l7-7', Star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z' };
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {"segs": {"appearance": {"o": ["Light", "Dark", "System"], "k": "seg", "v": "System"}, "preview": {"o": ["Light", "Dark"], "k": "seg", "v": "Light"}, "timing": {"o": ["Same day", "1 day", "3 days", "7 days"], "k": "seg", "v": "1 day"}, "freq": {"o": ["Important only", "Balanced", "More insights"], "k": "seg", "v": "Balanced"}, "fmt": {"o": ["CSV", "JSON", "PDF"], "k": "seg", "v": "CSV"}, "cycle": {"o": ["Calendar month", "Pay cycle · soon", "Custom date · soon"], "k": "row", "v": "Calendar month"}, "util": {"o": ["10%", "20%", "30%", "50%", "Off"], "k": "pill", "v": "30%"}, "horizon": {"o": ["3 months", "6 months", "12 months"], "k": "seg", "v": "12 months"}, "assume": {"o": ["Recent avg", "Budget based", "Conservative", "Custom"], "k": "pill", "v": "Recent avg"}, "base": {"o": ["CAD · Canadian dollar", "USD · US dollar", "PEN · Peruvian sol", "EUR · Euro"], "k": "row", "v": "CAD · Canadian dollar"}, "hhCur": {"o": ["CAD", "USD", "PEN", "Other"], "k": "seg", "v": "CAD"}, "hhUse": {"o": ["Couple", "Family", "Roommates", "Shared home", "Other"], "k": "pill", "v": ""}}, "on": {"curUSD": true, "curPEN": true, "curEUR": false, "autoRates": true, "reduceMotion": false, "contrast": false, "nBills": true, "nCard": true, "nLoan": true, "nSubs": false, "nGoal": false, "nBudget": false, "nUtil": false, "nMonthly": true, "nAnnual": false, "nImport": false, "nReceipt": true, "nHousehold": false, "nInsights": false, "aiInsights": true, "aiAsk": true, "aiProj": true, "aiReceipt": true, "aiStmt": true, "aiRecur": true, "aiCat": true, "pHide": false, "pSensitive": false, "pSwitcher": true, "pScreen": false, "sFace": true, "sConfirm": true, "cloudSync": true, "backup": true, "tripSuggest": true, "tripFx": true, "tripFees": true}, "sheet": null, "theme": "Kipu Purple", "applied": "Kipu Purple", "desk": "Appearance", "delText": "", "hhIcon": "Home"}; this.onDel = (e) => this.setState({ delText: e.target.value.toUpperCase() }); }
+  renderVals() {
+    const s = this.state;
+    const seg = (on) => 'flex: 1 1 0; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const rowSt = (on) => 'width: 100%; min-height: 48px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; text-align: left; ' + (on ? 'color: #5134C9; font-weight: 600;' : 'color: #111114; font-weight: 500;');
+    const K = { seg, pill, row: rowSt };
+    const sg = {};
+    Object.keys(s.segs).forEach((g) => { const G = s.segs[g]; sg[g] = G.o.map((o) => ({ label: (G.k === 'row' && o === G.v ? '✓ ' : '') + o, pressed: o === G.v ? 'true' : 'false', style: K[G.k](o === G.v),
+      pick: () => { const segs = Object.assign({}, s.segs); segs[g] = Object.assign({}, G, { v: o }); this.setState({ segs }); } })); });
+    const t = {};
+    Object.keys(s.on).forEach((k) => { const on = !!s.on[k]; t[k] = { attr: on ? 'true' : 'false', state: on ? 'Active' : 'Inactive', toggle: () => this.setState({ on: Object.assign({}, s.on, { [k]: !on }) }),
+      track: 'width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; padding: 3px; box-sizing: border-box; display: flex; transition: background 0.2s; background: ' + (on ? '#5134C9' : '#DCDAE3') + '; justify-content: ' + (on ? 'flex-end' : 'flex-start') + ';',
+      knob: 'width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);' }; });
+    const v = (g) => (s.segs[g] || {}).v;
+    const grad = (a) => 'linear-gradient(135deg, ' + a.join(', ') + ')';
+    const mk = (name, mode) => {
+      const T = THEMES[name], M = mode === 'Dark' ? T.d : T.l, dk = mode === 'Dark';
+      const gA = dk ? T.gd : T.gl, g = grad(gA);
+      const text = dk ? '#F2F2F7' : '#111114', muted = dk ? '#9A9CB0' : '#6B6B76', line = dk ? 'rgba(255, 255, 255, 0.08)' : '#ECEBF0';
+      const neutral = dk ? '#3A3E55' : '#DEDCE5', green = dk ? '#4FCB8E' : '#2E9B69', amber = dk ? '#F2B654' : '#E0A33B';
+      const bar = (h, c) => 'flex: 1 1 0; height: ' + h + '%; border-radius: 3px 3px 1px 1px; background: ' + c + ';';
+      return {
+        name, desc: T.desc + ' · ' + mode,
+        stage: 'padding: 16px 0; border-radius: 18px; display: flex; justify-content: center; background: ' + (dk ? '#05060D' : '#EFEDF4') + ';',
+        phone: 'width: 200px; padding: 14px 12px 10px; border-radius: 26px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, ' + (dk ? '0.5' : '0.12') + '); background: ' + M.bg + '; color: ' + text + '; border: 1px solid ' + line + ';',
+        small: 'font-size: 8px; color: ' + muted + ';',
+        gradBg: 'background: ' + g + ';',
+        hero: 'padding: 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 4px; background: ' + g + '; color: ' + M.hero + ';' + (dk ? ' box-shadow: 0 6px 18px ' + gA[0] + '55;' : ''),
+        cardBox: 'width: 84px; height: 56px; flex-shrink: 0; padding: 8px; box-sizing: border-box; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; color: ' + M.hero + '; background: linear-gradient(160deg, ' + gA[gA.length - 1] + ', ' + gA[0] + ');',
+        chartBox: 'flex-grow: 1; padding: 6px 8px; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; background: ' + M.surf + '; border: 1px solid ' + line + ';',
+        b1: bar(55, neutral), b2: bar(80, gA[0]), b3: bar(45, neutral), b4: bar(100, gA[0]), b5: bar(70, gA[gA.length - 1]),
+        dotG: 'width: 5px; height: 5px; border-radius: 999px; background: ' + green + ';', dotA: 'width: 5px; height: 5px; border-radius: 2px; background: ' + amber + ';',
+        btn: 'height: 28px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; background: ' + g + '; color: ' + M.hero + ';',
+        nav: 'margin-top: 4px; height: 30px; border-radius: 12px; display: flex; align-items: center; justify-content: space-around; background: ' + M.surf + '; border: 1px solid ' + line + ';',
+        navI: 'width: 12px; height: 4px; border-radius: 999px; background: ' + neutral + ';',
+        navOn: 'width: 14px; height: 4px; border-radius: 999px; background: ' + M.acc + ';',
+        navAdd: 'width: 18px; height: 18px; border-radius: 999px; background: ' + g + ';',
+        apply: 'height: 52px; border-radius: 16px; font-size: 15px; font-weight: 600; background: ' + grad(T.gl) + '; color: ' + T.l.hero + ';' + (s.applied === name ? ' opacity: 0.55;' : ''),
+        applyLabel: s.applied === name ? '✓ Applied' : 'Apply theme',
+        applyNote: s.applied === name ? name + ' is your theme in Light and Dark.' : 'Currently using ' + s.applied + '. Preview anything before applying.'
+      };
+    };
+    const pv = mk(s.theme, s.segs.preview ? s.segs.preview.v : 'Light');
+    const themes = Object.keys(THEMES).map((n) => { const on = n === s.theme;
+      return { name: n, pressed: on ? 'true' : 'false', pick: () => this.setState({ theme: n }),
+        ring: 'width: 48px; height: 48px; box-sizing: border-box; border-radius: 999px; padding: 3px; display: flex; box-shadow: inset 0 0 0 2px ' + (on ? '#111114' : 'transparent') + ';',
+        dot: 'flex-grow: 1; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: ' + grad(THEMES[n].gl) + ';',
+        check: 'display: flex; opacity: ' + (on ? '1' : '0') + ';',
+        labelStyle: 'font-size: 11px; text-align: center; line-height: 13px; ' + (on ? 'font-weight: 700; color: #111114;' : 'font-weight: 500; color: #6B6B76;') }; });
+    const FREQ = { 'Important only': 'Only big changes, about one a week.', Balanced: 'A few useful insights each week.', 'More insights': 'Everything Kipu notices, still grouped.' };
+    const ASSUME = { 'Recent avg': 'Uses your last 3 months of income and spending.', 'Budget based': 'Uses your budget plan as the expected spending.', Conservative: 'Assumes 10% less income and 10% more spending.', Custom: 'You set income and spending for each month.' };
+    const desk = {}; ['Appearance', 'Currencies'].forEach((n) => { const on = s.desk === n; desk[n] = { pick: () => this.setState({ desk: n }),
+      style: 'height: 40px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; text-align: left; ' + (on ? 'background: #F4F1FD; color: #5134C9; font-weight: 600;' : 'color: #55555F; font-weight: 500;') }; });
+    const delOk = s.delText === 'DELETE';
+    const hhIcons = Object.keys(HH_ICONS).map((k) => ({ d: HH_ICONS[k], pressed: k === s.hhIcon ? 'true' : 'false', pick: () => this.setState({ hhIcon: k }),
+      style: 'width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; ' + (k === s.hhIcon ? 'background: #F4F1FD; color: #5134C9; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8; color: #55555F;') }));
+    const open = (k) => () => this.setState({ sheet: k });
+    return Object.assign({ onDel: this.onDel }, {
+      sg, t, pv, pvL: mk(s.theme, 'Light'), pvD: mk(s.theme, 'Dark'), themes, apply: () => this.setState({ applied: s.theme }),
+      baseLabel: v('base') || 'CAD', freqNote: FREQ[v('freq')] || '', assumeNote: ASSUME[v('assume')] || '', utilLabel: v('util') || '30%',
+      hidePreview: s.on.pHide ? '••••••' : 'CA$8,420.50', hidePreviewNote: s.on.pHide ? 'Hidden · tap to reveal with Face ID' : 'Balances shown',
+      desk, deskTheme: s.desk === 'Appearance', deskCur: s.desk === 'Currencies', deskTitle: s.desk === 'Appearance' ? 'Appearance & theme' : 'Currencies',
+      deskSub: s.desk === 'Appearance' ? 'Preview every theme in Light and Dark before applying.' : 'Base currency, active currencies and exchange rates.',
+      delText: s.delText, delDisabled: delOk ? 'false' : 'true', confirmDelete: () => {},
+      delStyle: 'height: 54px; border-radius: 18px; font-size: 15px; font-weight: 600; ' + (delOk ? 'background: #A3325A; color: #FFFFFF;' : 'background: #F1F0F4; color: #A09EAB;'),
+      hhIcons, openAddCur: open('addcur'), openBase: open('base'), openRule: open('rule'), closeSheet: () => this.setState({ sheet: null }),
+      sheetAddCur: s.sheet === 'addcur', sheetBase: s.sheet === 'base', sheetRule: s.sheet === 'rule'
+    });
+  }
+}
+</script>
+</body>
+</html>

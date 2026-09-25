@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add credit card, full height</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="x-dc">
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAFAF8;font-family:Inter,system-ui,sans-serif;color:#111114;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:#111114}
+input::placeholder{color:#A09EAB}
+a{color:#5134C9;text-decoration:none}a:hover{color:#3E24A8}
+.kipu-noscroll{scrollbar-width:none}.kipu-noscroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width: 393px; height: 2560px; position: relative; overflow: hidden; background: #FAFAF8; font-family: Inter, system-ui, sans-serif; color: #111114">
+
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FAFAF8">
+<div style="flex-grow: 1; min-height: 0; overflow: visible; padding: 58px 20px 24px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; align-items: center; justify-content: flex-end; height: 40px"><a href="Cards.dc.html" aria-label="Close" style="width: 40px; height: 40px; border-radius: 999px; background: #F1F0F4; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></a></div>
+<header style="display: flex; flex-direction: column; gap: 6px; margin-top: -8px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #6B6B76">NEW CREDIT CARD</span>
+<h1 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em">Add credit card</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #55555F">Add the details you need to stay on top of your card.</p>
+</header>
+
+<div style="{{pv.style}}">
+<span style="position: absolute; inset: 0; background: {{pv.sheen}}; pointer-events: none"></span>
+<span style="position: absolute; right: -60px; bottom: -90px; width: 220px; height: 220px; border-radius: 999px; border: 1px solid {{pv.ring}}; pointer-events: none"></span>
+<span style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px"><span style="font-size: 13px; font-weight: 600; line-height: 1.25">{{pv.name}}</span><span style="{{pv.pill}}">{{pv.owner}}</span></span>
+<span style="position: relative; display: flex; justify-content: space-between; align-items: flex-end">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 10px; opacity: 0.7">Current balance</span><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums">{{pv.balance}}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 11px; font-variant-numeric: tabular-nums"><span style="letter-spacing: 0.14em; opacity: 0.85">•••• {{pv.last4}}</span><span style="opacity: 0.7">{{pv.cur}}</span></span>
+</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: -8px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Card style</span><div class="kipu-noscroll" style="overflow-x: auto; margin: 0 -20px; padding: 0 20px"><div style="display: flex; gap: 8px; width: max-content"><sc-for list="{{styles}}" as="v" hint-placeholder-count="6"><button onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="{{v.style}}"><span style="{{v.swatch}}"></span>{{v.label}}</button></sc-for></div></div><span style="font-size: 11px; color: #8A8896">Just for looks. No bank logos.</span></div>
+
+<sc-if value="{{dupOn}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: #FDF6E8">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #4A3206"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94580A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4.5M12 15.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg>This card may already exist.</span>
+<span style="display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; font-size: 13px"><span style="font-weight: 600">CIBC Costco Mastercard</span><span style="color: #6B6B76; font-variant-numeric: tabular-nums">•••• 4821</span></span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><a href="CardDetail.dc.html" style="height: 40px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600; color: #111114; display: flex; align-items: center; justify-content: center">View existing</a><button onClick="{{addAnyway}}" style="height: 40px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">Add anyway</button></div>
+</div>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Card</h2>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Card name</span></span><input type="text" inputmode="text" value="{{name}}" onChange="{{onName}}" placeholder="e.g. Travel Visa" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Institution</span><span style="font-weight: 400; color: #8A8896">Optional</span></span><input type="text" inputmode="text" value="{{inst}}" onChange="{{onInst}}" placeholder="e.g. your bank" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Last four</span><span style="font-weight: 400; color: #8A8896">Optional</span></span><input type="text" inputmode="numeric" value="{{last4}}" onChange="{{onLast4}}" placeholder="••••" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Owner</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{owners}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Billing currency</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{curs}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; line-height: 16px; color: #8A8896">Purchases in other currencies keep their original amount. The card itself stays {{cur}}.</span></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Balances</h2>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Credit limit</span></span><input type="text" inputmode="decimal" value="{{limit}}" onChange="{{onLimit}}" placeholder="CA$0" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Current balance</span></span><input type="text" inputmode="decimal" value="{{balance}}" onChange="{{onBal}}" placeholder="CA$0" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"><span style="font-size: 11px; color: #8A8896">Your total balance right now.</span></label>
+<sc-if value="{{stmtKnown}}" hint-placeholder-val="{{true}}">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Statement balance</span><button onClick="{{stmtLater}}" style="font-size: 12px; font-weight: 600; color: #5134C9">Add later</button></span><input type="text" inputmode="decimal" value="{{stmt}}" onChange="{{onStmt}}" placeholder="CA$0" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"><span style="font-size: 11px; color: #8A8896">The amount from your most recent statement.</span></label>
+</sc-if>
+<sc-if value="{{stmtUnknown}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #FDF6E8"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600; color: #4A3206">Statement balance · later</span><span style="font-size: 11px; color: #6B5320">A statement upload can fill this in.</span></span><button onClick="{{stmtNow}}" style="height: 32px; padding: 0 12px; border-radius: 999px; background: #FFFFFF; font-size: 12px; font-weight: 600; color: #94580A">Add now</button></div>
+</sc-if>
+
+<div style="padding: 14px; border-radius: 16px; background: #FFFFFF; border: 1px solid #EEEDF2; display: flex; flex-direction: column; gap: 10px">
+<sc-if value="{{hasLimit}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; font-weight: 600">Utilization</span><b style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: #5134C9; font-variant-numeric: tabular-nums">{{ut.pct}}</b></div>
+<div style="position: relative; height: 10px; background: #F1F0F4; border-radius: 999px"><div style="{{ut.fill}}"></div><div style="position: absolute; left: 30%; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: #A09EAB; border-radius: 1px"></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 11px; font-variant-numeric: tabular-nums"><span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">Balance</span><b style="font-size: 13px; font-weight: 700">{{ut.bal}}</b></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">Limit</span><b style="font-size: 13px; font-weight: 700">{{ut.lim}}</b></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="color: #6B6B76">Available</span><b style="font-size: 13px; font-weight: 700; color: #1A6B46">{{ut.avail}}</b></span></div>
+<span style="font-size: 11px; color: #8A8896">Calculated for you. The 30% mark is a common reference, not a score.</span>
+</div>
+</sc-if>
+<sc-if value="{{noLimit}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #6B6B76">Add a credit limit to see available credit and utilization.</span></sc-if>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700">Payment</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Due date</span><span style="font-weight: 400; color: #8A8896">Optional</span></span><input type="text" inputmode="text" value="{{due}}" onChange="{{onDue}}" placeholder="e.g. Oct 12" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6B6B76"><span>Minimum payment</span><span style="font-weight: 400; color: #8A8896">Optional</span></span><input type="text" inputmode="decimal" value="{{minp}}" onChange="{{onMin}}" placeholder="CA$0" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Autopay</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{autopays}}" as="o" hint-placeholder-count="4"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<sc-if value="{{isCustom}}" hint-placeholder-val="{{false}}"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Custom amount</span><input type="text" inputmode="decimal" placeholder="CA$0" value="CA$500" readonly style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></sc-if>
+<span style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #EEF3FB; font-size: 12px; line-height: 17px; color: #1F2F4D"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2D5DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v5M12 7.5h.01M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z"></path></svg><span>Card balances aren’t counted as money you have. When a statement payment is scheduled, it reduces Safe to Spend.</span></span>
+</section>
+
+<div style="border-top: 1px solid #ECEBF0; border-bottom: 1px solid #ECEBF0">
+<button onClick="{{toggleMore}}" aria-expanded="{{moreAttr}}" style="width: 100%; padding: 14px 0; display: flex; align-items: center; gap: 12px; text-align: left"><span style="width: 28px; height: 28px; border-radius: 999px; background: #F4F1FD; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="2.4" stroke-linecap="round"><path d="{{moreIcon}}"></path></svg></span><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">More details</span><span style="font-size: 12px; color: #6B6B76">Fees, rewards, closing date, payment account, sharing</span></span></button>
+<sc-if value="{{moreOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 2px 0 16px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; align-items: end"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Annual fee</span><input type="text" inputmode="decimal" placeholder="CA$0" value="CA$0" readonly style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Charged</span><div style="display: flex; padding: 3px; gap: 2px; background: #F1F0F4; border-radius: 12px"><sc-for list="{{feeFreq}}" as="o" hint-placeholder-count="2"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Foreign transaction fee</span><input type="text" inputmode="decimal" placeholder="e.g. 2.5%" value="2.5%" readonly style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label><label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Statement closing date</span><input type="text" inputmode="text" placeholder="e.g. Sep 19" value="Sep 19" readonly style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Rewards</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{rewards}}" as="o" hint-placeholder-count="5"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Paid from</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{payFrom}}" as="o" hint-placeholder-count="3"><button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.label}}</button></sc-for></div><span style="font-size: 11px; color: #8A8896">Helps Kipu plan upcoming card payments.</span></div>
+<sc-if value="{{hasHousehold}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Household visibility</span>
+<sc-for list="{{vis}}" as="o" hint-placeholder-count="3"><button role="radio" onClick="{{o.pick}}" aria-checked="{{o.pressed}}" style="{{o.style}}"><span style="{{o.radio}}"><span style="{{o.dot}}"></span></span><span style="display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{o.label}}</span><span style="font-size: 11px; color: #6B6B76">{{o.sub}}</span></span></button></sc-for>
+</div></sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #6B6B76">Notes</span><input type="text" inputmode="text" placeholder="Optional" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: 14px; background: #F6F5F8; font-size: 15px; outline: none; width: 100%"></label>
+</div>
+</sc-if>
+</div>
+</div>
+
+<div style="flex-shrink: 0; padding: 12px 20px 30px; background: #FFFFFF; border-top: 1px solid #F1F0F4; display: flex; flex-direction: column; gap: 8px">
+<span style="text-align: center; font-size: 12px; color: #6B6B76; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{summary}}</span>
+<sc-if value="{{hasMissing}}" hint-placeholder-val="{{false}}"><span style="text-align: center; font-size: 11px; color: #94580A">{{missing}}</span></sc-if>
+<button onClick="{{save}}" style="height: 56px; border-radius: 18px; background: #5134C9; color: #FFFFFF; font-size: 16px; font-weight: 600; box-shadow: 0 8px 20px rgba(81, 52, 201, 0.3)">Add credit card</button>
+</div>
+</div>
+
+<sc-if value="{{saved}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 60; background: rgba(17, 17, 20, 0.34)">
+<div role="status" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 28px 28px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="width: 36px; height: 5px; border-radius: 999px; background: #DCDAE3"></span>
+<span style="margin-top: 8px; width: 60px; height: 60px; border-radius: 999px; background: #E6F4EC; display: flex; align-items: center; justify-content: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A6B46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-family: Satoshi, 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700">Credit card added</span><span style="font-size: 15px; color: #3A3A42; font-variant-numeric: tabular-nums">{{doneLine}}</span></span>
+<div style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: #F4F1FD; text-align: left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5134C9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"></path></svg><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600; color: #2B1F66">Import the latest statement?</span><span style="font-size: 12px; line-height: 16px; color: #55506E">Fills in statement balance, due date, minimum payment and transactions.</span></span></div>
+<a href="StmtUpload.dc.html" style="width: 100%; height: 52px; border-radius: 16px; background: #5134C9; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Upload statement</a>
+<div style="width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button onClick="{{addAnother}}" style="height: 48px; border-radius: 16px; background: #F5F4F8; font-size: 14px; font-weight: 600">Add another card</button>
+<a href="Cards.dc.html" style="height: 48px; border-radius: 16px; background: #F5F4F8; color: #111114; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">Done</a>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</template>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":2560}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props); this.state = {"name": "CIBC Costco Mastercard", "inst": "CIBC", "last4": "4821", "owner": "Personal", "cur": "CAD", "limit": "8,000", "balance": "1,240", "stmt": "980", "stmtLater": false, "due": "Oct 12", "minp": "30", "autopay": "Statement", "style": "Automatic", "more": true, "feeFreq": "Annual", "reward": "Cashback", "payFrom": "CIBC Chequing", "vis": "totals", "household": true, "dupDismissed": true, "saved": false};
+    const set = (k, re) => (e) => this.setState({ [k]: re ? e.target.value.replace(re, '') : e.target.value });
+    this.h = { onName: set('name'), onInst: set('inst'), onLast4: set('last4', /[^0-9]/g), onLimit: set('limit', /[^0-9.,]/g), onBal: set('balance', /[^0-9.,]/g), onStmt: set('stmt', /[^0-9.,]/g), onDue: set('due'), onMin: set('minp', /[^0-9.,]/g) };
+  }
+  renderVals() {
+    const s = this.state;
+    const num = (v) => parseFloat(String(v || '').replace(/[^0-9.]/g, '')) || 0;
+    const SYM = s.cur === 'USD' ? 'US$' : 'CA$';
+    const money = (n, d) => SYM + n.toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+    const withSym = (v) => v ? (String(v).indexOf('$') >= 0 ? v : SYM + v) : '';
+    const STY = { Automatic: ['linear-gradient(135deg, #3A3552 0%, #1D1A2B 52%, #111018 100%)', false], Purple: ['linear-gradient(135deg, #7358E6 0%, #4C32BC 50%, #2B1B78 100%)', false], Blue: ['linear-gradient(135deg, #4F7BD9 0%, #2F55A8 50%, #1B356E 100%)', false],
+      Green: ['linear-gradient(135deg, #3E9C77 0%, #25704F 50%, #154734 100%)', false], Warm: ['linear-gradient(135deg, #E7B77F 0%, #C98B55 50%, #9A5F36 100%)', false], Neutral: ['linear-gradient(135deg, #F4F2F8 0%, #DAD6E4 48%, #BBB5CC 100%)', true] };
+    const st = STY[s.style] || STY.Automatic, light = st[1];
+    const lim = num(s.limit), bal = num(s.balance), u = lim ? bal / lim * 100 : 0;
+    const pv = { name: s.name || 'Card name', owner: s.owner, last4: s.last4 || '····', cur: s.cur, balance: money(bal),
+      sheen: light ? 'radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.7), rgba(255,255,255,0) 60%)' : 'radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0) 60%)',
+      ring: light ? 'rgba(31,27,46,0.07)' : 'rgba(255,255,255,0.1)',
+      pill: 'flex-shrink: 0; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: ' + (light ? 'rgba(31,27,46,0.08)' : 'rgba(255,255,255,0.16)') + ';',
+      style: 'position: relative; overflow: hidden; height: 150px; box-sizing: border-box; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; color: ' + (light ? '#1F1B2E' : '#FFFFFF') + '; background: ' + st[0] + '; box-shadow: 0 12px 24px rgba(24, 16, 64, 0.16);' };
+    const styles = Object.keys(STY).map((k) => ({ label: k, pressed: k === s.style ? 'true' : 'false', pick: () => this.setState({ style: k }),
+      swatch: 'width: 16px; height: 16px; border-radius: 5px; background: ' + STY[k][0] + '; box-shadow: inset 0 0 0 1px rgba(31,27,46,0.08);',
+      style: 'height: 36px; padding: 0 12px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 8px; font-size: 13px; ' + (k === s.style ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9; font-weight: 600;' : 'background: #F6F5F8; font-weight: 500; color: #3A3A42;') }));
+    const seg = (on) => 'flex: 1 1 0; height: 38px; padding: 0 6px; border-radius: 9px; font-size: 13px; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #111114; font-weight: 600; box-shadow: 0 1px 3px rgba(24, 16, 64, 0.12);' : 'color: #6B6B76; font-weight: 500;');
+    const pill = (on) => 'height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; ' + (on ? 'background: #111114; color: #FFFFFF; font-weight: 600;' : 'background: #F6F5F8; color: #3A3A42; font-weight: 500;');
+    const opts = (list, key, stf) => list.map((o) => ({ label: o, pressed: o === s[key] ? 'true' : 'false', style: stf(o === s[key]), pick: () => this.setState({ [key]: o }) }));
+    const radio = (on) => ({ radio: 'width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid ' + (on ? '#5134C9' : '#D2CEDC') + ';', dot: 'width: 10px; height: 10px; border-radius: 999px; background: ' + (on ? '#5134C9' : 'transparent') + ';' });
+    const vis = [['private', 'Private', 'Only you see this card'], ['totals', 'Include in Household credit totals', 'Counts in household utilization. Transactions stay private.'], ['full', 'Share card details', 'Members see balance and transactions']]
+      .map((o) => Object.assign({ label: o[1], sub: o[2], pressed: o[0] === s.vis ? 'true' : 'false', pick: () => this.setState({ vis: o[0] }),
+        style: 'width: 100%; padding: 11px 12px; border-radius: 14px; display: flex; align-items: flex-start; gap: 12px; ' + (o[0] === s.vis ? 'background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #5134C9;' : 'background: #F6F5F8;') }, radio(o[0] === s.vis)));
+    const ut = { pct: (Math.abs(u - Math.round(u)) < 0.05 ? u.toFixed(0) : u.toFixed(1)) + '%', bal: money(bal), lim: money(lim), avail: money(Math.max(0, lim - bal)),
+      fill: 'position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: ' + (u >= 30 ? '#E0A33B' : '#5134C9') + '; width: ' + Math.min(100, u).toFixed(1) + '%;' };
+    const miss = [];
+    if (!s.due) miss.push('due date'); if (s.stmtLater) miss.push('statement balance');
+    const dup = (s.name || '').trim().toLowerCase() === 'cibc costco mastercard' && s.last4 === '4821' && !s.dupDismissed;
+    return Object.assign({}, this.h, {
+      pv, styles, dupOn: dup, addAnyway: () => this.setState({ dupDismissed: true }),
+      name: s.name, inst: s.inst, last4: s.last4, limit: withSym(s.limit), balance: withSym(s.balance), stmt: withSym(s.stmt), due: s.due, minp: withSym(s.minp), cur: s.cur,
+      owners: opts(s.household ? ['Personal', 'Household'] : ['Personal'], 'owner', seg), curs: opts(['CAD', 'USD'], 'cur', seg),
+      stmtKnown: !s.stmtLater, stmtUnknown: !!s.stmtLater, stmtLater: () => this.setState({ stmtLater: true }), stmtNow: () => this.setState({ stmtLater: false }),
+      hasLimit: lim > 0, noLimit: lim <= 0, ut,
+      autopays: opts(['Off', 'Minimum', 'Statement', 'Custom'], 'autopay', seg), isCustom: s.autopay === 'Custom',
+      moreOpen: !!s.more, moreAttr: s.more ? 'true' : 'false', moreIcon: s.more ? 'M5 12h14' : 'M12 5v14M5 12h14', toggleMore: () => this.setState({ more: !s.more }),
+      feeFreq: opts(['Annual', 'Monthly'], 'feeFreq', seg), rewards: opts(['None', 'Cashback', 'Points', 'Travel rewards', 'Other'], 'reward', pill), payFrom: opts(['CIBC Chequing', 'Shared Chequing', 'Not set'], 'payFrom', pill),
+      hasHousehold: !!s.household, vis,
+      summary: [s.name || 'Unnamed card', s.cur, lim ? money(lim) + ' limit' : 'no limit yet', s.owner].join(' · '),
+      hasMissing: miss.length > 0, missing: 'Missing ' + miss.join(' and ') + '. You can add ' + (miss.length > 1 ? 'them' : 'it') + ' later.',
+      save: () => this.setState({ saved: true }), saved: !!s.saved, doneLine: (s.name || 'Card') + (lim ? ' · ' + money(lim) + ' limit' : ''),
+      addAnother: () => this.setState({ saved: false, name: '', inst: '', last4: '', limit: '', balance: '', stmt: '', due: '', minp: '', stmtLater: false, more: false })
+    });
+  }
+}
+</script>
+</body>
+</html>
