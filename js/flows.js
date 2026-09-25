@@ -180,7 +180,7 @@
     const [st, setSt] = useState({ step: 'pick' });
     const [sign, setSign] = useState('auto');
     const [cur, setCur] = useState(data.base);
-    const [settled, setSettled] = useState(null);
+    const [paidMode, setPaidMode] = useState('auto');
     const isCard = where.startsWith('card:');
     const run = async (file) => {
       if (!file) return;
@@ -193,19 +193,29 @@
     };
     // Which sign is spending: cards list charges as positive; banks as negative
     const negIsSpend = sign === 'auto' ? !isCard : sign === 'neg';
-    const classify = (r) => { const spend = negIsSpend ? r.amt < 0 : r.amt > 0; return { type: spend ? 'expense' : isCard ? 'transfer' : 'income', amt: Math.abs(r.amt) }; };
+    const classify = (r) => {
+      const spend = negIsSpend ? r.amt < 0 : r.amt > 0, amt = Math.abs(r.amt);
+      // On a bank statement, paying a card moves money between your own accounts: it isn't spending
+      const pays = spend && !isCard ? K.cardPaymentFor(data, r.desc) : null;
+      if (pays) return { type: 'transfer', amt, from: where, to: pays.card ? 'card:' + pays.card.id : null, cardPay: pays.card ? pays.card.name : true };
+      if (spend) return { type: 'expense', amt, from: where };
+      return isCard ? { type: 'transfer', amt, from: null, to: where } : { type: 'income', amt, from: where };
+    };
     const rows = (st.rows || []).map((r) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !!K.findDuplicate(data, { date: r.date, amt: Math.abs(r.amt) }, where), cat: K.guessCat(data, r.desc), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
-    // An old statement is usually paid already; guess from the newest line, and let the person change it
+    // Lines up to the day the balance was typed in are already inside it: history for statistics.
+    // Without that date, a statement older than 40 days is taken as already paid.
+    const balDate = K.balDate(data, where);
     const newest = rows.reduce((m, r) => (r.date && r.date > m ? r.date : m), '');
     const oldFile = !!newest && K.days(K.parse(newest), K.today()) > 40;
-    const paidAlready = settled == null ? oldFile : settled;
+    const isPaid = (r) => (paidMode === 'all' ? true : paidMode === 'none' ? false : balDate ? !!r.date && r.date <= balDate : oldFile);
+    const paidCount = chosen.filter(isPaid).length;
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
-      chosen.forEach((r) => { d = K.addTxn(d, { imp, settled: paidAlready || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.type === 'transfer' ? null : where, to: r.type === 'transfer' ? where : null, date: r.date, source: 'statement' }); });
-      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidAlready }].concat(d.imports) });
-      commit(d); toast(paidAlready ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
+      chosen.forEach((r) => { d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement' }); });
+      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidCount }].concat(d.imports) });
+      commit(d); toast(paidCount === chosen.length ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
     };
     const toggle = (i) => setSt(Object.assign({}, st, { rows: st.rows.map((r) => (r.i === i ? Object.assign({}, r, { keep: !r.keep }) : r)) }));
     if (!places.length) return html`<${Sheet} title="Upload statement" onClose=${onClose}><${NoPlace} /></${Sheet}>`;
@@ -217,8 +227,9 @@
       ${st.step === 'review' && html`
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
         <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', isCard ? 'Positive (card)' : 'Negative (bank)'], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
-        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.bill ? 'Pays ' + r.bill.name : r.type === 'expense' ? K.CATS[r.cat].name : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
-        <div class="card tight"><${ToggleRow} title="Already paid" sub=${paidAlready ? 'For statistics only. Balances stay as they are.' : isCard ? 'Off: charges are added to what you owe on this card.' : 'Off: these movements change this account’s balance.'} on=${paidAlready} onChange=${setSettled} icon="check" tone="g" /></div>
+        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.bill ? 'Pays ' + r.bill.name : r.cardPay ? (r.cardPay === true ? 'Card payment · not spending' : 'Pays ' + r.cardPay + ' · not spending') : r.type === 'expense' ? K.CATS[r.cat].name : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
+        <div class="card stack-s" style=${{ gap: '10px' }}><span style=${{ fontWeight: 600 }}>Already paid?</span><${Seg} options=${['auto', 'all', 'none']} labels=${['Automatic', 'All', 'None']} value=${paidMode} onChange=${setPaidMode} />
+          <span class="small muted" style=${{ lineHeight: 1.5 }}>${paidMode === 'auto' ? (balDate ? 'Up to ' + K.fmtDate(balDate, true) + ', when you typed this balance, movements are already inside it.' : oldFile ? 'This statement is more than 40 days old, so it’s taken as already paid.' : 'This looks like a current statement.') + ' ' : ''}${paidCount ? paidCount + ' only for statistics' : ''}${paidCount && paidCount < chosen.length ? ' · ' : ''}${paidCount < chosen.length ? (chosen.length - paidCount) + (isCard ? ' added to what you owe' : ' change the balance') : ''}.</span></div>
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
   };
 

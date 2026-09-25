@@ -326,8 +326,27 @@
   // Imported movements on one account or card, up to a date, become "already paid": their balance effect is undone
   K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
   K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
+  // A card-payment line on a bank statement ("PAGO TARJETA VISA", "CIBC VISA PAYMENT"): which card it pays, or null
+  const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono)\b/;
+  const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|credit|credito|cr)\b/;
+  K.cardPaymentFor = (d, desc) => {
+    const m = norm(desc);
+    if (!m || !PAY.test(m)) return null;
+    const named = (d.cards || []).filter((c) => (c.last4 && m.includes(c.last4)) || norm(c.name).split(' ').filter((w) => w.length >= 4 && !['card', 'visa', 'credit'].includes(w)).some((w) => m.split(' ').includes(w)));
+    if (named.length === 1) return { card: named[0] };
+    if (!CARDWORD.test(m)) return null;
+    const byNet = (d.cards || []).filter((c) => c.network && m.includes(norm(c.network)));
+    return { card: byNet.length === 1 ? byNet[0] : (d.cards || []).length === 1 ? d.cards[0] : null };
+  };
+  // Card payments imported from a bank before Kipu recognized them: they count as spending twice
+  K.misfiledCardPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && (t.from || '').startsWith('acct:') && K.cardPaymentFor(d, t.merchant));
+  // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
+  K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d);
+  // The day a balance was typed in: movements up to then are already inside it
+  K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {
     const old = d[coll].find((x) => x.id === item.id);
+    if (['accounts', 'cards'].includes(coll) && (!old || old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0))) item = Object.assign({}, item, { balDate: iso(today()) });
     const next = Object.assign({}, d, { [coll]: old ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) });
     if (old && ['accounts', 'cards'].includes(coll) && (old.cur || d.base) !== (item.cur || d.base)) {
       const where = (coll === 'cards' ? 'card:' : 'acct:') + item.id;

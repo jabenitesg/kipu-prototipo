@@ -266,3 +266,33 @@ test('an old statement marked as already paid counts in statistics but moves no 
   d = K.editTxn(d, shell.id, { settled: undefined });
   assert.equal(d.cards[0].bal, 100);
 });
+
+test('a card payment on a bank statement is a transfer, not spending', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 3000)];
+  d.cards = [{ id: 'visa', name: 'CIBC Aventura', network: 'Visa', last4: '4455', cur: 'CAD', bal: 500, limit: 5000 }, { id: 'mc', name: 'Costco', network: 'Mastercard', cur: 'CAD', bal: 0, limit: 3000 }];
+  assert.equal(K.cardPaymentFor(d, 'PAGO TARJETA VISA').card.id, 'visa');
+  assert.equal(K.cardPaymentFor(d, 'AVENTURA PAYMENT THANK YOU').card.id, 'visa');
+  assert.equal(K.cardPaymentFor(d, 'PAYMENT CARD 4455').card.id, 'visa');
+  assert.equal(K.cardPaymentFor(d, 'PAGO DE SERVICIOS LUZ DEL SUR'), null);
+  assert.equal(K.cardPaymentFor(d, 'LOBLAWS 1234'), null);
+  // Already imported as spending: fixing it keeps every balance as it was
+  d = K.addTxn(d, { type: 'expense', merchant: 'CIBC VISA PAYMENT', amt: 400, cur: 'CAD', from: 'acct:chq', date: '2026-09-01', source: 'statement', cat: 'other' });
+  assert.equal(K.misfiledCardPayments(d).length, 1);
+  const before = [d.accounts[0].bal, d.cards[0].bal];
+  d = K.fixCardPayments(d);
+  assert.deepEqual([d.accounts[0].bal, d.cards[0].bal], before);
+  assert.equal(d.txns[0].type, 'transfer');
+  assert.equal(K.misfiledCardPayments(d).length, 0);
+});
+
+test('a balance remembers the day it was typed; statement lines up to then are history', () => {
+  let d = K.factory();
+  d = K.upsert(d, 'accounts', { id: 'chq', name: 'Chequing', kind: 'Everyday', cur: 'CAD', bal: 1000 });
+  assert.equal(K.balDate(d, 'acct:chq'), K.iso(K.today()));
+  d = Object.assign({}, d, { accounts: d.accounts.map((a) => Object.assign({}, a, { balDate: '2026-01-01' })) });
+  d = K.upsert(d, 'accounts', Object.assign({}, d.accounts[0], { name: 'Main' }));
+  assert.equal(K.balDate(d, 'acct:chq'), '2026-01-01'); // renaming doesn't move it
+  d = K.upsert(d, 'accounts', Object.assign({}, d.accounts[0], { bal: 1200 }));
+  assert.equal(K.balDate(d, 'acct:chq'), K.iso(K.today()));
+});

@@ -310,6 +310,14 @@
   K.PageHead = PageHead;
 
   // Shown when a currency has no exchange rate yet: never convert 1 to 1
+  // Card payments imported from a bank as spending: counted twice in statistics until fixed
+  K.CardPayNote = function CardPayNote() {
+    const { data, commit, toast, fmt } = useApp();
+    const list = K.misfiledCardPayments(data);
+    if (!list.length) return null;
+    const total = list.reduce((a, t) => a + (t.base || 0), 0);
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${(list.length === 1 ? '1 card payment from your bank (' + fmt(total) + ') counts' : list.length + ' card payments from your bank (' + fmt(total) + ') count') + ' as spending, so those purchases are counted twice.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixCardPayments(data)); toast(list.length === 1 ? '1 card payment no longer counts as spending' : list.length + ' card payments no longer count as spending'); }}>Fix</button></div>`;
+  };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

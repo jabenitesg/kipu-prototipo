@@ -24,6 +24,8 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Vista por país:** si tienes cuentas en varios países (por ejemplo Canadá y Perú), Inicio muestra lo disponible para gastar en cada uno, en su propia moneda, y puedes ver solo ese país. Las cuentas en dólares, euros o libras sin país se cuentan en tu país principal.
 - **Tarjetas bimoneda:** una tarjeta puede llevar saldo en dos monedas (soles y dólares) con un solo límite, y pagarse por separado. Los préstamos se pagan en su propia moneda.
 - **Sin conversiones inventadas:** si falta el tipo de cambio de una moneda, Kipu no la convierte 1 a 1. Esos montos quedan fuera de los totales con un aviso y se suman cuando llega la tasa.
+- **Estados de cuenta antiguos:** cada cuenta y tarjeta recuerda el día en que pusiste su saldo. Al importar, lo anterior a esa fecha ya está incluido en el saldo y solo cuenta para Estadísticas; lo posterior mueve el saldo. Se puede elegir Automático, Todo o Ninguno, y marcar importaciones anteriores o movimientos sueltos como "Ya está pagado".
+- **Pagos de tarjeta en el banco:** una línea como "PAGO TARJETA VISA" en un estado de cuenta del banco se importa como transferencia a esa tarjeta, no como gasto, para no contar las compras dos veces. Si ya se importaron como gasto, Estadísticas ofrece corregirlas sin cambiar saldos.
 - **Recibos pagados:** un gasto escrito o importado que coincide con un recibo (nombre parecido, monto dentro del 3 % y ±7 días) lo marca como pagado, así no se descuenta dos veces. Se puede vincular o desvincular a mano en el detalle del gasto.
 
 ## Bloqueo
