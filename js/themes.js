@@ -18,9 +18,9 @@
       dark: P({ bg: '#07111F', surface: '#0F1B2D', surface2: '#16243A', elev: '#182841', line: '#213150', acc: '#6FB2FF', acc2: '#3B82F6', acc3: '#3CD3F0', accbg: '#12294A', tint: '#0F2440', solid: '#1E5BC6', grad: ['#1F4FB8', '#1F74D6', '#18B5D8'], grad2: ['#1F74D6', '#18B5D8'], chart: ['#5AA2FF', '#3CD3F0', '#2D5E9E', '#8FE6F5', '#34466A'] }),
     },
     Forest: {
-      desc: 'Deep green, emerald and sage. Grounded and steady.',
-      light: P({ bg: '#F7F8F4', surface: '#FFFFFF', surface2: '#EFF2EC', elev: '#FFFFFF', line: '#E3E8DF', acc: '#1E7A55', acc2: '#0F5A3F', acc3: '#5E8C66', accbg: '#E6F2EB', tint: '#EEF4EE', solid: '#186B4B', grad: ['#0F5A3F', '#1E7A55', '#2A9D8F'], grad2: ['#1E7A55', '#2A9D8F'], chart: ['#1E7A55', '#2A9D8F', '#8DB596', '#7FC8BD', '#C9D8C6'] }),
-      dark: P({ bg: '#0C1411', surface: '#131D19', surface2: '#1A2621', elev: '#1C2923', line: '#24332C', acc: '#5CD6A3', acc2: '#2FB184', acc3: '#7FB89A', accbg: '#16302A', tint: '#122620', solid: '#177457', grad: ['#146B4F', '#1E8E68', '#1FA59A'], grad2: ['#1E8E68', '#1FA59A'], chart: ['#4CC795', '#3CC2B4', '#2E5F4E', '#9ADBC1', '#33483F'] }),
+      desc: 'Deep forest, emerald, sage and leaf. Grounded and fresh.',
+      light: P({ bg: '#F5F8F3', surface: '#FFFFFF', surface2: '#EDF3EA', elev: '#FFFFFF', line: '#DFE8DA', acc: '#1E7A55', acc2: '#0F3D2E', acc3: '#5E8C3A', accbg: '#E3F1E7', tint: '#EEF5EC', solid: '#14553F', grad: ['#0F3D2E', '#1E7A55', '#5FA868'], grad2: ['#1E7A55', '#7FB77E'], chart: ['#1E7A55', '#7FB77E', '#0F3D2E', '#B7D9A8', '#4E8F6B'] }),
+      dark: P({ bg: '#0A120E', surface: '#111C16', surface2: '#17251D', elev: '#1A2A21', line: '#22362A', acc: '#6FD9A0', acc2: '#2FB57A', acc3: '#A7D46F', accbg: '#15301F', tint: '#122419', solid: '#1B6B4A', grad: ['#0F4A35', '#1E8A5C', '#6BBF6E'], grad2: ['#1E8A5C', '#8CC46A'], chart: ['#5FD39A', '#A7D46F', '#2E7D5B', '#CDEBB0', '#34503F'] }),
     },
     Ember: {
       desc: 'Terracotta, orange and rose. Warm and lively.',
