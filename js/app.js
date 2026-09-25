@@ -94,6 +94,7 @@
             ${stack.length > 1 ? html`<button class="circle-btn" aria-label="Back" onClick=${back}><${Icon} n="back" s=${18} w=${2.2} /></button>` : null}
             <span class="crumb"><span class="muted">Kipu</span><${Icon} n="next" s=${13} c="var(--muted)" /><span class=${stack.length > 1 ? 'muted' : ''}>${SECTION[rootOf] || 'Home'}</span>${stack.length > 1 && html`<${Icon} n="next" s=${13} c="var(--muted)" /><span>${TITLES[route.r] || ''}</span>`}</span>
             <span class="grow"></span>
+            ${rootOf === 'home' && stack.length === 1 && html`<${K.ContextFilter} show=${['scope', 'currency']} />`}
             <span class="pill-soft"><${Icon} n="calendar" s=${16} c="var(--muted)" />${today}</span>
             <button class="circle-btn" aria-label=${alerts ? alerts + ' things need attention' : 'Insights'} onClick=${() => go({ r: 'stats', tab: 'insights' })} style=${{ position: 'relative' }}><${Icon} n="bell" s=${18} />${alerts > 0 && html`<i class="bell-dot"></i>`}</button>
             <button class="btn pri sm pill" onClick=${() => setSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${16} w=${2.4} />Add</button>
