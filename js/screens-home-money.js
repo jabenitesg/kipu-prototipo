@@ -296,7 +296,7 @@
     const acur = a.cur || data.base;
     const spendFrom = (t) => { if (t.from !== 'acct:' + a.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === acur) return t.amt || 0; const r = K.rate(data, acur, data.base); return r && t.base != null ? t.base / r : 0; };
     const amoney = (v) => fmt.native(v, acur);
-    const right = html`<div class="stack-s"><${SectionHeader} title="Activity by month" /><${K.MonthActivity} txns=${tx} spend=${spendFrom} money=${amoney} empty=${html`<div class="card"><${EmptyState} icon="history" title="No activity" text="Transactions paid from or into this account appear here." /></div>`} /></div>`;
+    const right = html`<div class="stack-s"><${SectionHeader} title="Activity by month" /><${K.MonthActivity} id=${a.id} txns=${tx} spend=${spendFrom} money=${amoney} empty=${html`<div class="card"><${EmptyState} icon="history" title="No activity" text="Transactions paid from or into this account appear here." /></div>`} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${a.name} sub=${a.cur + ' account' + (a.shared ? ' · Shared' : '')} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
 
@@ -331,7 +331,7 @@
     const ccur = c.cur || data.base;
     const spendOn = (t) => { if (t.from !== 'card:' + c.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === ccur) return t.amt || 0; const r = K.rate(data, ccur, data.base); return r && t.base != null ? t.base / r : 0; };
     const cmoney = (v) => fmt.native(v, ccur);
-    const right = html`<div class="stack-s"><${SectionHeader} title="Charges by month" /><${K.MonthActivity} txns=${tx} spend=${spendOn} money=${cmoney} empty=${html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`} /></div>`;
+    const right = html`<div class="stack-s"><${SectionHeader} title="Charges by month" /><${K.MonthActivity} id=${c.id} txns=${tx} spend=${spendOn} money=${cmoney} empty=${html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${c.name} sub=${c.last4 ? '•••• ' + c.last4 : c.network} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
 

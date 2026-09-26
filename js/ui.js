@@ -393,12 +393,17 @@
   // `spend(t)` is what a movement cost in the card's or account's currency (0 when it isn't spending)
   // A month on one card or account: a calendar of what was spent each day, and that month's movements below.
   // The calendar picks the month; tapping a day narrows the list to it.
-  K.MonthActivity = function MonthActivity({ txns, spend, money, empty, wide }) {
+  // The month (and day) last looked at, per card or account: opening a movement and coming back keeps you there
+  const monthSeen = {};
+  K.MonthActivity = function MonthActivity({ id, txns, spend, money, empty, wide }) {
     const T = K.today();
     const latest = txns.filter((t) => spend(t) > 0).reduce((m, t) => (t.date > m ? t.date : m), '');
     const start = latest && latest.slice(0, 7) < K.monthKey(T) && !txns.some((t) => t.date && t.date.slice(0, 7) === K.monthKey(T)) ? K.parse(latest.slice(0, 7) + '-01') : new Date(T.getFullYear(), T.getMonth(), 1);
-    const [month, setMonth] = useState(start);
-    const [day, setDay] = useState(null);
+    const kept = id && monthSeen[id];
+    const [month, setMonthRaw] = useState(kept ? kept.month : start);
+    const [day, setDayRaw] = useState(kept ? kept.day : null);
+    const setMonth = (m) => { setMonthRaw(m); if (id) monthSeen[id] = { month: m, day: null }; };
+    const setDay = (d) => { setDayRaw(d); if (id) monthSeen[id] = { month, day: d }; };
     if (!txns.length) return empty;
     const key = K.monthKey(month);
     const inMonth = txns.filter((t) => t.date && t.date.startsWith(key));
@@ -408,7 +413,7 @@
     const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     const lead = (new Date(month.getFullYear(), month.getMonth(), 1).getDay() + 6) % 7; // weeks start on Monday
     const cells = Array.from({ length: lead }, () => null).concat(Array.from({ length: days }, (_, i) => i + 1));
-    const move = (n) => { setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1)); setDay(null); };
+    const move = (n) => { setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1)); setDayRaw(null); };
     const isNow = key === K.monthKey(T);
     const first = txns.reduce((m, t) => (t.date && t.date < m ? t.date : m), '9999');
     const dayKey = day ? key + '-' + String(day).padStart(2, '0') : null;
