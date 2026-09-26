@@ -263,12 +263,12 @@
   const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<button class="btn sec block" style=${{ color: 'var(--crit)' }} onClick=${onDelete}>Delete</button>`}</${Sheet}>`;
 
   const AddAccount = ({ onClose, item }) => {
-    const { data, commit, toast } = useApp();
+    const { data, commit, toast, openSheet } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal) }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
     const country = f.country || K.countryOfCur(f.cur) || null;
     const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save}>
-      <${Chips} options=${['Everyday', 'Savings', 'Cash', 'Investments', 'Property']} value=${f.kind} onChange=${on('kind')} />
+      <${Chips} options=${item ? ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'] : ['Everyday', 'Savings', 'Cash', 'Credit card', 'Loan', 'Investments', 'Property']} value=${f.kind} onChange=${(k) => (k === 'Credit card' ? openSheet({ k: 'addCard' }) : k === 'Loan' ? openSheet({ k: 'addLoan' }) : on('kind')(k))} />
       <${In} id="aa-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Everyday Chequing" />
       <${In} id="aa-inst" label="Institution" value=${f.inst} onInput=${on('inst')} ph="Optional" />
       <${K.CurrencySelect} label="Currency" value=${f.cur} onChange=${on('cur')} />
