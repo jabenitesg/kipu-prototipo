@@ -312,6 +312,15 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 @media (max-width: 420px) { .cat-pick { width: 100%; } }
 .chart-tip { position: absolute; top: 0; z-index: 3; min-width: 150px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,0.18); font-size: 12px; pointer-events: none; white-space: nowrap; }
 .chart-tip b { font-weight: 700; }
+.mcal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mcal-wd { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding-bottom: 2px; }
+.mcal-day { aspect-ratio: 1 / 1; min-height: 38px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px; font-size: 13px; background: var(--surface2); color: var(--ink); position: relative; }
+.mcal-day.has { background: color-mix(in srgb, var(--acc) calc(var(--heat, 0.3) * 100%), var(--surface2)); }
+.mcal-day .v { font-size: 10px; font-weight: 700; line-height: 1; opacity: 0.95; }
+.mcal-day.today { box-shadow: inset 0 0 0 1.5px var(--acc); }
+.mcal-day.on { outline: 2px solid var(--ink); outline-offset: 1px; }
+@media (max-width: 360px) { .mcal { gap: 3px; } .mcal-day { min-height: 34px; font-size: 12px; } .mcal-day .v { font-size: 9px; } }
+.ic:disabled { opacity: 0.3; cursor: default; }
 /* A long sheet scrolls; its rows keep their height instead of squeezing */
 .sheet > * { flex-shrink: 0; }
 .wide .sheet-bg { align-items: center; }
