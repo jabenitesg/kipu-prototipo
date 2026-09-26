@@ -222,6 +222,170 @@ test('edits made on two devices at once are merged, balances included', () => {
   assert.equal(K.mergeData(phone, deleted, phone).txns.length, 0); // a delete on one side sticks when the other didn't touch it
 });
 
+test('editing the same expense on two devices keeps one posting and its matching balance', () => {
+  let base = K.factory();
+  base.accounts = [account('cad', 'CAD', 100)];
+  base = K.addTxn(base, { type: 'expense', merchant: 'Food', amt: 10, cur: 'CAD', from: 'acct:cad' });
+  const id = base.txns[0].id;
+  const phone = K.editTxn(base, id, { amt: 20 });
+  const laptop = K.editTxn(base, id, { amt: 30 });
+  const merged = K.mergeData(base, phone, laptop);
+  assert.equal(merged.txns.length, 1);
+  assert.equal(merged.txns[0].amt, 20);
+  assert.equal(merged.accounts[0].bal, 80);
+});
+
+test('concurrent changes of amount and source never create a hybrid movement', () => {
+  let base = K.factory();
+  base.accounts = [account('a', 'CAD', 100), account('b', 'CAD', 100)];
+  base = K.addTxn(base, { type: 'expense', merchant: 'Food', amt: 10, cur: 'CAD', from: 'acct:a' });
+  const id = base.txns[0].id;
+  const amount = K.editTxn(base, id, { amt: 20 });
+  const source = K.editTxn(base, id, { from: 'acct:b' });
+  const merged = K.mergeData(base, amount, source);
+  assert.equal(merged.txns[0].amt, 20);
+  assert.equal(merged.txns[0].from, 'acct:a');
+  assert.deepEqual(merged.accounts.map((a) => a.bal), [80, 100]);
+});
+
+test('moving an account between private and shared moves its history and linked plans', () => {
+  let d = K.factory();
+  d.accounts = [{ ...account('cad', 'CAD', 100), shared: false }];
+  d.bills = [{ id: 'rent', name: 'Rent', amt: 10, cur: 'CAD', day: K.today().getDate(), pay: 'acct:cad', shared: false }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Rent', amt: 10, cur: 'CAD', from: 'acct:cad', recurring: 'rent' });
+  const shared = K.moveSpace(d, 'accounts', 'cad').data;
+  const [personal, household] = K.splitSpaces(shared, K.factory());
+  assert.equal(personal.accounts.length, 0);
+  assert.equal(personal.txns.length, 0);
+  assert.equal(household.accounts[0].bal, 90);
+  assert.equal(household.txns[0].merchant, 'Rent');
+  assert.equal(household.bills[0].id, 'rent');
+  const privateAgain = K.moveSpace(shared, 'accounts', 'cad').data;
+  const [mine, ours] = K.splitSpaces(privateAgain, K.factory());
+  assert.equal(ours.accounts.length, 0);
+  assert.equal(ours.txns.length, 0);
+  assert.equal(mine.txns[0].merchant, 'Rent');
+});
+
+test('editing ownership in an account form moves linked movements too', () => {
+  let d = K.factory();
+  d.accounts = [{ ...account('cad', 'CAD', 100), shared: false }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', amt: 10, cur: 'CAD', from: 'acct:cad' });
+  d = K.upsert(d, 'accounts', { ...d.accounts[0], shared: true });
+  const [mine, ours] = K.splitSpaces(d, K.factory());
+  assert.equal(mine.txns.length, 0);
+  assert.equal(ours.txns.length, 1);
+  assert.equal(ours.accounts[0].bal, 90);
+});
+
+test('a shared statement keeps its import record with the movements so either partner can undo it', () => {
+  let d = K.factory();
+  d.accounts = [{ ...account('cad', 'CAD', 100), shared: false }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', amt: 10, cur: 'CAD', from: 'acct:cad', imp: 'file1' });
+  d.imports = [{ id: 'file1', name: 'September.csv', where: 'acct:cad', count: 1 }];
+  const shared = K.moveSpace(d, 'accounts', 'cad').data;
+  const [mine, ours] = K.splitSpaces(shared, K.factory());
+  assert.equal(mine.imports.length, 0);
+  assert.equal(ours.imports[0].id, 'file1');
+  assert.equal(K.importTxns(ours, ours.imports[0]).length, 1);
+  assert.equal(K.undoImport(ours, 'file1').txns.length, 0);
+  const legacy = { ...d, txns: d.txns.map((t) => ({ ...t, shared: true })) };
+  const combined = K.combineSpaces(legacy, K.factory(), { id: 'h', name: 'Home' });
+  assert.equal(combined.imports[0].shared, true);
+});
+
+test('private and Household monthly budgets stay in their own encrypted spaces', () => {
+  const personal = { ...K.factory(), budget: { groceries: 100 } };
+  const household = { ...K.factory(), budget: { groceries: 400 } };
+  const combined = K.combineSpaces(personal, household, { id: 'h', name: 'Home' });
+  assert.equal(K.derive(combined, ctx).plan.budgetPlan, 100);
+  assert.equal(K.derive(combined, { scope: 'household', currency: 'Combined' }).plan.budgetPlan, 400);
+  const edited = { ...combined, householdBudget: { groceries: 450 } };
+  const [mine, ours] = K.splitSpaces(edited, household);
+  assert.equal(mine.budget.groceries, 100);
+  assert.equal(mine.householdBudget, undefined);
+  assert.equal(ours.budget.groceries, 450);
+});
+
+test('a Household with a different base currency is converted for the combined view and restored on save', () => {
+  const rates = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  const personal = { ...K.factory(), base: 'PEN', fx: { usd: rates }, budget: { groceries: 100 } };
+  let household = { ...K.factory(), base: 'CAD', fx: { usd: rates }, budget: { groceries: 135 }, accounts: [{ ...account('cad', 'CAD', 100), shared: true }] };
+  household = K.addTxn(household, { type: 'expense', merchant: 'Food', amt: 13.5, cur: 'CAD', from: 'acct:cad', shared: true });
+  const combined = K.combineSpaces(personal, household, { id: 'h', name: 'Home' });
+  assert.equal(combined.txns[0].base, 37.5);
+  assert.equal(combined.householdBudget.groceries, 375);
+  assert.equal(K.splitSpaces({ ...combined, profile: { name: 'Edited privately' } }, household)[1], household);
+  const [mine, ours] = K.splitSpaces(combined, household);
+  assert.equal(mine.txns.length, 0);
+  assert.equal(ours.base, 'CAD');
+  assert.equal(ours.txns[0].base, 13.5);
+  assert.equal(ours.budget.groceries, 135);
+  assert.equal(ours.accounts[0].bal, 86.5);
+  const changedBase = K.changeBase(combined, 'USD');
+  assert.equal(changedBase.householdBudget.groceries, 100);
+  assert.equal(K.splitSpaces(changedBase, household)[1].budget.groceries, 135);
+});
+
+test('private custom categories are not copied into the Household vault', () => {
+  const privateData = { ...K.factory(), customCats: [{ id: 'secret', name: 'Private category' }] };
+  const household = K.factory();
+  const combined = K.combineSpaces(privateData, household, { id: 'h', name: 'Home' });
+  const [mine, ours] = K.splitSpaces(combined, household);
+  assert.equal(mine.customCats[0].name, 'Private category');
+  assert.equal(ours.customCats.length, 0);
+});
+
+test('changing the display base keeps loan principal and interest in the loan currency', () => {
+  let d = K.factory();
+  d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.accounts = [account('cad', 'CAD', 1000)];
+  d.loans = [{ id: 'loan', name: 'US loan', cur: 'USD', bal: 100, pay: 20, rate: 12, freq: 'Monthly', next: K.iso(K.today()) }];
+  d = K.payLoan(d, 'loan', 'acct:cad');
+  const before = d.loans[0].bal, txn = d.txns[0];
+  assert.equal(txn.interest, 1);
+  assert.equal(K.derive(d, ctx).month.interest, 1.35);
+  d = K.changeBase(d, 'PEN');
+  assert.equal(d.txns[0].principal, txn.principal);
+  assert.equal(d.txns[0].interest, txn.interest);
+  assert.equal(K.derive(d, ctx).month.interest, 3.75);
+  d = K.removeTxn(d, txn.id);
+  assert.equal(d.loans[0].bal, 100);
+  assert.ok(before < 100);
+});
+
+test('a different purchase at the same shop does not pay a bill', () => {
+  let d = K.factory();
+  d.accounts = [account('cad', 'CAD', 100)];
+  d.bills = [{ id: 'prime', name: 'Amazon', amt: 10, cur: 'CAD', day: K.today().getDate(), pay: 'acct:cad' }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Amazon Marketplace', amt: 15, cur: 'CAD', from: 'acct:cad' });
+  assert.equal(d.txns[0].recurring, undefined);
+  assert.equal(K.derive(d, ctx).plan.billsDueAmt, 10);
+});
+
+test('a two-currency card with only its second balance appears in upcoming payments', () => {
+  const d = K.factory();
+  d.cards = [{ id: 'pe', name: 'Peru Visa', cur: 'PEN', cur2: 'USD', bal: 0, bal2: 100, stmtBal: 0, stmtBal2: 100, dueDay: K.today().getDate(), limit: 5000 }];
+  const due = K.derive(d, ctx).upcoming.find((x) => x.kind === 'Card due');
+  assert.ok(due);
+  assert.equal(due.native[0].cur, 'USD');
+  assert.equal(due.native[0].amt, 100);
+  assert.equal(due.amt, K.toBase(d, 100, 'USD'));
+  delete d.fx.usd.USD;
+  const missing = K.derive(d, ctx).upcoming.find((x) => x.kind === 'Card due');
+  assert.equal(missing.amt, null);
+  assert.equal(missing.native[0].amt, 100);
+});
+
+test('a country view uses its home currency even when most accounts there hold dollars', () => {
+  const d = K.factory();
+  d.accounts = [{ ...account('pen', 'PEN', 100), country: 'PE' }, { ...account('usd1', 'USD', 20), country: 'PE' }, { ...account('usd2', 'USD', 30), country: 'PE' }];
+  K.currencyForCountry = (cc) => cc === 'PE' ? 'PEN' : null;
+  assert.equal(K.countryCur(d, 'PE'), 'PEN');
+  assert.equal(K.countryView(d, 'PE').view.cur, 'PEN');
+  delete K.currencyForCountry;
+});
+
 test('each country is viewed on its own, in its own currency, with its own Safe to Spend', () => {
   let d = K.factory();
   d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };

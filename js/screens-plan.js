@@ -114,13 +114,15 @@
   const data0 = (D) => new Set(D.plan.budgetRows.map((b) => b.cat));
 
   K.BudgetEditSheet = function BudgetEditSheet({ cat, onClose }) {
-    const { data, commit, toast } = useApp();
+    const { data, commit, toast, cloud, ctx } = useApp();
+    const key = cloud.combined && ctx.scope === 'household' ? 'householdBudget' : 'budget';
+    const budget = data[key] || {};
     const [c, setC] = useState(cat || 'groceries');
-    const [v, setV] = useState(String(data.budget[cat] || ''));
-    return html`<${Sheet} title="Monthly plan" sub="How much you want to spend on this category each month." onClose=${onClose}>
-      <div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (k === c ? ' on' : '')} onClick=${() => { setC(k); setV(String(data.budget[k] || '')); }}>${K.CATS[k].name}</button>`)}</div>
+    const [v, setV] = useState(String(budget[cat] || ''));
+    return html`<${Sheet} title=${key === 'householdBudget' ? 'Household monthly plan' : 'Monthly plan'} sub="How much you want to spend on this category each month." onClose=${onClose}>
+      <div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (k === c ? ' on' : '')} onClick=${() => { setC(k); setV(String(budget[k] || '')); }}>${K.CATS[k].name}</button>`)}</div>
       <input id="budget-amt" class="amount-in num" inputmode="decimal" placeholder="0" value=${K.groupNum(v)} onInput=${(e) => setV(K.cleanNum(e.target.value))} aria-label="Monthly plan" />
-      <div class="grid g2" style=${{ gap: '8px' }}>${data.budget[c] ? html`<button class="btn sec" onClick=${() => { const b = Object.assign({}, data.budget); delete b[c]; commit(Object.assign({}, data, { budget: b })); toast('Removed from plan'); onClose(); }}>Remove</button>` : html`<span></span>`}<button class="btn pri" disabled=${!parseFloat(v)} onClick=${() => { commit(Object.assign({}, data, { budget: Object.assign({}, data.budget, { [c]: parseFloat(v) || 0 }) })); toast('Plan saved'); onClose(); }}>Save</button></div></${Sheet}>`;
+      <div class="grid g2" style=${{ gap: '8px' }}>${budget[c] ? html`<button class="btn sec" onClick=${() => { const b = Object.assign({}, budget); delete b[c]; commit(Object.assign({}, data, { [key]: b })); toast('Removed from plan'); onClose(); }}>Remove</button>` : html`<span></span>`}<button class="btn pri" disabled=${!parseFloat(v)} onClick=${() => { commit(Object.assign({}, data, { [key]: Object.assign({}, budget, { [c]: parseFloat(v) || 0 }) })); toast('Plan saved'); onClose(); }}>Save</button></div></${Sheet}>`;
   };
 
   function Bills() {
