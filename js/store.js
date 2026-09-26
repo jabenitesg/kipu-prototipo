@@ -640,6 +640,40 @@
     return Object.assign(v, { view: { country: cc, cur } });
   };
   // What a card has used of its limit, in the card's main currency (second-currency balance converted)
+  // ---------------------------------------------------------------- card statement cycle
+  // With a closing day, the statement is worked out from the movements: charges between the last two closing dates,
+  // less payments made since the last close. Purchases after the close go to the next statement.
+  const dayIn = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+  const nextDay = (from, day) => { let d = dayIn(from.getFullYear(), from.getMonth(), day); if (d <= from) d = dayIn(from.getFullYear(), from.getMonth() + 1, day); return d; };
+  K.cardCycle = (d, c, T) => {
+    if (!c || !c.closeDay) return null;
+    T = T || today();
+    let lastClose = dayIn(T.getFullYear(), T.getMonth(), c.closeDay);
+    if (lastClose > T) lastClose = dayIn(T.getFullYear(), T.getMonth() - 1, c.closeDay);
+    const prevClose = dayIn(lastClose.getFullYear(), lastClose.getMonth() - 1, c.closeDay);
+    const nextClose = dayIn(lastClose.getFullYear(), lastClose.getMonth() + 1, c.closeDay);
+    const due = c.dueDay ? nextDay(lastClose, c.dueDay) : null;
+    // The day the person usually pays, if earlier than the due date
+    let payBy = due;
+    if (c.payDay) { const p = nextDay(lastClose, c.payDay); if (!due || p <= due) payBy = p; }
+    const where = 'card:' + c.id, cur = c.cur || d.base;
+    const inCur = (t) => { if (c.cur2 && t.cur === c.cur2) return 0; if ((t.cur || d.base) === cur) return t.amt || 0; const k = K.rate(d, cur, d.base); return k && t.base != null ? t.base / k : 0; };
+    let charges = 0, refunds = 0, paid = 0, since = 0;
+    (d.txns || []).forEach((t) => {
+      if (t.settled || !t.date) return;
+      const dt = parse(t.date);
+      if (t.from === where && (t.type === 'expense' || t.type === 'debt' || t.type === 'transfer')) { if (dt > prevClose && dt <= lastClose) charges += inCur(t); else if (dt > lastClose) since += inCur(t); }
+      if (t.from === where && t.type === 'income' && dt > prevClose && dt <= lastClose) refunds += inCur(t);
+      if (t.to === where && dt > lastClose && dt <= T) paid += inCur(t);
+    });
+    const statement = r2(Math.max(0, charges - refunds));
+    // A statement balance typed in after the last close is the bank's own number: it wins
+    const typed = c.stmtBal > 0 && c.stmtDate && c.stmtDate > iso(lastClose) ? c.stmtBal : null;
+    const stmt = typed != null ? typed : statement;
+    // If the usual day has passed and it's still owed, the due date; past that too, today (it's late)
+    const reserveOn = !payBy ? null : payBy >= T ? payBy : due && due >= T ? due : T;
+    return { lastClose: iso(lastClose), prevClose: iso(prevClose), nextClose: iso(nextClose), from: iso(addDays(prevClose, 1)), due: due && iso(due), payBy: payBy && iso(payBy), reserveOn: reserveOn && iso(reserveOn), late: !!(due && due < T), statement: r2(stmt), typed: typed != null, paid: r2(paid), owed: r2(Math.max(0, Math.min(Math.max(0, c.bal || 0), stmt - paid))), since: r2(since) };
+  };
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
     const inS = (x) => (scope === 'household' ? !!x.shared : true);
@@ -715,6 +749,9 @@
     const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
+      // With a closing day: the statement Kipu works out, reserved for the day it's usually paid (or due)
+      const cyc = !c.cur2 && K.cardCycle(data, c, T);
+      if (cyc && cyc.reserveOn) { const by = parse(cyc.reserveOn); return cyc.owed > 0 && inWin(by) ? Object.assign({}, c, { dueAmount: cyc.owed, dueAmount2: 0, payBy: cyc.reserveOn }) : null; }
       // Without a statement balance typed in, reserve what's owed on the card
       if (!(c.stmtBal > 0 || c.stmtBal2 > 0)) c = Object.assign({}, c, { stmtBal: Math.max(0, c.bal || 0), stmtBal2: Math.max(0, c.bal2 || 0) });
       if (!c.dueDay || !(c.stmtBal > 0 || c.stmtBal2 > 0)) return null;
@@ -770,7 +807,7 @@
     const horizon = addDays(T, 45), upcoming = [];
     bills.forEach((b) => occurrences(iso(billAnchor(b)), billFreq(b), addDays(T, 1), horizon).forEach((d) => upcoming.push({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' }, billId: b.id })));
     B.loans.filter((l) => l.bal > 0 && l.pay).forEach((l) => futureOccurrences(l.next || iso(T), l.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: l.name, amt: l.pay, kind: 'Loan payment', route: { r: 'loan', id: l.id } })));
-    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
+    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const cyc = !c.cur2 && K.cardCycle(data, c, T); if (cyc && cyc.reserveOn) { if (cyc.owed > 0 && parse(cyc.reserveOn) <= horizon) upcoming.push({ date: cyc.reserveOn, name: c.name + ' payment', amt: K.toBase(data, cyc.owed, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); return; } const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
     // Bills due this month and not paid yet

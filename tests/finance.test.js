@@ -543,3 +543,24 @@ test('comparing against the period we are in uses the same stretch of the other 
   assert.equal(same.income, md >= '12-20' ? 6000 : 1000);
   assert.equal(same.cats.other, 10); // no category counts as Other
 });
+
+test('a card with a closing day works out its statement: closes the 15th, due the 5th, paid at month end', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 3000)];
+  d.cards = [{ id: 'cibc', name: 'CIBC', cur: 'CAD', bal: 0, limit: 5000, closeDay: 15, dueDay: 5, payDay: 30 }];
+  const T = new Date(2026, 8, 25); // Sep 25
+  const buy = (date, amt) => { d = K.addTxn(d, { type: 'expense', merchant: 'SHOP', amt, cur: 'CAD', from: 'card:cibc', date, source: 'manual' }); };
+  buy('2026-08-10', 99); // previous statement
+  buy('2026-08-20', 30); buy('2026-09-10', 20); // on the Sep 15 statement: 50
+  buy('2026-09-18', 70); // after the close: next statement
+  const c = K.cardCycle(d, d.cards[0], T);
+  assert.deepEqual([c.from, c.lastClose, c.due, c.payBy, c.nextClose], ['2026-08-16', '2026-09-15', '2026-10-05', '2026-09-30', '2026-10-15']);
+  assert.deepEqual([c.statement, c.owed, c.since], [50, 50, 70]);
+  // Paying 50 after the close clears the statement
+  d = K.addTxn(d, { type: 'transfer', merchant: 'Payment', amt: 50, cur: 'CAD', from: 'acct:chq', to: 'card:cibc', date: '2026-09-24' });
+  const c2 = K.cardCycle(d, d.cards[0], T);
+  assert.deepEqual([c2.paid, c2.owed], [50, 0]);
+  // Missed the usual day: reserved for the due date; past that, today
+  const late = K.cardCycle(Object.assign({}, d, { txns: d.txns.filter((t) => t.type !== 'transfer') }), d.cards[0], new Date(2026, 9, 2));
+  assert.equal(late.reserveOn, '2026-10-05');
+});
