@@ -116,6 +116,8 @@
       if (!q) { openSheet({ k: 'expense', preset: { merchant: text.trim() } }); setText(''); return; }
       const cur = q.cur && K.hasRateFor(data, q.cur) ? q.cur : data.base;
       const t = { type: 'expense', merchant: q.merchant || 'Expense', cat: K.guessCat(data, q.merchant) || 'other', amt: q.amt, cur, from, date: q.date, source: 'manual', shared: K.hhMode(data) === 'together' };
+      const est = K.chargeEstimate(data, t.amt, t.cur, from);
+      if (est) t.charged = { amt: est.amt, cur: est.cur, market: est.market, exact: false };
       if (K.canPost(data, t)) { openSheet({ k: 'expense', preset: t }); setText(''); return; }
       const next = K.addTxn(data, t);
       commit(next); setLast(next.txns[next.txns.length - 1]); setText('');

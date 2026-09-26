@@ -260,7 +260,11 @@
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
-      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
+      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } // A line that shows the original purchase ("CAD 45.00 T/C 0.7412") keeps it, with the amount charged here
+        const fx = r.type === 'expense' ? K.parseFxInfo(r.desc, cur) : null;
+        const k = fx && K.rate(d, fx.cur, cur);
+        const orig = fx ? { merchant: fx.desc || r.desc, amt: fx.amt, cur: fx.cur, charged: { amt: r.amt, cur, market: k ? K.r2(fx.amt * k) : null, rate: fx.rate, exact: true } } : {};
+        d = K.addTxn(d, Object.assign({ imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }, orig)); });
       // A card payment seen on both statements (bank and card) counts once
       d = K.mergeCardPayments(d);
       if (salary && useSalary) d = K.syncPayroll(d, where);
