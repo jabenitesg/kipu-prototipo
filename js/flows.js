@@ -588,7 +588,7 @@
 
   // Ask Kipu: will the money last, and can I buy this? Plain arithmetic with your numbers, on this device.
   const AskKipu = ({ onClose, preset }) => {
-    const { data, D, fmt, go } = useApp();
+    const { data, D, fmt, go, openSheet } = useApp();
     const [q, setQ] = useState((preset && preset.q) || '');
     const [kind, setKind] = useState((preset && preset.kind) || null);
     const [amt, setAmt] = useState('');
@@ -623,10 +623,31 @@
         ${a.verdict === 'save' && a.fitN && html`<span class="small muted">${'In ' + a.fitN + ' payments it would fit your monthly margin, if they come without interest.'}</span>`}
         ${a.n > 1 && html`<span class="tiny muted">Installments often carry interest. Check the rate before choosing them.</span>`}</div>`;
     }
+    if (kind === 'cut') {
+      const fmt0 = (x) => fmt(x, { dec: 0 });
+      const idea = (i) => html`<button key=${i.id} class="lrow" style=${{ alignItems: 'flex-start', gap: '10px' }} onClick=${() => { if (i.route) { onClose(); go(i.route); } }}><${Tile} icon=${i.icon} tone=${i.later ? 'n' : 'g'} s=${30} /><span class="grow stack-s" style=${{ gap: '3px', textAlign: 'left' }}><span style=${{ fontSize: '14px', lineHeight: 1.4, fontWeight: 600 }}>${i.title}</span><span class="small muted" style=${{ lineHeight: 1.45 }}>${i.why}</span></span>${i.save > 0 && html`<span class="stack-s" style=${{ alignItems: 'flex-end', gap: '1px', flexShrink: 0 }}><span class="amt" style=${{ color: i.later ? 'var(--ink2)' : 'var(--pos)' }}>${fmt0(i.save)}</span><span class="tiny muted">a month</span></span>`}</button>`;
+      if (v > 0) {
+        const P = K.savePlan(data, D, v);
+        answer = html`<div class="stack-s" style=${{ gap: '10px' }}><strong style=${{ fontSize: '17px', lineHeight: 1.35, color: P.short > 0 ? 'var(--warn)' : 'var(--pos)' }}>${P.short > 0 ? 'Kipu found ' + fmt0(P.reached) + ' of your ' + fmt0(v) + ' a month.' : 'Yes. This gets you to ' + fmt0(v) + ' a month.'}</strong>
+          ${(P.picked.length > 0 || P.trim > 0) && html`<div class="list">${P.picked.map(idea)}${P.trim > 0 && html`<button class="lrow" style=${{ gap: '10px' }} onClick=${() => openSheet({ k: 'suggestBudget' })}><${Tile} icon="sliders" tone="p" s=${30} /><span class="grow stack-s" style=${{ gap: '3px', textAlign: 'left' }}><span style=${{ fontSize: '14px', fontWeight: 600 }}>Trim your wants a little</span><span class="small muted">Dining, shopping and fun, never more than 30% each. See it in the suggested budget.</span></span><span class="amt" style=${{ color: 'var(--pos)' }}>${fmt0(P.trim)}</span></button>`}</div>`}
+          ${P.short > 0 && html`<span class="small" style=${{ lineHeight: 1.5 }}>${'The other ' + fmt0(P.short) + ' would have to come from the big needs (housing, transport, food) or more income.'}</span>`}
+          ${P.goal && P.goal.sooner > 0 && html`<span class="small">${P.goal.name + ' would be done ' + P.goal.sooner + (P.goal.sooner === 1 ? ' month sooner.' : ' months sooner.')}</span>`}
+          <span class="tiny muted">Pay yourself first: move it to savings the day you’re paid, so it isn’t spent by accident.</span></div>`;
+      } else {
+        const ideas = K.cutIdeas(data, D), now = ideas.filter((x) => !x.later), later = ideas.filter((x) => x.later);
+        const total = K.sum(now, (x) => x.save);
+        answer = !ideas.length ? html`<div class="stack-s"><strong style=${{ fontSize: '16px' }}>Nothing obvious to cut.</strong><span class="small muted" style=${{ lineHeight: 1.5 }}>Your spending looks steady. Kipu looks for wants that grew, repeated subscriptions, frequent small purchases, price increases, interest and currency fees once there’s a month of expenses.</span></div>` : html`<div class="stack-s" style=${{ gap: '10px' }}>
+          ${total > 0 && html`<strong style=${{ fontSize: '17px', lineHeight: 1.35, color: 'var(--pos)' }}>${'Up to ' + fmt0(total) + ' a month, biggest first.'}</strong>`}
+          ${now.length > 0 && html`<div class="list">${now.map(idea)}</div>`}
+          ${later.length > 0 && html`<span class="eyebrow" style=${{ marginTop: '6px' }}>Bigger decisions</span><div class="list">${later.map(idea)}</div>`}
+          <span class="tiny muted" style=${{ lineHeight: 1.5 }}>Kipu doesn’t know what you enjoy. Keep what matters to you and cut the rest.</span></div>`;
+      }
+    }
     return html`<${Sheet} title="Ask Kipu" sub="Worked out with your own numbers, on this device." onClose=${onClose}>
       <form class="row" style=${{ gap: '8px' }} onSubmit=${(e) => { e.preventDefault(); ask(q); }}><input class="input grow" aria-label="Your question" value=${q} onInput=${(e) => setQ(e.target.value)} placeholder="e.g. Can I buy a 3,000 laptop?" enterkeyhint="send" /><button class="btn pri sm" disabled=${!q.trim()}>Ask</button></form>
-      <div class="chips"><button class=${'chip' + (kind === 'month' ? ' on' : '')} onClick=${() => setKind('month')}>Will I make it to month end?</button><button class=${'chip' + (kind === 'afford' ? ' on' : '')} onClick=${() => setKind('afford')}>Can I afford something?</button></div>
-      ${kind === 'unknown' && html`<span class="small muted">Kipu can answer two things for now: whether your money lasts to month end, and whether you can afford a purchase. Try one of the buttons.</span>`}
+      <div class="chips"><button class=${'chip' + (kind === 'month' ? ' on' : '')} onClick=${() => setKind('month')}>Will I make it to month end?</button><button class=${'chip' + (kind === 'afford' ? ' on' : '')} onClick=${() => setKind('afford')}>Can I afford something?</button><button class=${'chip' + (kind === 'cut' ? ' on' : '')} onClick=${() => { setKind('cut'); setAmt(''); }}>Where can I cut back?</button></div>
+      ${kind === 'unknown' && html`<span class="small muted">Kipu can answer three things for now: whether your money lasts to month end, whether you can afford a purchase, and where you could cut back. Try one of the buttons.</span>`}
+      ${kind === 'cut' && html`<${Field} label="How much more do you want to save a month? (optional)"><input id="ask-save" class="input num" inputmode="decimal" placeholder=${K.sym(data.base) + ' 0'} value=${amt} onInput=${(e) => setAmt(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))} /></${Field}>`}
       ${kind === 'afford' && html`<div class="stack-s" style=${{ gap: '10px' }}><${Amount} value=${amt} onChange=${setAmt} cur=${data.base} id="ask-amt" /><${Seg} options=${[1, 3, 6, 12]} labels=${['Pay once', '3 payments', '6 payments', '12 payments']} value=${n} onChange=${setN} /></div>`}
       ${answer && html`<div class="card stack-s">${answer}</div>`}</${Sheet}>`;
   };

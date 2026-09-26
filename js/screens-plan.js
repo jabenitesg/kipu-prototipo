@@ -46,7 +46,7 @@
     const { D, fmt, openSheet, wide } = useApp();
     const p = D.plan;
     const T = D.T, elapsed = (T.getDate() / new Date(T.getFullYear(), T.getMonth() + 1, 0).getDate()) * 100;
-    if (!p.budgetRows.length) return html`<div class="card"><${EmptyState} icon="sliders" title="No budget yet" text="Set a monthly amount for the categories you want to watch. Kipu compares it with what you actually spend." action="Set up budget" onAction=${() => openSheet({ k: 'budgetEdit', cat: 'groceries' })} /></div>`;
+    if (!p.budgetRows.length) return html`<div class="stack"><div class="card stack-s"><${EmptyState} icon="sliders" title="No budget yet" text="Kipu can suggest one from what you usually spend: needs as they are, savings first, and wants trimmed where it hurts least." action="Suggest a budget" onAction=${() => openSheet({ k: 'suggestBudget' })} /><button class="link" style=${{ alignSelf: 'center', fontSize: '13px', paddingBottom: '8px' }} onClick=${() => openSheet({ k: 'budgetEdit', cat: 'groceries' })}>Set it up myself</button></div><${AdviceCard} /></div>`;
     const row = (b) => {
       const pct = b.plan ? (b.actual / b.plan) * 100 : 0, over = b.actual > b.plan + 0.5, c = K.CATS[b.cat];
       return html`<button key=${b.cat} class="lrow" style=${{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }} onClick=${() => openSheet({ k: 'budgetEdit', cat: b.cat })}>
@@ -57,10 +57,60 @@
     const unplanned = K.CAT_ORDER.filter((c) => !D.plan.budgetRows.some((b) => b.cat === c) && (D.month.cats[c] || 0) > 0);
     return html`<div class="stack">
       <div class="card stack" style=${{ gap: '12px' }}><div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Planned" value=${fmt(p.budgetPlan)} /><${Metric} label="Spent" value=${fmt(p.budgetActual)} /><${Metric} label="Left" value=${fmt(p.budgetPlan - p.budgetActual)} tone=${p.budgetPlan >= p.budgetActual ? 'pos' : 'warn'} /></div><${Bar} pct=${p.budgetPlan ? (p.budgetActual / p.budgetPlan) * 100 : 0} mark=${elapsed} h=${10} /><span class="tiny muted">The tick shows how far through the month we are.</span></div>
+      <${AdviceCard} />
       <div class="card tight list">${p.budgetRows.map(row)}</div>
       ${unplanned.length > 0 && html`<div class="stack-s"><span class="eyebrow">Spending without a plan</span><div class="chips">${unplanned.map((c) => html`<button key=${c} class="chip" onClick=${() => openSheet({ k: 'budgetEdit', cat: c })}>${K.CATS[c].name} · ${fmt(D.month.cats[c])}</button>`)}</div></div>`}
       <button class="btn sec block" onClick=${() => openSheet({ k: 'budgetEdit', cat: K.CAT_ORDER.find((c) => !data0(D).has(c)) || 'other' })}><${Icon} n="plus" s=${15} />Add a category to the plan</button></div>`;
   }
+  // Two doors to Kipu's advice: a budget from your own spending, and where to cut back
+  const AdviceCard = () => {
+    const { openSheet, data, D } = useApp();
+    const ideas = K.cutIdeas(data, D).filter((x) => !x.later && x.save > 0);
+    return html`<div class="card tight list">
+      <button class="lrow" onClick=${() => openSheet({ k: 'suggestBudget' })}><${Tile} icon="sliders" tone="p" /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">Suggest a budget</span><span class="t2">From your usual spending, with savings first</span></span><${Icon} n="next" s=${15} /></button>
+      <button class="lrow" onClick=${() => openSheet({ k: 'ask', preset: { kind: 'cut' } })}><${Tile} icon="spark" tone="g" /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">Where can I cut back?</span><span class="t2">${ideas.length ? ideas.length + (ideas.length === 1 ? ' idea' : ' ideas') + ' from your spending' : 'Ideas from your spending, biggest first'}</span></span><${Icon} n="next" s=${15} /></button></div>`;
+  };
+
+  // A budget from your own spending. Needs stay, savings go first, wants you don't care about make room.
+  K.SuggestBudgetSheet = function SuggestBudgetSheet({ onClose }) {
+    const { data, D, fmt: fmt2, commit, toast, openSheet } = useApp();
+    const fmt = (x) => fmt2(x, { dec: 0 });
+    const sp = data.spend || {};
+    const [rate, setRate] = useState(sp.rate != null ? sp.rate : 20);
+    const [loves, setLoves] = useState(sp.loves || []);
+    const [groups, setGroups] = useState(sp.groups || {});
+    const s = K.suggestBudget(data, D, { rate, loves, groups });
+    if (!s.ready) return html`<${Sheet} title="Suggested budget" onClose=${onClose}><${EmptyState} icon="sliders" title="Not enough spending yet" text="Kipu needs about a month of expenses to suggest a budget. Import a statement or add a few expenses." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} /></${Sheet}>`;
+    const gOf = (c) => groups[c] || K.catGroup(data, c);
+    const flip = (c) => setGroups(Object.assign({}, groups, { [c]: gOf(c) === 'need' ? 'want' : 'need' }));
+    const love = (c) => setLoves(loves.includes(c) ? loves.filter((x) => x !== c) : loves.concat([c]));
+    const wants = s.rows.filter((r) => r.group === 'want');
+    const noIncome = !(s.income > 0);
+    const sooner = K.goalSooner(D, s.freed);
+    const ref = (k) => ({ need: '50–60%', want: '20–35%', left: '20%' }[k]);
+    const split = [['need', 'Needs', '#8C7BE0', s.need], ['want', 'Wants', 'var(--warn2)', s.want], ['left', 'Left to save', 'var(--pos2)', Math.max(0, s.left)]];
+    const row = (r) => html`<div key=${r.cat} class="lrow" style=${{ gap: '10px' }}><${Tile} icon=${K.CATS[r.cat].icon} tone=${K.CATS[r.cat].tone} s=${30} />
+      <span class="grow stack-s" style=${{ gap: '3px', minWidth: 0 }}><span class="t1" style=${{ overflow: 'hidden', textOverflow: 'ellipsis' }}>${K.CATS[r.cat].name}</span><span class="row" style=${{ gap: '6px' }}><button class=${'pill ' + (r.group === 'need' ? 'info' : 'warn')} style=${{ height: '22px' }} onClick=${() => flip(r.cat)} aria-label=${'Change group of ' + K.CATS[r.cat].name}>${r.group === 'need' ? 'Need' : 'Want'}</button>${r.love && html`<span class="pill pos" style=${{ height: '22px' }}><${Icon} n="heart" s=${11} w=${2.4} />Kept</span>`}</span></span>
+      <span class="stack-s" style=${{ alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}><span class="amt">${fmt(r.suggested)}</span><span class="tiny muted num">${'usually ' + fmt(r.avg)}</span></span></div>`;
+    const save = () => { commit(K.applyBudget(data, s, { rate, loves, groups })); toast('Budget saved'); onClose(); };
+    return html`<${Sheet} title="Suggested budget" sub=${s.partial ? 'From this month so far, scaled to a full month.' : s.months === 1 ? 'From your last month of spending.' : 'From your last ' + s.months + ' months of spending.'} onClose=${onClose}>
+      <div class="card stack-s" style=${{ gap: '10px' }}><span class="eyebrow">Where your money goes now</span>
+        ${noIncome ? html`<span class="small muted" style=${{ lineHeight: 1.5 }}>Add your income so Kipu can set savings aside first.</span><button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => openSheet({ k: 'addIncomeSource' })}>Add income</button>` : html`<${K.Stripe} parts=${split.map((x) => [x[3], x[2]])} h=${12} />
+        ${split.map(([k, l, c, v]) => html`<${K.KeyRow} key=${k} color=${c} label=${l} sub=${'Reference ' + ref(k)} value=${(s.pct[k] != null ? Math.max(0, s.pct[k]) + '% · ' : '') + fmt(Math.max(0, v))} />`)}
+        <span class="tiny muted" style=${{ lineHeight: 1.5 }}>References from the 50/30/20 rule (Elizabeth Warren) and the conscious spending plan (Ramit Sethi). They’re a guide, not a rule: where rent is high, needs take more.</span>`}</div>
+      ${!noIncome && html`<div class="stack-s"><span class="eyebrow">Save first</span><${K.Seg} options=${[10, 15, 20, 25]} labels=${['10%', '15%', '20%', '25%']} value=${rate} onChange=${setRate} /><span class="tiny muted">${'Kipu sets ' + fmt(s.target) + ' a month aside before the wants.'}</span></div>`}
+      ${wants.length > 0 && html`<div class="stack-s"><span class="eyebrow">What matters most to you</span><div class="chips">${wants.map((r) => html`<button key=${r.cat} class=${'chip' + (r.love ? ' on' : '')} onClick=${() => love(r.cat)}>${K.CATS[r.cat].name}</button>`)}</div><span class="tiny muted">Kipu won’t trim these. Spend on what you love, cut back on the rest.</span></div>`}
+      <div class="card tight list">${s.rows.map(row)}${s.debt > 0 && html`<div class="lrow"><${Tile} icon="loan" tone="b" s=${30} /><span class="grow t1">Loan payments</span><span class="stack-s" style=${{ alignItems: 'flex-end', gap: '2px' }}><span class="amt">${fmt(s.debt)}</span><span class="tiny muted">Counted as a need</span></span></div>`}</div>
+      <span class="tiny muted">Tap Need or Want to move a category. Yearly bills count a twelfth each month.</span>
+      ${!noIncome && html`<div class="card stack-s" style=${{ gap: '8px', lineHeight: 1.5 }}>
+        <strong style=${{ fontSize: '16px', color: s.planSave >= s.target ? 'var(--pos)' : 'var(--warn)' }}>${s.gap <= 0 ? 'You already keep ' + s.pct.left + '% of your income. No cuts needed.' : 'With this budget you keep ' + fmt(Math.max(0, s.planSave)) + ' a month (' + Math.max(0, s.pct.planSave) + '%).'}</strong>
+        ${s.freed > 0 && html`<span class="small">${'Wants go down ' + fmt(s.freed) + ' a month, about ' + s.cutPct + '% in each one you didn’t keep.'}</span>`}
+        ${s.short > 0 && html`<span class="small">${'Still ' + fmt(s.short) + ' short of your savings target. The rest has to come from the big needs (housing, transport, food) or more income.'}</span>`}
+        ${sooner && sooner.sooner > 0 && html`<span class="small">${sooner.name + ' would be done ' + sooner.sooner + (sooner.sooner === 1 ? ' month sooner.' : ' months sooner.')}</span>`}
+        ${s.planSave > 0 && html`<span class="small muted">${'Pay yourself first: move ' + fmt(Math.min(s.target, s.planSave)) + ' to savings the day you’re paid.'}</span>`}
+        <span class="small muted">${s.cushion.months >= 3 ? 'Your savings cover ' + s.cushion.months.toFixed(1) + ' months of needs.' : 'Your savings cover ' + s.cushion.months.toFixed(1) + ' months of needs. Aim for 3 to 6 before anything else.'}</span></div>`}
+      <div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => openSheet({ k: 'ask', preset: { kind: 'cut' } })}>Where can I cut back?</button><button class="btn pri" onClick=${save}>Use this budget</button></div></${Sheet}>`;
+  };
   const data0 = (D) => new Set(D.plan.budgetRows.map((b) => b.cat));
 
   K.BudgetEditSheet = function BudgetEditSheet({ cat, onClose }) {
