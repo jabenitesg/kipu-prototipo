@@ -61,7 +61,7 @@ p { margin: 0; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .rail-tip { position: absolute; left: 60px; top: 50%; transform: translate(-4px, -50%); background: var(--ink); color: var(--bg); padding: 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
 .rail-btn:hover .rail-tip, .rail-btn:focus-visible .rail-tip, .rail-face:hover .rail-tip, .rail-face:focus-visible .rail-tip { opacity: 1; transform: translate(0, -50%); }
-.d-main { min-width: 0; padding: 16px 32px 60px 16px; }
+.d-main { min-width: 0; padding: 16px 32px 120px 16px; } /* room so the dock never covers the last card */
 .rail-wrap { position: relative; }
 .rail-btn.flying { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--acc); }
 .rail-btn.on.flying { background: var(--acc); color: var(--acc-ink); }

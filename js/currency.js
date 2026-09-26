@@ -35,6 +35,14 @@
   K.curCountry = (c) => country(c)[1];
   // ISO country code for a currency (null for shared ones like the euro)
   K.countryOfCur = (c) => { const f = country(c || '')[0]; return f && f !== 'eu' ? f.toUpperCase() : null; };
+  // Main currency to suggest on first run, from the phone's region (es-PE → PEN)
+  const EURO = 'AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK'.split(' ');
+  const REGION_CUR = { PE: 'PEN', CA: 'CAD', US: 'USD', MX: 'MXN', CO: 'COP', CL: 'CLP', AR: 'ARS', BR: 'BRL', BO: 'BOB', UY: 'UYU', PY: 'PYG', EC: 'USD', SV: 'USD', PA: 'USD', PR: 'USD', GT: 'GTQ', CR: 'CRC', DO: 'DOP', HN: 'HNL', NI: 'NIO', VE: 'VES', GB: 'GBP', CH: 'CHF', AU: 'AUD', NZ: 'NZD', JP: 'JPY', IN: 'INR', CN: 'CNY' };
+  K.guessBase = () => {
+    const langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']);
+    for (const l of langs) { const m = /-([A-Za-z]{2})\b/.exec(l || ''); if (!m) continue; const r = m[1].toUpperCase(); if (REGION_CUR[r]) return REGION_CUR[r]; if (EURO.includes(r)) return 'EUR'; }
+    return /^es\b/i.test(langs[0] || '') ? 'USD' : 'CAD';
+  };
   K.countryName = (cc) => { if (!cc) return ''; try { return (regNames && regNames.of(cc)) || cc; } catch (e) { return cc; } };
 
   let list = null;

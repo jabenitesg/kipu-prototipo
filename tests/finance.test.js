@@ -1,5 +1,5 @@
 const test = require('node:test');
-const assert = require('node:assert/strict');
+const assert = require('./assert.js');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
@@ -178,6 +178,33 @@ test('an imported or typed rent payment pays the bill instead of being reserved 
   assert.equal(K.derive(d, ctx).plan.safe, before); // cash went down 1,500 and the bill is no longer due
   const other = K.addTxn(K.factory(), { type: 'expense', merchant: 'Coffee', amt: 5, cur: 'CAD' });
   assert.equal(other.txns[0].recurring, undefined);
+});
+
+test('last month’s rent payment doesn’t cover the rent due before next payday', () => {
+  let d = K.factory();
+  const T = K.today(), due = new Date(T.getFullYear(), T.getMonth() + 1, 1); // rent on the 1st, payday on the 2nd
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 2000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(due, 1)), to: 'acct:cad' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 1, cat: 'housing', pay: 'acct:cad' }];
+  d.txns = [{ id: 'old', type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', base: 1500, date: K.iso(K.addMonths(due, -1)), recurring: 'rent', cat: 'housing', from: 'acct:cad' }];
+  let plan = K.derive(d, ctx).plan;
+  assert.equal(plan.billsDue.length, 1);
+  assert.equal(plan.safe, 1500);
+  d.txns.push({ id: 'now', type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', base: 1500, date: K.iso(T), recurring: 'rent', cat: 'housing', from: 'acct:cad' });
+  if (K.addDays(due, -15) < T) assert.equal(K.derive(d, ctx).plan.billsDue.length, 0); // paid a few days early
+});
+
+test('the forecast assumes the everyday spending you really do, not zero', () => {
+  const d = K.factory();
+  const T = K.today(), last = new Date(T.getFullYear(), T.getMonth() - 1, 1), iso = (n) => K.iso(K.addDays(last, n));
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 4000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 10)), to: 'acct:cad' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 1, cat: 'housing', pay: 'acct:cad' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 50, cur: 'CAD', day: 2, cat: 'subs', pay: 'acct:cad' }];
+  const tx = (id, amt, day, extra) => Object.assign({ id, type: 'expense', merchant: id, amt, cur: 'CAD', base: amt, date: iso(day), cat: 'groceries', from: 'acct:cad' }, extra);
+  // Only rent was paid last month (the gym bill was added later): the gap must not eat groceries
+  d.txns = [tx('rent', 1500, 0, { recurring: 'rent', cat: 'housing' }), tx('food', 400, 3), tx('food2', 200, 12)];
+  const D = K.derive(d, ctx);
+  assert.equal(K.forecast(d, D, { assumption: 'Recent average' }).flexible, 600);
 });
 
 test('edits made on two devices at once are merged, balances included', () => {

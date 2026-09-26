@@ -9,7 +9,7 @@
     const { data, commit, setSettings, cloudLogin, cloud } = useApp();
     const [step, setStep] = useState(0);
     const [name, setName] = useState('');
-    const [base, setBase] = useState('CAD');
+    const [base, setBase] = useState(() => K.guessBase());
     const [extra, setExtra] = useState([]);
     const [more, setMore] = useState(false);
     const [lang, setLang] = useState(K.lang());

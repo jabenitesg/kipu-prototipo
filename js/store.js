@@ -616,7 +616,7 @@
       const mt = list.filter((t) => inMonth(t, y, m));
       const cats = {}; K.CAT_ORDER.forEach((c) => (cats[c] = 0));
       mt.filter((t) => t.type === 'expense').forEach((t) => (cats[t.cat] = r2((cats[t.cat] || 0) + f(t))));
-      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => t.interest || 0)), count: mt.length, cats };
+      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), flex: r2(sum(mt.filter((t) => t.type === 'expense' && !t.recurring), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => t.interest || 0)), count: mt.length, cats };
       o.net = r2(o.income - o.spending - o.saved - o.debtPaid); o.rate = o.income ? r2((o.saved / o.income) * 100) : 0;
       return o;
     };
@@ -645,10 +645,21 @@
     const nextPay = nextPays.length ? nextPays.reduce((a, b) => (b < a ? b : a)) : null;
     const until = nextPay ? addDays(nextPay, -1) : monthEnd;
     const inWin = (d) => d >= T && d <= until;
-    const paidThisMonth0 = (id) => txAll.filter((t) => t.recurring === id && inMonth(t, T.getFullYear(), T.getMonth())).length;
+    // A payment covers the due date it sits closest to: within half a cycle before it, so
+    // last month's rent never counts for the rent due on the 1st of next month
+    const unpaidDates = (b, dates) => {
+      const pays = txAll.filter((t) => t.recurring === b.id).map((t) => parse(t.date)).sort((x, y) => x - y);
+      const used = new Set();
+      return dates.filter((d) => !b.end || monthKey(d) <= b.end).filter((d) => {
+        const half = (d - step(d, billFreq(b), -1)) / 2;
+        const k = pays.findIndex((p, i) => !used.has(i) && p > d - half && p - d <= half);
+        if (k < 0) return true;
+        used.add(k); return false;
+      });
+    };
     const spendable = B.accts.filter((a) => a.kind === 'Everyday' || a.kind === 'Cash');
     const cashNow = r2(sum(spendable, (a) => a.baseBal));
-    const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
+    const billsDue = bills.map((b) => ({ b, n: unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, until)).length })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
       // Without a statement balance typed in, reserve what's owed on the card
@@ -722,7 +733,11 @@
     const T = today();
     const closed = D.series.filter((s) => !s.current && s.count > 0).slice(-3);
     const recurringBase = sum(D.bills.filter((b) => b.kind !== 'Annual'), (b) => K.toBase(data, b.amt, b.cur || data.base));
-    let flexible = closed.length ? sum(closed, (s) => s.spending - sum(D.bills.filter((b) => b.kind !== 'Annual'), (b) => K.toBase(data, b.amt, b.cur || data.base))) / closed.length : D.plan.flexibleSpent;
+    // Everyday spending = expenses that aren't bill payments (bills are counted on their own).
+    // A month that started partway (your first month in Kipu) is scaled to a full month.
+    const fullMonth = (x, spent, from) => { const dim = new Date(x.y, x.mi + 1, 0).getDate(); const f = parse(from); const started = f && f.getFullYear() === x.y && f.getMonth() === x.mi ? f.getDate() : 1; const upto = x.current ? T.getDate() : dim; return spent * dim / Math.max(7, upto - started + 1); };
+    const current = D.series.find((s) => s.current);
+    let flexible = closed.length ? sum(closed, (s) => fullMonth(s, s.flex, D.firstTx)) / closed.length : current ? fullMonth(current, current.flex, D.firstTx) : 0;
     if (opts.assumption === 'Budget based' && D.plan.budgetPlan) flexible = Math.max(0, D.plan.budgetPlan - recurringBase);
     if (opts.assumption === 'Conservative') flexible *= 1.1;
     flexible = Math.max(0, flexible);
@@ -764,7 +779,8 @@
     const f = (n) => K.sym(data.base) + Math.round(n).toLocaleString('en-US');
     const over = D.plan.budgetRows.filter((b) => b.actual > b.plan + 0.5);
     over.forEach((b) => out.push({ id: 'over-' + b.cat, kind: 'Priority', icon: 'alert', title: K.CATS[b.cat].name + ' is past its plan with ' + D.plan.daysLeft + ' days of the month left.', why: 'You planned ' + f(b.plan) + ' and have spent ' + f(b.actual) + '.', cta: 'Open budget', route: { r: 'plan', tab: 'budget' } }));
-    if (D.plan.hasAccounts && D.plan.safe < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'What’s due before ' + K.fmtDate(D.plan.until) + ' is ' + f(-D.plan.safe) + ' more than your everyday cash.', why: 'Bills, card and loan payments and planned savings are all counted.', cta: 'See the calculation', route: { r: 'plan', tab: 'overview' } });
+    if (D.plan.hasAccounts && D.plan.cashNow < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'Your everyday accounts are ' + f(-D.plan.cashNow) + ' below zero.', why: 'If that isn’t right, update the account balance so Safe to Spend starts from what your bank shows.', cta: 'Open accounts', route: { r: 'money', tab: 'accounts' } });
+    else if (D.plan.hasAccounts && D.plan.safe < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'What’s due before ' + K.fmtDate(D.plan.until) + ' is ' + f(-D.plan.safe) + ' more than your everyday cash.', why: 'Bills, card and loan payments and planned savings are all counted.', cta: 'See the calculation', route: { r: 'plan', tab: 'overview' } });
     if (D.util > data.prefs.utilRef) out.push({ id: 'util', kind: 'Credit', icon: 'card', title: 'Card utilization is ' + D.util.toFixed(0) + '%, above your ' + data.prefs.utilRef + '% reference.', why: 'Paying down ' + f(D.cardBal - (data.prefs.utilRef / 100) * D.cardLimit) + ' brings it back under.', cta: 'Open cards', route: { r: 'money', tab: 'cards' } });
     const loans = D.loans.filter((l) => l.bal > 0 && l.rate);
     if (loans.length > 1) { const hi = loans.slice().sort((a, b) => b.rate - a.rate)[0]; out.push({ id: 'debt', kind: 'Debt', icon: 'loan', title: 'Extra payments go furthest on ' + hi.name + ' at ' + hi.rate + '%.', why: 'It has the highest rate of your loans.', cta: 'Try it in Forecast', route: { r: 'stats', tab: 'forecast', scen: { loan: 100 } } }); }
@@ -790,19 +806,19 @@
     d.accounts = [
       { id: 'chq', name: 'Everyday Chequing', inst: 'CIBC', kind: 'Everyday', cur: 'CAD', bal: 5200 },
       { id: 'sav', name: 'Emergency Savings', inst: 'EQ Bank', kind: 'Savings', cur: 'CAD', bal: 4800, shared: true },
-      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', country: 'CA', bal: 1200 },
+      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', country: 'CA', bal: 400 },
       { id: 'rrsp', name: 'RRSP', inst: 'Wealthsimple', kind: 'Investments', cur: 'CAD', bal: 38000 },
     ];
     d.cards = [{ id: 'visa', name: 'Visa Infinite', network: 'Visa', last4: '1187', limit: 10000, bal: 0, stmtBal: 0, closeDay: 8, dueDay: 3, minPay: 10, expiry: iso(addMonths(today(), 1)).slice(0, 7) }, { id: 'mc', name: 'Costco Mastercard', network: 'Mastercard', last4: '4821', limit: 6000, bal: 0, stmtBal: 0, closeDay: 18, dueDay: 12, minPay: 10, expiry: (today().getFullYear() + 3) + '-04' }];
     d.loans = [{ id: 'car', name: 'Car loan', kind: 'Vehicle', lender: 'CIBC', orig: 32000, bal: 18420, rate: 9, pay: 253.73, freq: 'Bi-weekly', next: iso(addDays(T, 3)) }];
-    d.income = [{ id: 'sal', name: 'Salary', amt: 3200, cur: 'CAD', freq: 'Bi-weekly', next: iso(addDays(T, 6)), to: 'acct:chq' }];
+    d.income = [{ id: 'sal', name: 'Salary', amt: 2650, cur: 'CAD', freq: 'Bi-weekly', next: iso(addDays(T, 6)), to: 'acct:chq' }];
     d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1650, day: 1, cat: 'housing', pay: 'acct:chq' }, { id: 'net', name: 'Internet', kind: 'Bill', amt: 75, day: 18, cat: 'bills', pay: 'card:visa' }, { id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20.99, day: 5, cat: 'subs', pay: 'card:visa' }, { id: 'sp', name: 'Spotify', kind: 'Subscription', amt: 11.99, day: 9, cat: 'subs', pay: 'card:mc' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 49, day: 2, cat: 'subs', pay: 'acct:chq' }];
     d.goals = [{ id: 'ef', name: 'Emergency Fund', target: 10000, monthly: 500, targetDate: iso(addMonths(T, 14)).slice(0, 7), linked: 'sav', shared: true }, { id: 'cam', name: 'New camera', target: 2500, saved: 400, monthly: 150 }];
     d.budget = { housing: 1650, bills: 100, groceries: 600, dining: 300, transport: 250, shopping: 200, subs: 90, entertainment: 100 };
     const add = (t) => (d = K.addTxn(d, t));
-    const spend = [['Costco', 'groceries', 186.4, 'card:mc', 2], ['Loblaws', 'groceries', 92.35, 'card:mc', 5], ['Pai Northern Thai', 'dining', 48.6, 'card:visa', 3], ['Shell', 'transport', 72.4, 'card:visa', 7], ['Uber', 'transport', 23.5, 'card:visa', 1], ['Amazon', 'shopping', 64.99, 'card:mc', 4], ['Tim Hortons', 'dining', 12.4, 'card:visa', 0], ['Cineplex', 'entertainment', 34.5, 'card:visa', 6]];
-    const from = addDays(T, -85);
-    occurrences(d.income[0].next, 'Bi-weekly', from, T).forEach((x) => add({ type: 'income', cat: 'income', merchant: 'Salary', amt: 3200, from: 'acct:chq', date: iso(x) }));
+    const spend = [['Costco', 'groceries', 186.4, 'card:mc', 2], ['Loblaws', 'groceries', 92.35, 'card:mc', 5], ['Pai Northern Thai', 'dining', 48.6, 'card:visa', 3], ['Shell', 'transport', 72.4, 'card:visa', 7], ['Uber', 'transport', 23.5, 'card:visa', 1], ['Amazon', 'shopping', 64.99, 'card:mc', 4], ['Tim Hortons', 'dining', 12.4, 'card:visa', 0], ['Cineplex', 'entertainment', 34.5, 'card:visa', 6], ['Farm Boy', 'groceries', 138.2, 'card:mc', 9], ['Shoppers Drug Mart', 'health', 41.75, 'card:visa', 12], ['Presto', 'transport', 156, 'card:visa', 14], ['Sephora', 'shopping', 86.3, 'card:mc', 16], ['Freshii', 'dining', 17.85, 'card:visa', 18], ['Canadian Tire', 'shopping', 54.9, 'card:mc', 20], ['Metro', 'groceries', 118.6, 'card:mc', 22], ['DoorDash', 'dining', 38.4, 'card:visa', 24]];
+    const from = new Date(T.getFullYear(), T.getMonth() - 2, 1); // three full months of history
+    occurrences(d.income[0].next, 'Bi-weekly', from, T).forEach((x) => add({ type: 'income', cat: 'income', merchant: 'Salary', amt: 2650, from: 'acct:chq', date: iso(x) }));
     d.bills.forEach((b) => occurrences(iso(billAnchor(b)), 'Monthly', from, T).forEach((x) => add({ type: 'expense', cat: b.cat, merchant: b.name, amt: b.amt, from: b.pay, recurring: b.id, date: iso(x) })));
     for (let mback = 2; mback >= 0; mback--) {
       const shift = mback * 30;
@@ -810,7 +826,11 @@
       add({ type: 'saving', cat: 'saving', merchant: 'Emergency Fund', amt: 500, from: 'acct:chq', to: 'acct:sav', goal: 'ef', date: ago(shift + 11) });
     }
     occurrences(iso(addDays(T, 3)), 'Bi-weekly', from, addDays(T, -1)).forEach((x) => { const l = d.loans[0]; const s = K.loanSplit(l); add({ type: 'debt', cat: 'debt', merchant: 'Car loan payment', amt: l.pay, from: 'acct:chq', loan: 'car', principal: s.principal, interest: s.interest, date: iso(x) }); });
+    // Cards are paid in full from chequing each month, like most people do
+    for (let mback = 2; mback >= 1; mback--) d.cards.forEach((c) => add({ type: 'transfer', cat: 'transfer', merchant: c.name + ' payment', amt: r2(c.bal * 0.5), from: 'acct:chq', to: 'card:' + c.id, date: ago(mback * 30 - c.dueDay) }));
     d.cards = d.cards.map((c) => Object.assign({}, c, { stmtBal: r2(c.bal * 0.8) }));
+    // Today's chequing balance, as a bank app would show it: history above is already inside it
+    d.accounts = d.accounts.map((a) => (a.id === 'chq' ? Object.assign({}, a, { bal: 2150, balDate: iso(T) }) : a));
     return K.snapshot(d);
   };
 })();

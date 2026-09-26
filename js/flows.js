@@ -290,8 +290,8 @@
     const { data, commit, toast, openSheet } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal) }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
     const country = f.country || K.countryOfCur(f.cur) || null;
-    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
-    return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save}>
+    const save = () => { const a = Object.assign({}, item || {}, { name: f.name.trim() || K.t(f.kind + ' account'), inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
+    return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save} disabled=${!item && !f.name.trim() && String(f.bal).trim() === ''}>
       <${Chips} options=${item ? ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'] : ['Everyday', 'Savings', 'Cash', 'Credit card', 'Loan', 'Investments', 'Property']} value=${f.kind} onChange=${(k) => (k === 'Credit card' ? openSheet({ k: 'addCard' }) : k === 'Loan' ? openSheet({ k: 'addLoan' }) : on('kind')(k))} />
       <${In} id="aa-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Everyday Chequing" />
       <${In} id="aa-inst" label="Institution" value=${f.inst} onInput=${on('inst')} ph="Optional" />
@@ -407,7 +407,7 @@
 
   const AddIncomeSource = ({ onClose, item }) => {
     const { data, commit, toast, fmt, ctx } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { amt: String(item.amt) }) : { name: 'Salary', amt: '', cur: data.base, freq: 'Bi-weekly', next: K.iso(K.addDays(K.today(), 7)), to: (K.whereOptions(data, { cashOnly: true, noCards: true })[0] || [])[0] || '' });
+    const [f, on] = useForm(item ? Object.assign({}, item, { amt: String(item.amt) }) : { name: K.t('Salary'), amt: '', cur: data.base, freq: 'Bi-weekly', next: K.iso(K.addDays(K.today(), 7)), to: (K.whereOptions(data, { cashOnly: true, noCards: true })[0] || [])[0] || '' });
     const save = () => { const next = K.upsert(data, 'income', Object.assign({}, item || {}, { name: f.name || 'Income', amt: numv(f.amt), cur: f.cur, freq: f.freq, next: f.next, to: f.to, shared: !!f.shared })); commit(next); const p = K.derive(next, ctx).plan; toast('Income saved · Safe to Spend ' + fmt(p.safe)); onClose(); };
     return html`<${Form} title=${item ? 'Edit income' : 'Add income source'} sub="Regular pay Kipu expects. It isn’t recorded until you add the actual payment." onClose=${onClose} cta="Save" onSave=${save} disabled=${!numv(f.amt)} onDelete=${item && (() => { commit(K.remove(data, 'income', item.id)); toast('Deleted'); onClose(); })}>
       <${In} id="is-name" label="Name" value=${f.name} onInput=${on('name')} />
