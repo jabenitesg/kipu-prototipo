@@ -122,7 +122,27 @@
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Total debt" question="Is debt actually going down?" legend=${[['var(--c1)', 'Loans'], ['var(--c3)', 'Cards']]}><div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.debt)} />${S.length > 1 && html`<${Metric} label=${'Change since ' + S[0].m} value=${fmt(D.debt - S[0].debt, { sign: true })} tone=${D.debt <= S[0].debt ? 'pos' : 'warn'} />`}</div>
         ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--c1)', 'var(--c3)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
-      <div class="stack">${D.loans.length > 0 && html`<div class="card tight list">${D.loans.map((l) => html`<${K.LoanRow} key=${l.id} l=${l} />`)}</div>`}<div class="card stack-s"><div class="between"><span class="muted">Loan interest paid (12 months)</span><span class="amt">${fmt(interest)}</span></div></div></div></div>`;
+      <div class="stack">${D.loans.length > 0 && html`<div class="card tight list">${D.loans.map((l) => html`<${K.LoanRow} key=${l.id} l=${l} />`)}</div>`}<div class="card stack-s"><div class="between"><span class="muted">Loan interest paid (12 months)</span><span class="amt">${fmt(interest)}</span></div></div><${DebtPlan} /></div></div>`;
+  }
+
+  // How to be debt-free sooner: pick an extra monthly amount and an order
+  function DebtPlan() {
+    const { D, data, fmt } = useApp();
+    const [extra, setExtra] = useState(100);
+    const [order, setOrder] = useState('avalanche');
+    const loans = D.loans.filter((l) => l.bal > 0 && l.pay > 0);
+    if (!loans.length) return null;
+    const base = K.debtPlan(data, loans, 0, order), plan = K.debtPlan(data, loans, extra, order);
+    const sooner = base.months - plan.months, saved = base.interest - plan.interest;
+    const usd = K.toBase(data, 1, 'USD') || 1, mult = usd < 2 ? 1 : usd < 8 ? 2 : usd < 40 ? 20 : usd < 400 ? 100 : 1000;
+    const steps = [50, 100, 200, 500].map((x) => x * mult);
+    return html`<div class="card stack" style=${{ gap: '14px' }}><div class="stack-s" style=${{ gap: '4px' }}><h3 style=${{ fontSize: '16px' }}>Debt-free plan</h3><span class="small muted">What an extra payment each month does.</span></div>
+      <${Seg} options=${[0].concat(steps)} labels=${['No extra'].concat(steps.map((x) => '+' + fmt(x)))} value=${extra} onChange=${setExtra} />
+      ${loans.length > 1 && html`<${Seg} options=${['avalanche', 'snowball']} labels=${['Highest interest first', 'Smallest balance first']} value=${order} onChange=${setOrder} />`}
+      ${plan.stuck ? html`<span class="small" style=${{ color: 'var(--warn)' }}>The payments don’t cover the interest. Raise a payment to see a date.</span>` : html`<div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Debt-free" value=${K.fmtMonth(plan.date)} /><${Metric} label="Interest to pay" value=${fmt(plan.interest)} /></div>
+        ${extra > 0 && sooner > 0 && html`<div class="card flat small" style=${{ lineHeight: 1.5 }}>${sooner + (sooner === 1 ? ' month sooner' : ' months sooner') + ' and ' + fmt(saved) + ' less interest than paying only the minimum.'}</div>`}
+        <div class="list">${plan.loans.map((l, i) => html`<div key=${l.id} class="between small" style=${{ padding: '8px 0' }}><span>${(i + 1) + '. ' + l.name}</span><span class="muted">${K.fmtMonth(l.date)}</span></div>`)}</div>`}
+      <span class="tiny muted">Extra goes to one loan at a time; when it’s paid off, its payment moves to the next one. Card balances paid in full each month don’t charge interest.</span></div>`;
   }
 
   function SCredit() {

@@ -52,6 +52,17 @@
   // Words that suggest a category when a merchant has no rule yet
   const KEYWORDS = [
     [/insur|seguro|assurance|intact|belair|aviva|desjardins ins|rimac|pacifico|la positiva|mapfre/i, 'bills'],
+    // Peru and Latin America
+    [/mercado ?libre|aliexpress|temu|shein|saga falabella|falabella|ripley|oechsle|sodimac|promart|real plaza|jockey plaza|megaplaza|linio/i, 'shopping'],
+    [/rappi|pedidos ?ya|kfc|bembos|norky|pardos|chifa|poller[ií]a|cevicher[ií]a|juan valdez|papa john|domino|popeyes|la lucha|chilis|tanta|pasteler[ií]a|panader[ií]a/i, 'dining'],
+    [/vivanda|makro|\bmass\b|tambo|oxxo|mayorsa|minimarket|bodega|supermercado|mercado central/i, 'groceries'],
+    [/indrive|\bdidi\b|grifo|repsol|primax|pecsa|petroper[uú]|peaje|metropolitano|l[ií]nea 1|estacionamiento|combustible/i, 'transport'],
+    [/movistar|\bclaro\b|entel|bitel|luz del sur|\benel\b|sedapal|c[aá]lidda|win internet|internet|mantenimiento/i, 'bills'],
+    [/inkafarma|mifarma|botica|farmacia|cl[ií]nica|sanna|oncosalud|laboratorio|m[eé]dic|dentista|oftalmo/i, 'health'],
+    [/sky airline|jetsmart|despegar|cruz del sur|oltursa|civa|hostal/i, 'travel'],
+    [/cineplanet|cinemark|teleticket|joinnus|ticketmaster|\buvk\b|concierto/i, 'entertainment'],
+    [/universidad|\bupc\b|pucp|ulima|instituto|colegio|academia|udemy|coursera|platzi|matr[ií]cula|pensi[oó]n escolar/i, 'education'],
+    [/smart ?fit|bodytech|chatgpt|openai|\bdgo\b|claro video|\bmax\b|paramount/i, 'subs'],
     [/costco|walmart|loblaw|metro|sobeys|no frills|superstore|tottus|plaza vea|wong|whole foods|safeway|kroger|grocer|market|mercado/i, 'groceries'],
     [/uber(?! ?eats)|lyft|shell|esso|petro|chevron|gas|presto|transit|parking|taxi|cabify|rail|toll/i, 'transport'],
     [/uber ?eats|doordash|skip|restaurant|cafe|café|coffee|starbucks|tim hortons|mcdonald|pizza|sushi|bar |grill|bistro/i, 'dining'],
@@ -63,6 +74,43 @@
     [/airbnb|hotel|airline|air canada|westjet|latam|expedia|booking/i, 'travel'],
     [/cinema|cineplex|theatre|concert|ticket|steam|playstation|xbox/i, 'entertainment'],
   ];
+  // Bank lines for Yape and Plin transfers read as "Yape · Name", without phone numbers and reference codes
+  const nameCase = (x) => x.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  K.tidyDesc = (desc) => {
+    const raw = String(desc || '').trim();
+    const m = /\b(yape|plin)\b[\s\-:*./#]*(?:(?:enviado a|recibido de|a|de|to|from|para)\s+)?(.*)$/i.exec(raw);
+    if (!m) return raw;
+    const app = m[1].toLowerCase() === 'yape' ? 'Yape' : 'Plin';
+    const name = (m[2] || '').replace(/\+?\d[\d\s-]{5,}/g, ' ').replace(/\b(ref|op|nro|n°|no)\b\.?\s*\S*/gi, ' ').replace(/[*#/]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return name && /[a-z]/i.test(name) ? app + ' · ' + nameCase(name) : app;
+  };
+  // "45 Wong", "wong 45.50", "S/ 12 taxi ayer", "usd 20 amazon": amount, currency, merchant and day from one line
+  const CUR_SIGNS = [[/^s\/\.?$/i, 'PEN'], [/^us\$$/i, 'USD'], [/^ca\$$/i, 'CAD'], [/^€$/, 'EUR'], [/^£$/, 'GBP'], [/^mx\$$/i, 'MXN']];
+  K.parseQuick = (text, data) => {
+    let words = String(text || '').trim().replace(/(s\/\.?|us\$|ca\$|mx\$|€|£|\$)(?=\d)/gi, '$1 ').split(/\s+/).filter(Boolean);
+    let amt = null, cur = null, back = 0;
+    const codes = new Set(Object.keys((data && data.fx && data.fx.usd) || {}).concat(['PEN', 'USD', 'CAD', 'EUR', 'GBP', 'MXN']));
+    const rest = [];
+    words.forEach((w) => {
+      const low = w.toLowerCase();
+      const sign = CUR_SIGNS.find(([re]) => re.test(w));
+      if (sign) { cur = sign[1]; return; }
+      if (w === '$') return;
+      if (/^[a-z]{3}$/i.test(w) && codes.has(w.toUpperCase()) && !cur && w === w.toUpperCase()) { cur = w.toUpperCase(); return; }
+      if (/^(usd|pen|cad|eur|gbp|mxn|soles?|d[oó]lares?)$/i.test(w) && !cur) { cur = /^sol/i.test(w) ? 'PEN' : /^d[oó]lar/i.test(w) ? 'USD' : w.toUpperCase(); return; }
+      if (['ayer', 'yesterday'].includes(low)) { back = 1; return; }
+      if (['anteayer', 'antier'].includes(low)) { back = 2; return; }
+      if (['hoy', 'today'].includes(low)) return;
+      const n = /^(\d{1,7})(?:[.,](\d{1,2}))?$/.exec(/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(w) ? w.replace(/,/g, '') : w);
+      if (n && amt == null) { amt = Number(n[1] + (n[2] ? '.' + n[2] : '')); return; }
+      rest.push(w);
+    });
+    if (!amt) return null;
+    const merchant = rest.join(' ').replace(/^(en|at|in|de)\s+/i, '');
+    return { amt, cur, merchant: merchant ? merchant.charAt(0).toUpperCase() + merchant.slice(1) : '', date: iso(addDays(today(), -back)) };
+  };
+  // Where a quick expense is paid from: the account or card you used last, else your first everyday account
+  K.lastPaidFrom = (data) => { const t = data.txns.slice().reverse().find((x) => x.type === 'expense' && x.from && x.source === 'manual'); const ok = (w) => w && K.whereItem(data, w); return (t && ok(t.from) && t.from) || ((K.whereOptions(data)[0] || [])[0] || ''); };
   K.guessCat = (data, merchant) => {
     const m = (merchant || '').toLowerCase();
     const rule = (data.rules || []).find((r) => m.includes(r.merchant.toLowerCase()));
@@ -271,6 +319,24 @@
     let d = K.nextDate(loan.next || iso(today()), loan.freq, today());
     for (let k = 1; k < p.n; k++) d = step(d, loan.freq, 1);
     return Object.assign(p, { date: d, label: K.fmtMonth(d) });
+  };
+  // Paying off several loans: minimums on all, and every extra (plus each finished loan's payment) goes to one target.
+  // avalanche = highest interest first (least interest); snowball = smallest balance first (quick wins).
+  K.debtPlan = (data, loans, extra, order) => {
+    const L = loans.filter((l) => l.bal > 0 && l.pay > 0).map((l) => ({ id: l.id, name: l.name, rate: (l.rate || 0) / 100 / 12, bal: K.toBase(data, l.bal, l.cur || data.base) || 0, pay: (K.toBase(data, l.pay, l.cur || data.base) || 0) * K.perYear(l.freq) / 12, done: null }));
+    if (!L.length) return null;
+    const pick = () => L.filter((l) => l.bal > 0.005).sort((a, b) => (order === 'snowball' ? a.bal - b.bal : b.rate - a.rate || a.bal - b.bal))[0];
+    let month = 0, interest = 0;
+    while (L.some((l) => l.bal > 0.005) && month < 600) {
+      month++;
+      let pool = extra || 0;
+      L.forEach((l) => { if (l.bal <= 0.005) { pool += l.pay; return; } const int = l.bal * l.rate; interest += int; l.bal += int; const p = Math.min(l.bal, l.pay); l.bal -= p; pool += l.pay - p; });
+      for (let t = pick(); t && pool > 0.005; t = pick()) { const p = Math.min(t.bal, pool); t.bal -= p; pool -= p; if (t.bal <= 0.005) t.bal = 0; else break; }
+      L.forEach((l) => { if (l.bal <= 0.005 && !l.done) { l.bal = 0; l.done = month; } });
+    }
+    const T = today();
+    const at = (n) => new Date(T.getFullYear(), T.getMonth() + n, 1);
+    return { months: month, date: at(month), interest: r2(interest), stuck: month >= 600, loans: L.slice().sort((a, b) => a.done - b.done).map((l) => ({ id: l.id, name: l.name, months: l.done, date: at(l.done || month) })) };
   };
   K.loanSplit = (loan) => { const i = (loan.rate || 0) / 100 / K.perYear(loan.freq); const interest = r2(loan.bal * i); const principal = r2(Math.min(loan.bal, Math.max(0, (loan.pay || 0) - interest))); return { interest, principal }; };
 
@@ -766,11 +832,16 @@
     B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
+    // Due in the next three days and not paid yet: what reminders talk about. Card-charged bills pay themselves.
+    const soon = addDays(T, 3);
+    const dueSoon = bills.filter((b) => !(b.pay || '').startsWith('card:')).reduce((a, b) => a.concat(unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, soon)).map((d) => ({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' } }))), [])
+      .concat(upcoming.filter((u) => (u.kind === 'Loan payment' || u.kind === 'Card due') && parse(u.date) <= soon))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
     // Bills due this month and not paid yet
     const paidThisMonth = new Set(txAll.filter((t) => t.recurring && inMonth(t, T.getFullYear(), T.getMonth())).map((t) => t.recurring));
     const unpaid = bills.filter((b) => billDates(b).some((d) => d <= T && (!b.since || iso(d) >= b.since)) && !paidThisMonth.has(b.id));
 
-    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), noRate: K.missingRates(data), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
+    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), noRate: K.missingRates(data), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, dueSoon, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
   };
 
   // ---------------------------------------------------------------- forecast (plain arithmetic)

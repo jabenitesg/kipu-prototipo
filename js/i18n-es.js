@@ -9,6 +9,31 @@
 
   const words = {
     // added with the solo and household pass
+    "Payment reminders": "Recordatorios de pagos",
+    "A heads-up before rent, bills, loan and card payments are due.": "Un aviso antes de que venzan el alquiler, los recibos y los pagos de préstamos y tarjetas.",
+    "Remind me before payments": "Avisarme antes de los pagos",
+    "Notifications are blocked for Kipu in this browser’s settings.": "Las notificaciones de Kipu están bloqueadas en los ajustes de este navegador.",
+    "This browser can’t show notifications. Due payments still show on Home.": "Este navegador no puede mostrar notificaciones. Los pagos por vencer igual aparecen en Inicio.",
+    "Up to three days before, when you open Kipu": "Hasta tres días antes, al abrir Kipu",
+    "On iPhone, add Kipu to your home screen first (Share › Add to Home Screen). Bills paid by card aren’t included, since the card pays them. Home always shows what’s due in the next three days.": "En iPhone, primero agrega Kipu a tu pantalla de inicio (Compartir › Agregar a inicio). Los recibos que se pagan con tarjeta no se incluyen, porque la tarjeta los paga. Inicio siempre muestra lo que vence en los próximos tres días.",
+    "Due today": "Vence hoy",
+    "Due tomorrow": "Vence mañana",
+    "due today": "vence hoy",
+    "due tomorrow": "vence mañana",
+    "Kipu reminder": "Recordatorio de Kipu",
+    "Debt-free plan": "Plan para salir de deudas",
+    "What an extra payment each month does.": "Lo que logra un pago extra cada mes.",
+    "No extra": "Sin extra",
+    "Highest interest first": "Primero el interés más alto",
+    "Smallest balance first": "Primero el saldo más chico",
+    "The payments don’t cover the interest. Raise a payment to see a date.": "Los pagos no cubren el interés. Sube un pago para ver una fecha.",
+    "Debt-free": "Sin deudas",
+    "Interest to pay": "Interés por pagar",
+    "Extra goes to one loan at a time; when it’s paid off, its payment moves to the next one. Card balances paid in full each month don’t charge interest.": "El extra va a un préstamo a la vez; cuando se termina de pagar, su cuota pasa al siguiente. Las tarjetas que pagas completas cada mes no cobran interés.",
+    "Quick expense": "Gasto rápido",
+    "Amount and where, e.g. 45 Wong or 12 taxi yesterday": "Monto y dónde, p. ej. 45 Wong o 12 taxi ayer",
+    "Undo": "Deshacer",
+    "Removed": "Quitado",
     'suggested': 'sugerida', 'Add your first account': 'Agrega tu primera cuenta', 'Chequing, savings, cash or investments. Enter today’s balance; you can import history later.': 'Corriente, ahorros, efectivo o inversiones. Pon el saldo de hoy; el historial lo puedes importar después.',
     "Just me": "Solo yo",
     "My own accounts and spending. Nothing to share.": "Mis cuentas y mis gastos. Nada que compartir.",
@@ -165,6 +190,8 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^(\d+) months? sooner and (.+) less interest than paying only the minimum\.$/, (m) => m[1] + (m[1] === '1' ? ' mes antes' : ' meses antes') + ' y ' + m[2] + ' menos de interés que pagando solo el mínimo.'],
+    [/^(\d+)\. (.+)$/, (m, t) => m[1] + '. ' + t(m[2])],
     [/^Add ([−-]?[^\d\s]*\s?\d[\d.,]*)$/, (m) => 'Agregar ' + m[1]],
     [/^Shared with (.+)$/, (m, t) => 'Compartido con ' + t(m[1])],
     [/^You (\d+)%$/, (m) => 'Tú ' + m[1] + '%'],

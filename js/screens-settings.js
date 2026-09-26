@@ -42,7 +42,7 @@
   // ---------------------------------------------------------------- Settings
   // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
-    ['General', [['language', 'globe', 'Language']]],
+    ['General', [['language', 'globe', 'Language'], ['reminders', 'bell', 'Payment reminders']]],
     ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
     ['Security & data', [['cloud', 'cloud', 'Account & sync'], ['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
   ];
@@ -60,7 +60,7 @@
     const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
     const pal = K.palette(theme, settings.effectiveDark);
     const open = (k) => go({ r: 'settings', s: k }, wide);
-    const val = { household: cloud.target === 'household' ? cloud.household.name : { solo: 'Just me', together: 'Together', mixed: 'Some shared' }[K.hhMode(data)], currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off', language: (K.LANGS.find((l) => l[0] === K.lang()) || [])[1] };
+    const val = { reminders: settings.remind ? 'On' : 'Off', household: cloud.target === 'household' ? cloud.household.name : { solo: 'Just me', together: 'Together', mixed: 'Some shared' }[K.hhMode(data)], currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off', language: (K.LANGS.find((l) => l[0] === K.lang()) || [])[1] };
     const on = (k) => active === k;
     const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
     const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
@@ -148,7 +148,7 @@
       <p class="tiny muted">Cloud data is encrypted before upload. Your email and login details are managed by Supabase. Browser backups exported as JSON are readable files; store them safely. If you forget a space’s passphrase, Kipu cannot decrypt its data.</p>`;
   }
   function Section({ s }) {
-    const C = { cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, language: Language, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
+    const C = { reminders: Reminders, cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, language: Language, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
   }
 
@@ -313,6 +313,24 @@
     const [lang, setLang] = useState(K.lang());
     const pick = (l) => { K.setLang(l); setLang(l); };
     return html`<${SubHead} title="Language" sub="Choose the language for Kipu. Names you typed stay as you wrote them." /><div class="card tight list">${K.LANGS.map(([k, label]) => html`<button key=${k} class=${'lrow set-row' + (lang === k ? ' on' : '')} aria-pressed=${lang === k} onClick=${() => pick(k)}><span class="grow t1" data-raw style=${{ textAlign: 'left' }}>${label}</span>${lang === k && html`<${Icon} n="check" s=${18} c="var(--acc)" w=${2.4} />`}</button>`)}</div>`;
+  }
+
+  function Reminders() {
+    const { settings, setSettings, D, fmt } = useApp();
+    const can = typeof Notification !== 'undefined';
+    const [perm, setPerm] = useState(can ? Notification.permission : 'unsupported');
+    const on = !!settings.remind && perm === 'granted';
+    const toggle = async (v) => {
+      if (!v) { setSettings({ remind: false }); return; }
+      if (!can) return;
+      const p = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      setPerm(p);
+      setSettings({ remind: p === 'granted' });
+      if (p === 'granted') K.remindNow(D, fmt, true);
+    };
+    return html`<${SubHead} title="Payment reminders" sub="A heads-up before rent, bills, loan and card payments are due." />
+      <div class="card tight"><${ToggleRow} title="Remind me before payments" sub=${perm === 'denied' ? 'Notifications are blocked for Kipu in this browser’s settings.' : !can ? 'This browser can’t show notifications. Due payments still show on Home.' : 'Up to three days before, when you open Kipu'} on=${on} onChange=${toggle} icon="bell" tone="p" /></div>
+      <span class="small muted" style=${{ lineHeight: 1.5 }}>On iPhone, add Kipu to your home screen first (Share › Add to Home Screen). Bills paid by card aren’t included, since the card pays them. Home always shows what’s due in the next three days.</span>`;
   }
 
   function AI() {

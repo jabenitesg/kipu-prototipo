@@ -288,6 +288,28 @@
       ${children}
     </div></div>`;
   K.Sheet = Sheet;
+  // Payment reminders: one notification per payment and due date, shown when Kipu is open
+  const RKEY = 'kipu-reminded';
+  K.remindNow = async (D, fmt, force) => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !D || !D.dueSoon) return;
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem(RKEY) || '{}'); } catch (e) {}
+    const today = K.iso(K.today());
+    Object.keys(seen).forEach((k) => { if (seen[k] < today) delete seen[k]; });
+    const fresh = D.dueSoon.filter((u) => force || !seen[u.name + '|' + u.date]);
+    if (!fresh.length) return;
+    let reg = null;
+    // Phones need a service worker to show notifications; desktop browsers can show them directly
+    try { reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.register('sw.js') : null; if (reg) reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 3000))]); } catch (e) { reg = null; }
+    fresh.forEach((u) => {
+      const when = u.date === today ? K.t('due today') : u.date === K.iso(K.addDays(K.today(), 1)) ? K.t('due tomorrow') : K.t('due') + ' ' + K.t(K.fmtDate(u.date));
+      const title = K.t(u.name) + ' · ' + when, body = fmt(u.amt, { dec: 2 }) + ' · ' + K.t('Kipu reminder');
+      const opts = { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: u.name + '|' + u.date };
+      try { if (reg && reg.showNotification) reg.showNotification(title, opts); else new Notification(title, opts); } catch (e) {}
+      seen[u.name + '|' + u.date] = u.date;
+    });
+    try { localStorage.setItem(RKEY, JSON.stringify(seen)); } catch (e) {}
+  };
+
 
   // One context control: scope · currency · period
   const ContextFilter = ({ show }) => {

@@ -312,8 +312,9 @@
   // opts.dmy: day before month when a date could be read both ways (most countries; Canada and the US write month first)
   K.readStatement = async (file, opts) => {
     const name = (file.name || '').toLowerCase();
-    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file), opts); return rows.length ? rows : K.parseStatementLines(await K.readPDFText(file), opts); }
-    return K.parseCSV(await file.text(), opts);
+    const tidy = (rows) => rows.map((r) => (K.tidyDesc ? Object.assign({}, r, { desc: K.tidyDesc(r.desc) }) : r));
+    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file), opts); return tidy(rows.length ? rows : K.parseStatementLines(await K.readPDFText(file), opts)); }
+    return tidy(K.parseCSV(await file.text(), opts));
   };
   // Existing transactions that look like the same purchase (same amount within 3 days)
   // Same account or card, same amount, within 3 days and the same shop (one typed by hand counts the same day)

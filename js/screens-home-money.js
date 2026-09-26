@@ -103,6 +103,39 @@
       <div class="row" style=${{ gap: '8px' }}><button class="btn pri sm" onClick=${() => go({ r: 'settings', s: 'cloud' })}>${'Invite ' + who}</button><button class="btn sec sm" onClick=${() => commit(Object.assign({}, data, { household: Object.assign({}, data.household, { inviteHidden: true }) }))}>Not now</button></div></div>`;
   };
 
+  // Type an expense in one line: "45 Wong", "S/ 12 taxi ayer"
+  const QuickEntry = () => {
+    const { data, commit, toast, fmt, openSheet } = useApp();
+    const [text, setText] = useState('');
+    const [last, setLast] = useState(null);
+    const q = K.parseQuick(text, data);
+    const from = K.lastPaidFrom(data);
+    if (!from) return null;
+    const save = (e) => {
+      e.preventDefault();
+      if (!q) { openSheet({ k: 'expense', preset: { merchant: text.trim() } }); setText(''); return; }
+      const cur = q.cur && K.hasRateFor(data, q.cur) ? q.cur : data.base;
+      const t = { type: 'expense', merchant: q.merchant || 'Expense', cat: K.guessCat(data, q.merchant) || 'other', amt: q.amt, cur, from, date: q.date, source: 'manual', shared: K.hhMode(data) === 'together' };
+      if (K.canPost(data, t)) { openSheet({ k: 'expense', preset: t }); setText(''); return; }
+      const next = K.addTxn(data, t);
+      commit(next); setLast(next.txns[next.txns.length - 1]); setText('');
+      toast('Expense added');
+    };
+    const hint = q ? fmt.native(q.amt, q.cur || data.base, { dec: 2 }) + (q.merchant ? ' · ' + q.merchant : '') + ' · ' + K.CATS[K.guessCat(data, q.merchant) || 'other'].name + ' · ' + K.whereName(data, from) : 'Amount and where, e.g. 45 Wong or 12 taxi yesterday';
+    return html`<form class="card stack-s" style=${{ gap: '8px', padding: '12px 14px' }} onSubmit=${save}>
+      <div class="row" style=${{ gap: '8px' }}><input class="input grow" aria-label="Quick expense" enterkeyhint="done" autocomplete="off" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="45 Wong" /><button class="btn pri sm" disabled=${!text.trim()}>Add</button></div>
+      <span class="tiny muted">${hint}</span>
+      ${last && !text && html`<span class="tiny"><button type="button" class="link" onClick=${() => { const d = K.removeTxn(data, last.id); commit(d); setLast(null); toast('Removed'); }}>Undo</button> · <button type="button" class="link" onClick=${() => { openSheet({ k: 'expense', item: data.txns.find((x) => x.id === last.id) }); setLast(null); }}>Edit</button></span>`}</form>`;
+  };
+
+  // What's due in the next three days, before it's late
+  const DueSoon = () => {
+    const { D, fmt, go } = useApp();
+    if (!D.dueSoon || !D.dueSoon.length) return null;
+    const today = K.iso(D.T), tomorrow = K.iso(K.addDays(D.T, 1));
+    return html`<div class="card tight list">${D.dueSoon.slice(0, 3).map((u, i) => html`<button key=${i} class="lrow" onClick=${() => go(u.route)}><${Tile} icon="bell" tone=${u.date === today ? 'r' : 'a'} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${u.name}</span><span class="t2">${u.date === today ? 'Due today' : u.date === tomorrow ? 'Due tomorrow' : 'Due ' + K.fmtDate(u.date)}</span></span><span class="amt">${fmt(u.amt, { dec: 2 })}</span></button>`)}</div>`;
+  };
+
   K.Home = function Home() {
     const { D, fmt, go, data, displayName, cloud, ctx, wide, insights, openSheet } = useApp();
     const m = D.month, prev = D.series[10];
@@ -163,7 +196,7 @@
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1><${SpaceSwitch} /></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SplitCard} /><${InviteCard} />
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -171,7 +204,7 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}<${SpaceSwitch} />${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} /><${CountrySafe} /><${SplitCard} /><${InviteCard} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}<${SpaceSwitch} />${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money

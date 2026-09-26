@@ -203,6 +203,15 @@
     const fmt = useMemo(() => K.makeFmt(settings, view), [settings.hide, view.base]);
     const insights = useMemo(() => (settings.ai.insights && data.onboarded ? K.insights(data, D) : []), [data, D, settings.ai.insights]);
     const displayName = cloud.target === 'household' && cloud.user ? (cloud.user.user_metadata && (cloud.user.user_metadata.full_name || cloud.user.user_metadata.name)) || (cloud.user.email || '').split('@')[0] : data.profile.name;
+    // Payment reminders when Kipu opens, comes back to the front, and every hour while open
+    useEffect(() => {
+      if (!settings.remind || !data.onboarded) return;
+      const run = () => { if (!document.hidden) K.remindNow(D, fmt); };
+      run();
+      const timer = setInterval(run, 3600 * 1000);
+      document.addEventListener('visibilitychange', run);
+      return () => { clearInterval(timer); document.removeEventListener('visibilitychange', run); };
+    }, [settings.remind, data.onboarded, D]);
     const toast = useCallback((m) => { setToast(m); clearTimeout(window.__kt); window.__kt = setTimeout(() => setToast(null), 2800); }, []);
     // Anything that would need a missing exchange rate stops and says so instead of guessing
     useEffect(() => { const on = (e) => { const msg = String((e.reason || e.error || {}).message || e.message || ''); const i = msg.indexOf('NO_RATE:'); if (i < 0) return; e.preventDefault && e.preventDefault(); toast('Kipu needs the exchange rate for ' + msg.slice(i + 8).trim() + ' first. Tap Update rates.'); }; window.addEventListener('error', on); window.addEventListener('unhandledrejection', on); return () => { window.removeEventListener('error', on); window.removeEventListener('unhandledrejection', on); }; }, []);

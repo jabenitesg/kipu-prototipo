@@ -521,3 +521,40 @@ test('couples who share everything see it all in the Household, without marking 
   assert.equal(K.hhMode(K.setHouseholdMode(d, 'solo')), 'solo');
   assert.equal(K.hhMode(Object.assign(K.factory(), { household: { enabled: true, name: 'Old' } })), 'mixed'); // households made before modes
 });
+
+test('a debt plan: extra money pays loans off sooner and with less interest, highest rate first', () => {
+  const d = K.factory();
+  const loans = [
+    { id: 'car', name: 'Car', bal: 10000, pay: 300, rate: 9, freq: 'Monthly', cur: 'CAD' },
+    { id: 'card', name: 'Card loan', bal: 3000, pay: 100, rate: 24, freq: 'Monthly', cur: 'CAD' },
+  ];
+  const base = K.debtPlan(d, loans, 0, 'avalanche');
+  const more = K.debtPlan(d, loans, 200, 'avalanche');
+  const snow = K.debtPlan(d, loans, 200, 'snowball');
+  assert.ok(more.months < base.months);
+  assert.ok(more.interest < base.interest);
+  assert.equal(more.loans[0].id, 'card'); // 24% goes first
+  assert.ok(more.interest <= snow.interest);
+  assert.equal(K.debtPlan(d, [], 100), null);
+});
+
+test('one line is enough to add an expense', () => {
+  const d = K.factory();
+  assert.deepStrictEqual(K.parseQuick('45 Wong', d), { amt: 45, cur: null, merchant: 'Wong', date: K.iso(K.today()) });
+  const q = K.parseQuick('S/ 12.50 taxi ayer', d);
+  assert.equal(q.amt, 12.5); assert.equal(q.cur, 'PEN'); assert.equal(q.merchant, 'Taxi'); assert.equal(q.date, K.iso(K.addDays(K.today(), -1)));
+  assert.equal(K.parseQuick('1,250 laptop', d).amt, 1250);
+  assert.equal(K.parseQuick('almuerzo', d), null);
+  assert.equal(K.tidyDesc('TRANSF.YAPE-MARIA LOPEZ 987654321'), 'Yape · Maria Lopez');
+  assert.equal(K.guessCat(d, 'PLAZA VEA SAN ISIDRO'), 'groceries');
+});
+
+test('reminders cover what is due in the next three days and not paid yet', () => {
+  let d = K.factory();
+  const T = K.today(), due = K.addDays(T, 2);
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: due.getDate(), cat: 'housing', pay: 'acct:cad' }, { id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20, cur: 'CAD', day: due.getDate(), cat: 'subs', pay: 'card:x' }];
+  assert.deepStrictEqual(K.derive(d, ctx).dueSoon.map((x) => x.name), due.getDate() <= 28 ? ['Rent'] : []);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', from: 'acct:cad', recurring: 'rent', cat: 'housing' });
+  assert.equal(K.derive(d, ctx).dueSoon.length, 0); // paid early
+});
