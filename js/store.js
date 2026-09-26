@@ -437,6 +437,17 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // The movements one statement import added. Imports from before they were tagged: everything imported on that account or card
+  K.importTxns = (d, imp) => {
+    const tagged = d.txns.filter((t) => t.imp === imp.id);
+    return tagged.length ? tagged : d.txns.filter((t) => t.source === 'statement' && !t.imp && imp.where && (t.from === imp.where || t.to === imp.where));
+  };
+  // Undo an import: its movements go away, balances go back, and the file can be imported again
+  K.undoImport = (d, id) => {
+    const imp = (d.imports || []).find((i) => i.id === id); if (!imp) return d;
+    d = K.importTxns(d, imp).reduce((acc, t) => K.removeTxn(acc, t.id), d);
+    return Object.assign({}, d, { imports: d.imports.filter((i) => i.id !== id) });
+  };
   // "Not a bill": never offered again for that account or card
   K.dismissRecurring = (d, list) => Object.assign({}, d, { notBills: Array.from(new Set((d.notBills || []).concat(list.map((r) => r.where + '|' + r.key)))) });
   // Deleting a bill unlinks its payments; one Kipu found on its own is also marked "not a bill"

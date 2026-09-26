@@ -401,3 +401,17 @@ test('the person can mark any expense as repeating, and it becomes a bill with i
   assert.equal(d.bills[0].cat, 'bills');
   assert.equal(d.txns.filter((t) => t.recurring === d.bills[0].id).length, 2);
 });
+
+test('undoing a statement import removes its movements and puts balances back', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 1000)];
+  d = K.addTxn(d, { imp: 'i1', type: 'expense', merchant: 'METRO', amt: 50, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', source: 'statement' });
+  d = K.addTxn(d, { imp: 'i1', type: 'income', merchant: 'PAYROLL', amt: 900, cur: 'CAD', from: 'acct:chq', date: '2026-09-04', source: 'statement' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Coffee', amt: 5, cur: 'CAD', from: 'acct:chq', date: '2026-09-05' });
+  d.imports = [{ id: 'i1', name: 'sept.csv', when: '2026-09-25', count: 2, where: 'acct:chq' }];
+  assert.equal(d.accounts[0].bal, 1845);
+  d = K.undoImport(d, 'i1');
+  assert.equal(d.accounts[0].bal, 995);
+  assert.deepEqual(d.txns.map((t) => t.merchant), ['Coffee']);
+  assert.equal(d.imports.length, 0);
+});

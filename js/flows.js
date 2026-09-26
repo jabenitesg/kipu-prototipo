@@ -194,7 +194,8 @@
       if (!file) return;
       setSt({ step: 'reading', name: file.name });
       try {
-        const rows = await K.readStatement(file);
+        const acc = K.whereItem(data, where) || {};
+        const rows = await K.readStatement(file, { dmy: !['CAD', 'USD'].includes(acc.cur || data.base) });
         if (!rows.length) { setSt({ step: 'fail', name: file.name }); return; }
         setSt({ step: 'review', name: file.name, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) });
       } catch (e) { setSt({ step: 'fail', name: file.name, err: String(e.message || e) }); }

@@ -328,6 +328,14 @@
     return html`<div class="card tight list">${data.income.map((s) => html`<${Row} key=${s.id} icon="income" tone="g" title=${s.name} sub=${s.freq + ' · next ' + K.fmtDate(K.nextDate(s.next, s.freq, K.today()))} right=${fmt.native(s.amt, s.cur || data.base)} chevron=${true} onClick=${() => openSheet({ k: 'addIncomeSource', item: s })} />`)}<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => openSheet({ k: 'addIncomeSource' })}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>Add income source</button></div>`;
   };
 
+  // One statement import, with a two-step undo
+  function ImportRow({ imp }) {
+    const { data, commit, toast } = useApp();
+    const [armed, setArmed] = useState(false);
+    const n = K.importTxns(data, imp).length;
+    return html`<div class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${imp.name}</span><span class="t2">${K.fmtDate(imp.when, true)} · ${K.whereName(data, imp.where) || '—'} · ${n + ' movements'}</span></span>
+      ${armed ? html`<div class="row" style=${{ gap: '6px' }}><button class="btn sec sm" onClick=${() => setArmed(false)}>Keep it</button><button class="btn dan sm" onClick=${() => { commit(K.undoImport(data, imp.id)); toast(n + ' movements removed · balances updated'); }}>Undo import</button></div>` : html`<button class="btn sec sm" disabled=${!n} onClick=${() => setArmed(true)}>Undo</button>`}</div>`;
+  }
   function DataSec() {
     const { data, commit, toast, resetAll, cloud } = useApp();
     const fileRef = useRef(null);
@@ -335,6 +343,7 @@
     const restore = async (file) => { try { const d = JSON.parse(await file.text()); if (!d || d.v !== 1 || !Array.isArray(d.txns)) throw new Error('format'); commit(Object.assign(K.factory(), d)); toast('Backup restored'); } catch (e) { toast('That file isn’t a Kipu backup'); } };
     return html`<${SubHead} title="Data, backup & reset" sub=${cloud.status === 'ready' ? 'Your encrypted data syncs with your account.' : 'Your data is stored in this browser on this device.'} />
       <${Facts} rows=${[['Transactions', String(data.txns.length)], ['Accounts, cards and loans', String(data.accounts.length + data.cards.length + data.loans.length)], ['Bills and goals', String(data.bills.length + data.goals.length)], ['Imports', String(data.imports.length)]]} />
+      ${data.imports.length > 0 && html`<div class="stack-s"><span class="eyebrow">Statement imports</span><div class="card tight list">${data.imports.map((imp) => html`<${ImportRow} key=${imp.id} imp=${imp} />`)}</div><span class="tiny muted">Undo removes what that file added, so you can import it again.</span></div>`}
       <div class="stack-s"><span class="eyebrow">Export</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => K.download('kipu-backup-' + stamp + '.json', JSON.stringify(data, null, 1), 'application/json')}><${Icon} n="download" s=${16} />Backup (JSON)</button><button class="btn sec" disabled=${!data.txns.length} onClick=${() => K.download('kipu-transactions-' + stamp + '.csv', K.toCSV(data), 'text/csv')}><${Icon} n="download" s=${16} />Transactions (CSV)</button></div><span class="tiny muted">Keep a backup before clearing your browser or changing phones.</span></div>
       <div class="stack-s"><span class="eyebrow">Restore</span><button class="btn sec" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${16} />Restore a backup</button><input ref=${fileRef} id="restore-file" type="file" accept="application/json,.json" style=${{ display: 'none' }} onChange=${(e) => e.target.files[0] && restore(e.target.files[0])} /></div>
       <div class="stack-s"><span class="eyebrow">Start over</span><${DangerButton} label="Erase everything and reset" onConfirm=${resetAll} /><span class="tiny muted">${cloud.status === 'ready' ? 'Replaces your cloud data with an empty Kipu vault on every device.' : 'Returns Kipu to factory state and shows the welcome again.'} Export a backup first if you might need it.</span></div>`;

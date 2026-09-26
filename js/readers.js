@@ -15,17 +15,93 @@
   };
   K.parseAmount = num;
   const AMT = /(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*-?\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}(?!\d)/g;
+  // Month names count only as whole words, so "14 MARKET" or "3 DECATHLON" are never read as March or December
+  const MONTH_WORD = { jan: 0, january: 0, ene: 0, enero: 0, feb: 1, february: 1, febrero: 1, mar: 2, march: 2, marzo: 2, apr: 3, april: 3, abr: 3, abril: 3, may: 4, mayo: 4, jun: 5, june: 5, junio: 5, jul: 6, july: 6, julio: 6, aug: 7, august: 7, ago: 7, agosto: 7, sep: 8, sept: 8, september: 8, set: 8, setiembre: 8, septiembre: 8, oct: 9, october: 9, octubre: 9, nov: 10, november: 10, noviembre: 10, dec: 11, december: 11, dic: 11, diciembre: 11 };
+  const monthOf = (w) => { const k = String(w || '').toLowerCase().replace(/\.$/, ''); return Object.prototype.hasOwnProperty.call(MONTH_WORD, k) ? MONTH_WORD[k] : null; };
+  const valid = (y, m, d) => { const x = new Date(y, m, d); return x.getFullYear() === y && x.getMonth() === m && x.getDate() === d ? x : null; };
+  // Without a year the current one is used and the date is flagged, so the statement can fix it later
+  const withYear = (mo, day, ytok) => { if (/^\d{4}$/.test(ytok || '')) return valid(+ytok, mo, day); const d = valid(new Date().getFullYear(), mo, day); if (d) d.noYear = true; return d; };
   K.parseDateText = (s, preferDMY) => {
+    s = String(s || '').trim();
     let m;
-    if ((m = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(s))) return new Date(+m[1], +m[2] - 1, +m[3]);
-    if ((m = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/.exec(s))) {
-      let a = +m[1], b = +m[2], y = +m[3]; if (y < 100) y += 2000;
-      let day = a, mon = b; if (!preferDMY && b <= 12 && a <= 12) { mon = a; day = b; } if (a > 12) { day = a; mon = b; } if (b > 12) { day = b; mon = a; }
-      return new Date(y, mon - 1, day);
+    if ((m = /(?:^|[^\d])(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)/.exec(s))) return valid(+m[1], +m[2] - 1, +m[3]);
+    if ((m = /^(20\d{2})(\d{2})(\d{2})$/.exec(s))) return valid(+m[1], +m[2] - 1, +m[3]); // 20260814
+    if ((m = /(?:^|[^\d])(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?!\d)/.exec(s))) {
+      const a = +m[1], b = +m[2]; let y = +m[3]; if (y < 100) y += 2000;
+      let day = a, mon = b;
+      if (!preferDMY && b <= 12 && a <= 12) { mon = a; day = b; }
+      if (a > 12) { day = a; mon = b; }
+      if (b > 12) { day = b; mon = a; }
+      return valid(y, mon - 1, day);
     }
-    if ((m = /(\d{1,2})\s*(?:de\s+)?([a-záé]{3})[a-z]*\.?\s*(?:de\s+)?(\d{4})?/i.exec(s)) && MONTHS[m[2].toLowerCase().slice(0, 3)] != null) return new Date(m[3] ? +m[3] : new Date().getFullYear(), MONTHS[m[2].toLowerCase().slice(0, 3)], +m[1]);
-    if ((m = /([a-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s*(\d{4})?/i.exec(s)) && MONTHS[m[1].toLowerCase().slice(0, 3)] != null) return new Date(m[3] ? +m[3] : new Date().getFullYear(), MONTHS[m[1].toLowerCase().slice(0, 3)], +m[2]);
+    const tok = s.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+    for (let i = 0; i < tok.length; i++) {
+      const a = tok[i];
+      let mo = monthOf(a), mm;
+      if (mo != null && /^\d{1,2}$/.test(tok[i + 1] || '')) return withYear(mo, +tok[i + 1], tok[i + 2]);
+      if (/^\d{1,2}$/.test(a)) {
+        let k = i + 1; if (/^de$/i.test(tok[k] || '')) k++;
+        mo = monthOf(tok[k]);
+        if (mo != null) { k++; if (/^(de|del)$/i.test(tok[k] || '')) k++; return withYear(mo, +a, tok[k]); }
+      }
+      if ((mm = /^(\d{1,2})([a-z]{3,9})\.?(\d{4})?$/i.exec(a)) && monthOf(mm[2]) != null) return withYear(monthOf(mm[2]), +mm[1], mm[3]); // 14AUG
+      if ((mm = /^([a-z]{3,9})\.?(\d{1,2})$/i.exec(a)) && monthOf(mm[1]) != null) return withYear(monthOf(mm[1]), +mm[2], tok[i + 1]); // AUG14
+    }
     return null;
+  };
+  // 05/08/2026: day/month or month/day, decided once for the whole file. A day over 12 settles it;
+  // otherwise the reading that keeps the statement in order and nothing in the future wins, then the country's habit.
+  K.dateOrder = (values, preferDMY) => {
+    const pairs = values.map((v) => /(?:^|[^\d])(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?!\d)/.exec(String(v || ''))).filter(Boolean);
+    if (!pairs.length) return !!preferDMY;
+    if (pairs.some((p) => +p[1] > 12)) return true;
+    if (pairs.some((p) => +p[2] > 12)) return false;
+    const soon = K.addDays(K.today(), 3);
+    const score = (dmy) => {
+      const ds = values.map((v) => K.parseDateText(v, dmy)).filter(Boolean);
+      let up = 0, down = 0;
+      ds.slice(1).forEach((d, i) => { if (d < ds[i]) down++; else if (d > ds[i]) up++; });
+      return Math.min(up, down) + ds.filter((d) => d > soon).length * 5;
+    };
+    const a = score(true), b = score(false);
+    return a === b ? !!preferDMY : a < b;
+  };
+  // Dates printed without a year take the statement's year; a December line on a January statement is last year
+  K.settleYears = (rows, end) => {
+    if (!rows.some((r) => r.noYear)) return rows;
+    end = end || K.today();
+    const lim = K.addDays(end, 3);
+    return rows.map((r) => {
+      if (!r.noYear) return r;
+      const p = K.parse(r.date);
+      let d = new Date(end.getFullYear(), p.getMonth(), p.getDate());
+      if (d > lim) d = new Date(end.getFullYear() - 1, p.getMonth(), p.getDate());
+      const o = Object.assign({}, r, { date: K.iso(d) }); delete o.noYear; return o;
+    });
+  };
+  // The latest full date printed anywhere (statement period, statement date): where the statement ends
+  const statementEnd = (lines) => {
+    const max = K.addDays(K.today(), 31);
+    let end = null;
+    lines.slice(0, 400).forEach((l) => {
+      // "Statement period: July 15 to August 14, 2026" has two dates; only the one with a year counts
+      const tok = String(l).replace(/,/g, ' ').split(/\s+/).filter(Boolean).slice(0, 40);
+      tok.forEach((_, i) => { const d = K.parseDateText(tok.slice(i, i + 3).join(' ')); if (d && !d.noYear && d <= max && d.getFullYear() > 2000 && (!end || d > end)) end = d; });
+    });
+    return end;
+  };
+  const firstTokens = (l, n) => String(l || '').split(/\s+/).slice(0, n || 4).join(' ');
+  // Card statements print two dates (transaction and posting) before the description: drop both
+  const stripDates = (text) => {
+    let t = String(text || '').replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+    for (let n = 0; n < 2 && t.length; n++) {
+      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}([-/.]\d{2,4})?$|^20\d{6}$/.test(t[0])) t = t.slice(1);
+      else if (monthOf(t[0]) != null && /^\d{1,2}$/.test(t[1] || '')) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
+      else if (/^\d{1,2}$/.test(t[0]) && monthOf(t[1]) != null) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
+      else if ((/^(\d{1,2})([a-z]{3,9})\.?(\d{4})?$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null) || (/^([a-z]{3,9})\.?(\d{1,2})$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null)) t = t.slice(1);
+      else break;
+    }
+    return t.join(' ');
   };
   const detectCur = (text, fallback) => (/S\/|soles|PEN\b/i.test(text) ? 'PEN' : /US\$|USD\b/i.test(text) ? 'USD' : /€|EUR\b/i.test(text) ? 'EUR' : /£|GBP\b/i.test(text) ? 'GBP' : /MX\$|MXN\b/i.test(text) ? 'MXN' : /CA\$|CAD\b/i.test(text) ? 'CAD' : fallback);
 
@@ -49,7 +125,7 @@
 
   // ---------------------------------------------------------------- statements
   const splitCSV = (line, sep) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out.map((s) => s.trim()); };
-  K.parseCSV = (text) => {
+  K.parseCSV = (text, opts) => {
     const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim());
     if (!lines.length) return [];
     const sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : lines[0].includes('\t') ? '\t' : ',';
@@ -78,16 +154,17 @@
         else if (iDesc < 0 && vals.some((v) => /[a-z]{3}/i.test(v))) iDesc = i;
       }
     }
-    return rows.map((r) => {
-      const d = K.parseDateText(r[iDate] || '');
+    const dmy = K.dateOrder(rows.map((r) => r[iDate] || ''), opts && opts.dmy);
+    return K.settleYears(rows.map((r) => {
+      const d = K.parseDateText(r[iDate] || '', dmy);
       let amt = iAmt >= 0 ? num(r[iAmt]) : NaN;
       let dir = null;
       // Separate Withdrawal and Deposit columns: money out and money in
       if (iDebit >= 0 || iCredit >= 0) { const db = iDebit >= 0 ? num(r[iDebit]) : NaN, cr = iCredit >= 0 ? num(r[iCredit]) : NaN; if (!isNaN(db) && db) { amt = -Math.abs(db); dir = 'out'; } else if (!isNaN(cr) && cr) { amt = Math.abs(cr); dir = 'in'; } }
       // A Type column saying Withdrawal / Deposit, Debit / Credit
       if (iType >= 0 && !isNaN(amt)) { const t = K.moneyDir(r[iType]); if (t) { dir = t; amt = t === 'out' ? -Math.abs(amt) : Math.abs(amt); } }
-      return { date: d && !isNaN(d) ? K.iso(d) : null, desc: (r[iDesc] || '').replace(/\s+/g, ' ').trim(), amt, dir };
-    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc && !K.isBalanceLine(x.desc));
+      return { date: d && !isNaN(d) ? K.iso(d) : null, noYear: !!(d && d.noYear), desc: (r[iDesc] || '').replace(/\s+/g, ' ').trim(), amt, dir };
+    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc && !K.isBalanceLine(x.desc)), statementEnd(lines));
   };
   // Summary lines of a statement, not movements: "Opening balance", "Balance forward", "Saldo anterior", "Total deposits"…
   K.isBalanceLine = (text) => {
@@ -116,10 +193,12 @@
   };
   // A chequing PDF: Date | Description | Withdrawals | Deposits | Balance. Each amount goes to the column it sits under.
   const ONEAMT = /^(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*-?\(?\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}\)?(?:\s*(?:CR|DR|-))?$/;
-  K.parseStatementRows = (rows) => {
+  K.parseStatementRows = (rows, opts) => {
     let cols = null;
     const out = [];
     let lastBal = null;
+    const lines = rows.map((items) => items.map((i) => i.s).join(' '));
+    const dmy = K.dateOrder(lines.map((l) => firstTokens(l, 2)), opts && opts.dmy);
     rows.forEach((items) => {
       const line = items.map((i) => i.s).join(' ');
       const low = line.toLowerCase();
@@ -132,10 +211,10 @@
       const amts = items.filter((i) => ONEAMT.test(i.s));
       // "Opening balance 1,000.00": where the statement starts; it tells the direction of the first movement
       if (K.isBalanceLine(items.filter((i) => !ONEAMT.test(i.s) && !K.parseDateText(i.s)).map((i) => i.s).join(' '))) { if (amts.length) lastBal = num(amts[amts.length - 1].s); return; }
-      const d = K.parseDateText(line.slice(0, 16));
+      const d = K.parseDateText(firstTokens(line, 3), dmy);
       if (!d || isNaN(d)) return;
       if (!amts.length) return;
-      const desc = items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ').replace(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|^[A-Za-z]{3}\.?\s+\d{1,2}(,?\s+\d{4})?|^\d{1,2}\s+[A-Za-z]{3}\.?(\s+\d{4})?)/, '').replace(/\s+/g, ' ').trim();
+      const desc = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
       if (desc.length < 2) return;
       let amt = null, dir = null, bal = null;
       if (cols && (cols.out != null || cols.in != null)) {
@@ -154,9 +233,9 @@
         else { const raw = amts[vals.length > 1 ? vals.length - 2 : 0].s; amt = /(CR|\))\s*$|^\(/.test(raw) || /-\s*$/.test(raw) ? -v : vals.length > 1 ? v : vals[0]; }
       }
       if (bal != null) lastBal = bal;
-      if (amt) out.push({ date: K.iso(d), desc: desc.slice(0, 60), amt, dir });
+      if (amt) out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 60), amt, dir });
     });
-    return out;
+    return K.settleYears(out, statementEnd(lines));
   };
   K.readPDFText = async (file) => {
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
@@ -171,24 +250,25 @@
     }
     return out;
   };
-  K.parseStatementLines = (lines) => {
+  K.parseStatementLines = (lines, opts) => {
     const out = [];
+    const dmy = K.dateOrder(lines.map((l) => firstTokens(l, 2)), opts && opts.dmy);
     lines.forEach((l) => {
-      const d = K.parseDateText(l.slice(0, 16));
+      const d = K.parseDateText(firstTokens(l, 3), dmy);
       if (!d || isNaN(d)) return;
       const amts = l.match(AMT); if (!amts) return;
       const raw = amts[amts.length > 1 && /balance|saldo/i.test(l) ? amts.length - 2 : amts.length - 1];
       let amt = num(raw); if (/-\s*$|CR\b/.test(l.slice(l.indexOf(raw) + raw.length, l.indexOf(raw) + raw.length + 4))) amt = -amt;
-      const dm = l.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|[A-Za-z]{3}\.?\s+\d{1,2}(,?\s+\d{4})?|\d{1,2}\s+[A-Za-z]{3}\.?(\s+\d{4})?)/);
-      const desc = (dm ? l.replace(dm[0], '') : l).replace(AMT, '').replace(/\bCR\b\s*$/, '').replace(/\s+/g, ' ').trim();
-      if (desc.length >= 2 && !K.isBalanceLine(desc)) out.push({ date: K.iso(d), desc: desc.slice(0, 60), amt });
+      const desc = stripDates(l.replace(AMT, '')).replace(/\bCR\b\s*$/, '').replace(/\s+/g, ' ').trim();
+      if (desc.length >= 2 && !K.isBalanceLine(desc)) out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 60), amt });
     });
-    return out;
+    return K.settleYears(out, statementEnd(lines));
   };
-  K.readStatement = async (file) => {
+  // opts.dmy: day before month when a date could be read both ways (most countries; Canada and the US write month first)
+  K.readStatement = async (file, opts) => {
     const name = (file.name || '').toLowerCase();
-    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file)); return rows.length ? rows : K.parseStatementLines(await K.readPDFText(file)); }
-    return K.parseCSV(await file.text());
+    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file), opts); return rows.length ? rows : K.parseStatementLines(await K.readPDFText(file), opts); }
+    return K.parseCSV(await file.text(), opts);
   };
   // Existing transactions that look like the same purchase (same amount within 3 days)
   K.findDuplicate = (data, row, where) => data.txns.find((t) => Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) < 0.01 && Math.abs(K.days(K.parse(t.date), K.parse(row.date))) <= 3 && (!where || t.from === where));
