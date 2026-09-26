@@ -501,3 +501,24 @@ test('renaming a bill or loan renames its payments and keeps recognizing the ban
   assert.equal(d.txns[2].recurring, id);
   assert.equal(K.findRecurring(d).length, 0);
 });
+
+test('a new price still pays the bill: the insurance goes down and the bill follows', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date, amt) => { d = K.addTxn(d, { type: 'expense', merchant: 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); };
+  add('2026-06-12', 148.9); add('2026-07-12', 148.9);
+  d = K.addRecurringBills(d, K.findRecurring(d));
+  d = K.upsert(d, 'bills', Object.assign({}, d.bills[0], { name: 'Car insurance' }));
+  const id = d.bills[0].id;
+  add('2026-08-12', 135); // renewed at a lower price
+  assert.equal(d.txns[2].recurring, id);
+  assert.equal(d.bills[0].amt, 135);
+  add('2026-09-12', 210); // a big jump: linked, but asked before changing the bill
+  assert.equal(d.txns[3].recurring, id);
+  assert.equal(d.bills[0].amt, 135);
+  assert.equal(d.bills[0].pendingPrice.amt, 210);
+  // A shop that only shares a word with a bill still needs the same amount
+  d.bills.push({ id: 'gym', name: 'Gym membership', kind: 'Bill', amt: 49, cur: 'CAD', day: 2, cat: 'health', pay: 'acct:chq' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'GYM SHARK APPAREL', amt: 80, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', source: 'statement', settled: true });
+  assert.equal(d.txns[4].recurring, undefined);
+});

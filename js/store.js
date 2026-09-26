@@ -292,10 +292,13 @@
     const hits = (d.bills || []).filter((b) => {
       const n = norm(b.name); if (!n) return false;
       // A renamed bill still knows the bank's text it was made from
-      const named = m.includes(n) || n.includes(m) || words.some((w) => n.split(' ').includes(w)) || (b.match && (m.includes(b.match) || K.merchantKey(t.merchant) === b.match));
+      const strong = (b.match && (m.includes(b.match) || K.merchantKey(t.merchant) === b.match)) || (n.length >= 4 && m.includes(n));
+      const named = strong || n.includes(m) || words.some((w) => n.split(' ').includes(w));
       if (!named) return false;
       const amt = K.toBase(d, b.amt, b.cur || d.base); if (amt == null) return false;
-      if (Math.abs(amt - t.base) > Math.max(1, amt * 0.03)) return false;
+      // Prices change (insurance renewal, a new plan): when the shop clearly matches, a different amount still pays the bill
+      // and the bill then follows it. A loose name match needs the same amount.
+      if (Math.abs(amt - t.base) > Math.max(1, amt * (strong ? 0.6 : 0.03))) return false;
       const due = b.kind === 'Annual' ? new Date(when.getFullYear(), (b.month || 1) - 1, b.day || 1) : new Date(when.getFullYear(), when.getMonth(), b.day || 1);
       const near = [addMonths(due, -1), due, addMonths(due, 1)].some((x) => Math.abs(days(x, when)) <= 7);
       if (!near) return false;
