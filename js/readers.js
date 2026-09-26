@@ -87,7 +87,12 @@
       // A Type column saying Withdrawal / Deposit, Debit / Credit
       if (iType >= 0 && !isNaN(amt)) { const t = K.moneyDir(r[iType]); if (t) { dir = t; amt = t === 'out' ? -Math.abs(amt) : Math.abs(amt); } }
       return { date: d && !isNaN(d) ? K.iso(d) : null, desc: (r[iDesc] || '').replace(/\s+/g, ' ').trim(), amt, dir };
-    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc);
+    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc && !K.isBalanceLine(x.desc));
+  };
+  // Summary lines of a statement, not movements: "Opening balance", "Balance forward", "Saldo anterior", "Total deposits"…
+  K.isBalanceLine = (text) => {
+    const m = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros)\b|^balance$|^saldo$/.test(m);
   };
   // Words that say which way money went: withdrawal, purchase, fee → out; deposit, payroll, credit → in
   K.moneyDir = (text) => {
@@ -124,9 +129,11 @@
         items.forEach((i) => { const t = i.s.toLowerCase(), c = i.x + i.w / 2; if (/withdraw|debit|retiro|cargo|paid out|money out/.test(t)) cols.out = c; else if (/deposit|credit|abono|paid in|money in/.test(t)) cols.in = c; else if (/balance|saldo/.test(t)) cols.bal = c; });
         return;
       }
+      const amts = items.filter((i) => ONEAMT.test(i.s));
+      // "Opening balance 1,000.00": where the statement starts; it tells the direction of the first movement
+      if (K.isBalanceLine(items.filter((i) => !ONEAMT.test(i.s) && !K.parseDateText(i.s)).map((i) => i.s).join(' '))) { if (amts.length) lastBal = num(amts[amts.length - 1].s); return; }
       const d = K.parseDateText(line.slice(0, 16));
       if (!d || isNaN(d)) return;
-      const amts = items.filter((i) => ONEAMT.test(i.s));
       if (!amts.length) return;
       const desc = items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ').replace(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|^[A-Za-z]{3}\.?\s+\d{1,2}(,?\s+\d{4})?|^\d{1,2}\s+[A-Za-z]{3}\.?(\s+\d{4})?)/, '').replace(/\s+/g, ' ').trim();
       if (desc.length < 2) return;
@@ -174,7 +181,7 @@
       let amt = num(raw); if (/-\s*$|CR\b/.test(l.slice(l.indexOf(raw) + raw.length, l.indexOf(raw) + raw.length + 4))) amt = -amt;
       const dm = l.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|[A-Za-z]{3}\.?\s+\d{1,2}(,?\s+\d{4})?|\d{1,2}\s+[A-Za-z]{3}\.?(\s+\d{4})?)/);
       const desc = (dm ? l.replace(dm[0], '') : l).replace(AMT, '').replace(/\bCR\b\s*$/, '').replace(/\s+/g, ' ').trim();
-      if (desc.length >= 2) out.push({ date: K.iso(d), desc: desc.slice(0, 60), amt });
+      if (desc.length >= 2 && !K.isBalanceLine(desc)) out.push({ date: K.iso(d), desc: desc.slice(0, 60), amt });
     });
     return out;
   };

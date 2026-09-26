@@ -367,3 +367,23 @@ test('a payment that comes back every month is offered as a bill, and becomes on
   e = K.addTxn(e, { type: 'expense', merchant: 'GOODLIFE FITNESS', amt: 54.99, cur: 'CAD', from: 'acct:chq', date: '2026-07-01', source: 'statement', settled: true });
   assert.equal(K.findRecurring(e, [{ type: 'expense', date: '2026-08-01', amt: 54.99, desc: 'GOODLIFE FITNESS', cat: 'health', where: 'acct:chq' }]).length, 1);
 });
+
+test('a repeating payment that isn’t a bill can be left out, and a wrong bill undone', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  [['2026-06-03', 60], ['2026-07-03', 60], ['2026-08-03', 62]].forEach(([date, amt]) => { d = K.addTxn(d, { type: 'expense', merchant: 'E-TRANSFER MOM', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); });
+  const found = K.findRecurring(d);
+  assert.equal(found.length, 1);
+  d = K.dismissRecurring(d, found);
+  assert.equal(K.findRecurring(d).length, 0);
+  // Saved as a bill by mistake, then deleted: payments unlinked and not offered again
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 5000)];
+  [['2026-06-03', 60], ['2026-07-03', 60]].forEach(([date, amt]) => { e = K.addTxn(e, { type: 'expense', merchant: 'E-TRANSFER MOM', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); });
+  e = K.addRecurringBills(e, K.findRecurring(e));
+  const id = e.bills[0].id;
+  e = K.removeBill(e, id);
+  assert.equal(e.bills.length, 0);
+  assert.equal(e.txns.filter((t) => t.recurring === id).length, 0);
+  assert.equal(K.findRecurring(e).length, 0);
+});

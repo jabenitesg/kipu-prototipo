@@ -47,3 +47,22 @@ test('without column titles, the running balance tells the direction', () => {
   ]);
   assert.deepEqual(out.slice(1).map((r) => [r.amt, r.dir]), [[2689, 'in'], [-100, 'out']]);
 });
+
+test('opening balance and balance forward are how the statement starts, not money coming in', () => {
+  assert.equal(K.isBalanceLine('Opening balance'), true);
+  assert.equal(K.isBalanceLine('BALANCE FORWARD'), true);
+  assert.equal(K.isBalanceLine('Saldo anterior'), true);
+  assert.equal(K.isBalanceLine('Total deposits'), true);
+  assert.equal(K.isBalanceLine('NEW BALANCE ATHLETICS'), false); // a shoe store
+  assert.equal(K.isBalanceLine('PAYROLL ACME'), false);
+  const csv = K.parseCSV('Date,Description,Withdrawals,Deposits,Balance\n2026-08-01,OPENING BALANCE,,1000.00,1000.00\n2026-08-14,PAYROLL ACME,,2689.00,3689.00\n2026-08-31,CLOSING BALANCE,,,3689.00');
+  assert.deepEqual(csv.map((r) => r.desc), ['PAYROLL ACME']);
+  // In a PDF without column titles, the opening balance tells the direction of the first line
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const out = K.parseStatementRows([
+    row([120, 'Balance forward'], [560, '1,000.00']),
+    row([40, 'Aug 14'], [120, 'METRO'], [470, '100.00'], [560, '900.00']),
+    row([40, 'Aug 15'], [120, 'PAYROLL ACME'], [470, '2,689.00'], [560, '3,589.00']),
+  ]);
+  assert.deepEqual(out.map((r) => [r.desc, r.amt, r.dir]), [['METRO', -100, 'out'], ['PAYROLL ACME', 2689, 'in']]);
+});

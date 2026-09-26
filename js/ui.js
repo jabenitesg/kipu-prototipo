@@ -331,7 +331,14 @@
     const list = K.findRecurring(data);
     if (!list.length) return null;
     return html`<div class="card stack-s" style=${{ gap: '8px', borderColor: 'color-mix(in srgb, var(--acc) 35%, var(--line))' }}><span style=${{ fontWeight: 700 }}>Payments that repeat</span><span class="small muted" style=${{ lineHeight: 1.45 }}>Kipu found these every month in your statements. Are they bills?</span>
-      <div class="list">${list.map((r) => html`<div key=${r.where + r.key} class="lrow" style=${{ gap: '10px' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${fmt.native(r.amt, (K.whereItem(data, r.where) || {}).cur || data.base, { dec: 2 })} · ${K.ord(r.day) + ' of the month'} · ${K.whereName(data, r.where)}</span></span><button class="btn sec sm" onClick=${() => { commit(K.addRecurringBills(data, [r])); toast(r.name + ' added as a bill'); }}>Add bill</button></div>`)}</div></div>`;
+      <div class="list">${list.map((r) => html`<div key=${r.where + r.key} class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '160px' }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${fmt.native(r.amt, (K.whereItem(data, r.where) || {}).cur || data.base, { dec: 2 })} · ${K.ord(r.day) + ' of the month'} · ${K.whereName(data, r.where)}</span></span><div class="row" style=${{ gap: '6px', flexShrink: 0 }}><button class="btn sec sm" onClick=${() => { commit(K.dismissRecurring(data, [r])); toast(r.name + ' won’t be suggested again'); }}>Not a bill</button><button class="btn pri sm" onClick=${() => { commit(K.addRecurringBills(data, [r])); toast(r.name + ' added as a bill'); }}>Add bill</button></div></div>`)}</div></div>`;
+  };
+  // "Opening balance" lines imported before Kipu knew them: not movements, so they're removed (and their balance effect undone)
+  K.BalanceLineNote = function BalanceLineNote() {
+    const { data, commit, toast, fmt } = useApp();
+    const list = K.isBalanceLine ? data.txns.filter((t) => t.source === 'statement' && K.isBalanceLine(t.merchant)) : [];
+    if (!list.length) return null;
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 statement summary line (' + list[0].merchant + ') was imported as a movement. It isn’t money in or out.' : list.length + ' statement summary lines (opening balance, balance forward…) were imported as movements. They aren’t money in or out.'}</span><button class="btn sec sm" onClick=${() => { commit(list.reduce((d, t) => K.removeTxn(d, t.id), data)); toast(list.length === 1 ? '1 summary line removed' : list.length + ' summary lines removed'); }}>Remove</button></div>`;
   };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();

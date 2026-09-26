@@ -418,12 +418,22 @@
       if (Math.max(...amts) > Math.min(...amts) * 1.35) return;
       const key = g.split('|')[1];
       if (billKeys.some((b) => b === key || key.includes(b) || b.includes(key))) return;
+      if ((d.notBills || []).includes(g)) return; // the person said it isn't a bill
       const doms = uniq.map((x) => parse(x.date).getDate()).sort((a, b) => a - b);
       const cats = uniq.map((x) => x.cat).filter((c) => c && c !== 'other');
       const cat = cats.length ? cats[cats.length - 1] : 'bills';
       out.push({ key, where: g.split('|')[0], name: titleCase(key), amt: amts[amts.length - 1], day: Math.min(28, doms[Math.floor(doms.length / 2)]), cat, kind: cat === 'subs' ? 'Subscription' : 'Bill', count: uniq.length, last: uniq[uniq.length - 1].date });
     });
     return out.sort((a, b) => b.amt - a.amt);
+  };
+  // "Not a bill": never offered again for that account or card
+  K.dismissRecurring = (d, list) => Object.assign({}, d, { notBills: Array.from(new Set((d.notBills || []).concat(list.map((r) => r.where + '|' + r.key)))) });
+  // Deleting a bill unlinks its payments; one Kipu found on its own is also marked "not a bill"
+  K.removeBill = (d, id) => {
+    const b = d.bills.find((x) => x.id === id); if (!b) return d;
+    d = Object.assign({}, d, { txns: d.txns.map((t) => (t.recurring === id ? Object.assign({}, t, { recurring: null, billMatch: 'off' }) : t)) });
+    if (b.auto && b.pay) d = K.dismissRecurring(d, [{ where: b.pay, key: K.merchantKey(b.name) }]);
+    return K.remove(d, 'bills', id);
   };
   // Saves them as bills and links the payments already recorded, so Safe to Spend reserves the next one and doesn't count paid ones
   K.addRecurringBills = (d, list) => list.reduce((acc, r) => {
