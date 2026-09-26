@@ -59,7 +59,7 @@
   }
 
   function SSpending() {
-    const { D, ctx, fmt, wide } = useApp();
+    const { D, ctx, fmt, wide, data } = useApp();
     const p = periodTotals(D, ctx);
     const idx = ctx.period === 'ytd' ? null : ctx.period == null ? 11 : ctx.period;
     const prevCats = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1].cats : null;
@@ -68,7 +68,7 @@
     const S = D.activeSeries;
     const avg = S.length > 1 ? K.sum(S.slice(0, -1), (s) => s.spending) / (S.length - 1) : null;
     const mt = D.txAll.filter((t) => t.type === 'expense' && (idx == null || t.date.slice(0, 7) === D.series[idx].key));
-    const merchants = {}; mt.forEach((t) => (merchants[t.merchant] = (merchants[t.merchant] || 0) + t.base));
+    const merchants = {}; mt.forEach((t) => { const n = K.txnName(data, t); merchants[n] = (merchants[n] || 0) + t.base; });
     const topM = Object.keys(merchants).sort((a, b) => merchants[b] - merchants[a]).slice(0, 6);
     const cat = html`<div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Where it went · ${p.label}</h3><span class="amt">${fmt(p.spending)}</span></div>
       ${order.length ? order.map((c) => html`<div key=${c} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span class="row" style=${{ gap: '8px' }}><${Icon} n=${K.CATS[c].icon} s=${15} c="var(--muted)" />${K.CATS[c].name}</span><span class="row" style=${{ gap: '8px' }}>${prevCats && Math.abs(p.cats[c] - prevCats[c]) >= 20 && html`<span class="tiny" style=${{ color: p.cats[c] > prevCats[c] ? 'var(--warn)' : 'var(--pos)' }}>${p.cats[c] > prevCats[c] ? '▲' : '▼'} ${fmt(Math.abs(p.cats[c] - prevCats[c]))}</span>`}<span class="amt">${fmt(p.cats[c])}</span></span></div><${Bar} pct=${(p.cats[c] / max) * 100} color="var(--c1)" mark=${prevCats ? (prevCats[c] / max) * 100 : null} /></div>`) : html`<span class="muted small">No spending in this period.</span>`}

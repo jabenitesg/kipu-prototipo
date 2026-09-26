@@ -130,7 +130,7 @@
     const src = K.whereName(data, t.from);
     const label = t.type === 'saving' ? 'Saved to goal' : t.type === 'debt' ? 'Loan payment' : t.type === 'transfer' ? 'Transfer' : isIn ? 'Income' : cat ? cat.name : '';
     const main = (isIn ? '+' : '') + (t.cur === fmt.base ? fmt(t.base) : fmt.native(t.amt, t.cur));
-    return html`<${Row} icon=${icon} tone=${tone} title=${t.merchant} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
+    return html`<${Row} icon=${icon} tone=${tone} title=${K.txnName(data, t)} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
   };
   K.TxnRow = TxnRow;
 

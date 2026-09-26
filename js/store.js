@@ -291,7 +291,8 @@
     const words = m.split(' ').filter((w) => w.length >= 4);
     const hits = (d.bills || []).filter((b) => {
       const n = norm(b.name); if (!n) return false;
-      const named = m.includes(n) || n.includes(m) || words.some((w) => n.split(' ').includes(w));
+      // A renamed bill still knows the bank's text it was made from
+      const named = m.includes(n) || n.includes(m) || words.some((w) => n.split(' ').includes(w)) || (b.match && (m.includes(b.match) || K.merchantKey(t.merchant) === b.match));
       if (!named) return false;
       const amt = K.toBase(d, b.amt, b.cur || d.base); if (amt == null) return false;
       if (Math.abs(amt - t.base) > Math.max(1, amt * 0.03)) return false;
@@ -407,7 +408,7 @@
       .concat((extra || []).filter((r) => r.type === 'expense' && r.date));
     const groups = {};
     items.forEach((x) => { const k = K.merchantKey(x.desc); if (k.length >= 3) (groups[x.where + '|' + k] = groups[x.where + '|' + k] || []).push(x); });
-    const billKeys = (d.bills || []).map((b) => K.merchantKey(b.name)).filter(Boolean);
+    const billKeys = (d.bills || []).map((b) => K.merchantKey(b.name)).concat((d.bills || []).map((b) => b.match)).filter(Boolean);
     const out = [];
     Object.keys(groups).forEach((g) => {
       const list = groups[g].sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -440,6 +441,12 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // What a movement is called on screen: the bill or loan it pays (renaming them renames every payment); otherwise the bank's text
+  K.txnName = (d, t) => {
+    if (t.recurring) { const b = (d.bills || []).find((x) => x.id === t.recurring); if (b && b.name) return b.name; }
+    if (t.loan) { const l = (d.loans || []).find((x) => x.id === t.loan); if (l && l.name) return l.name; }
+    return t.merchant;
+  };
   // ---------------------------------------------------------------- bills whose price changes (insurance renewal, a new internet plan)
   // The bill follows its latest payment. Up to 25% it updates and says so; a bigger jump waits for the person, it may be a one-off charge.
   K.applyBillPrice = (d, billId) => {
@@ -468,7 +475,7 @@
     const m = norm(desc);
     const live = (d.loans || []).filter((l) => l.bal > 0);
     const near = (l) => !l.pay || Math.abs(amt - l.pay) <= Math.max(1, l.pay * 0.15);
-    const named = live.filter((l) => [l.name, l.lender].map(norm).join(' ').split(' ').filter((w) => w.length >= 3 && !GENERIC.has(w)).some((w) => m.split(' ').includes(w)));
+    const named = live.filter((l) => (l.match && (m.includes(l.match) || K.merchantKey(desc) === l.match)) || [l.name, l.lender].map(norm).join(' ').split(' ').filter((w) => w.length >= 3 && !GENERIC.has(w)).some((w) => m.split(' ').includes(w)));
     const byName = named.filter(near);
     if (byName.length === 1) return byName[0];
     if (K.LOAN_WORDS.test(m)) { const byAmt = live.filter((l) => l.pay && near(l)); if (byAmt.length === 1) return byAmt[0]; }
@@ -511,14 +518,14 @@
   K.removeBill = (d, id) => {
     const b = d.bills.find((x) => x.id === id); if (!b) return d;
     d = Object.assign({}, d, { txns: d.txns.map((t) => (t.recurring === id ? Object.assign({}, t, { recurring: null, billMatch: 'off' }) : t)) });
-    if (b.auto && b.pay) d = K.dismissRecurring(d, [{ where: b.pay, key: K.merchantKey(b.name) }]);
+    if (b.auto && b.pay) d = K.dismissRecurring(d, [{ where: b.pay, key: b.match || K.merchantKey(b.name) }]);
     return K.remove(d, 'bills', id);
   };
   // Saves them as bills and links the payments already recorded, so Safe to Spend reserves the next one and doesn't count paid ones
   K.addRecurringBills = (d, list) => list.reduce((acc, r) => {
     const item = K.whereItem(acc, r.where) || {};
     const id = uid('b');
-    acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true });
+    acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true, match: r.key });
     return Object.assign({}, acc, { txns: acc.txns.map((t) => (t.type === 'expense' && !t.recurring && t.from === r.where && K.merchantKey(t.merchant) === r.key ? Object.assign({}, t, { recurring: id, billMatch: 'auto' }) : t)) });
   }, d);
   // The day a balance was typed in: movements up to then are already inside it

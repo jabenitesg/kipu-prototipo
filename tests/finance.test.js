@@ -486,3 +486,18 @@ test('e-transfers and transfers are transfers either way, never spending or inco
   const m = K.derive(d, { scope: 'personal', currency: 'Combined' }).month;
   assert.equal(m.income || 0, 0);
 });
+
+test('renaming a bill or loan renames its payments and keeps recognizing the bank text', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date) => { d = K.addTxn(d, { type: 'expense', merchant: 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451', amt: 145, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); };
+  add('2026-07-12'); add('2026-08-12');
+  d = K.addRecurringBills(d, K.findRecurring(d));
+  const id = d.bills[0].id;
+  d = K.upsert(d, 'bills', Object.assign({}, d.bills[0], { name: 'Car insurance' }));
+  assert.deepEqual(d.txns.map((t) => K.txnName(d, t)), ['Car insurance', 'Car insurance']);
+  assert.equal(d.txns[0].merchant, 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451'); // the bank's text stays underneath
+  add('2026-09-12'); // a new month still pays the renamed bill
+  assert.equal(d.txns[2].recurring, id);
+  assert.equal(K.findRecurring(d).length, 0);
+});
