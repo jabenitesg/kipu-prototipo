@@ -63,6 +63,7 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^(\d+) change what you owe$/, (m) => m[1] + ' cambian lo que debes'],
     [/^In (\w+) you kept (.+) \((-?\d+)% of income\)\.$/, (m, t) => 'En ' + t(m[1]).toLowerCase() + ' te quedaron ' + m[2] + ' (' + m[3] + '% de tus ingresos).'],
     [/^In (\w+) you spent (.+) more than came in \((-?\d+)% of income\)\.$/, (m, t) => 'En ' + t(m[1]).toLowerCase() + ' saliste ' + m[2] + ' más de lo que entró (' + m[3] + '% de tus ingresos).'],
     [/^(.+) (more|less) than (\w+)\.$/, (m, t) => m[1] + (m[2] === 'more' ? ' más' : ' menos') + ' que en ' + t(m[3]).toLowerCase() + '.'],

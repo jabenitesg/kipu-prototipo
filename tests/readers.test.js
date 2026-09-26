@@ -139,3 +139,37 @@ test('each movement already in Kipu covers only one line of a new file', () => {
   const d = K.markDuplicates(data, rows, 'acct:chq');
   assert.deepEqual(Object.keys(d), ['0']);
 });
+
+test('CIBC credit card: CSV download and PDF statement', () => {
+  // CSV: date, description, charge, payment, card number (no header)
+  const csv = K.parseCSV('2026-09-14,AMAZON.CA AMAZON.CA ON,45.20,,4500********1234\n2026-09-15,PAYMENT THANK YOU/PAIEMENT MERCI,,500.00,4500********1234\n2026-09-16,TIM HORTONS #1234 TORONTO ON,4.75,,4500********1234', { dmy: false, card: true });
+  assert.deepEqual(csv.map((r) => [r.desc, r.amt, r.dir]), [['AMAZON.CA AMAZON.CA ON', -45.2, 'out'], ['PAYMENT THANK YOU/PAIEMENT MERCI', 500, 'in'], ['TIM HORTONS #1234 TORONTO ON', -4.75, 'out']]);
+  // PDF: trans date, post date, description, spend category, amount; summary lines around it
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const out = K.parseStatementRows([
+    row([40, 'Statement period August 16 to September 15, 2026']),
+    row([40, 'Previous balance'], [520, '$1,234.56']),
+    row([40, 'Total balance'], [520, '$866.40']),
+    row([40, 'Minimum payment'], [520, '$10.00']),
+    row([40, 'Trans'], [80, 'Post'], [140, 'Description'], [380, 'Spend Categories'], [520, 'Amount($)']),
+    row([40, 'Aug 25'], [80, 'Aug 25'], [140, 'PAYMENT THANK YOU/PAIEMENT MERCI'], [520, '1,234.56']),
+    row([40, 'Aug 16'], [80, 'Aug 18'], [140, 'AMAZON.CA MISSISSAUGA ON'], [380, 'Retail and Grocery'], [520, '45.20']),
+    row([40, 'Aug 20'], [80, 'Aug 21'], [140, 'UBER* TRIP SAN FRANCISCO'], [380, 'Transportation']),
+    row([140, '12.34 USD @ 1.3700'], [520, '16.91']), // foreign purchase: the amount in CAD is on the next line
+    row([40, 'Sep 2'], [80, 'Sep 3'], [140, 'NETFLIX.COM'], [380, 'Hotel, Entertainment and Recreation'], [460, '16.99']),
+    row([40, 'Sep 5'], [80, 'Sep 6'], [140, 'REFUND AMAZON'], [520, '-20.00']),
+    row([40, 'Annual interest rate'], [300, 'Purchases 20.99%'], [520, '0.00']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.date, r.desc, r.amt, r.bankCat || null]), [
+    ['2026-08-25', 'PAYMENT THANK YOU/PAIEMENT MERCI', 1234.56, null],
+    ['2026-08-16', 'AMAZON.CA MISSISSAUGA ON', 45.2, 'groceries'],
+    ['2026-08-20', 'UBER* TRIP SAN FRANCISCO 12.34 USD @ 1.3700', 16.91, 'transport'],
+    ['2026-09-02', 'NETFLIX.COM', 16.99, 'entertainment'],
+    ['2026-09-05', 'REFUND AMAZON', -20, null],
+  ]);
+  // No summary line got in
+  assert.ok(!out.some((r) => /balance|minimum|interest/i.test(r.desc)));
+  assert.equal(out.find((r) => r.desc === 'AMAZON.CA MISSISSAUGA ON').bankCat, 'groceries');
+  assert.equal(out.find((r) => r.desc.startsWith('PAYMENT')).amt, 1234.56);
+  assert.equal(out.find((r) => r.desc === 'REFUND AMAZON').amt, -20);
+});

@@ -95,7 +95,7 @@
   const stripDates = (text) => {
     let t = String(text || '').replace(/,/g, ' ').split(/\s+/).filter(Boolean);
     for (let n = 0; n < 2 && t.length; n++) {
-      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}([-/.]\d{2,4})?$|^20\d{6}$/.test(t[0])) t = t.slice(1);
+      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}$|^\d{1,2}[-/]\d{1,2}$|^20\d{6}$/.test(t[0])) t = t.slice(1);
       else if (monthOf(t[0]) != null && /^\d{1,2}$/.test(t[1] || '')) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
       else if (/^\d{1,2}$/.test(t[0]) && monthOf(t[1]) != null) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
       else if ((/^(\d{1,2})([a-z]{3,9})\.?(\d{4})?$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null) || (/^([a-z]{3,9})\.?(\d{1,2})$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null)) t = t.slice(1);
@@ -195,7 +195,7 @@
   // Summary lines of a statement, not movements: "Opening balance", "Balance forward", "Saldo anterior", "Total deposits"…
   K.isBalanceLine = (text) => {
     const m = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
-    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)$|^(sub ?total|total) (deposits|withdrawals|debits|credits|payments|purchases|fees|interest|abonos|cargos|depositos|retiros|pagos|compras|a pagar|del mes|del periodo)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros)\b|^balance$|^saldo$/.test(m);
+    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)$|^(sub ?total|total) (deposits|withdrawals|debits|credits|payments|purchases|fees|interest|abonos|cargos|depositos|retiros|pagos|compras|a pagar|del mes|del periodo)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros|balance|payments|charges|for)\b|\b(amount due|total amount due|minimum payment|credit limit|available credit|cash advance limit|charges and interest|payments and credits|your new charges)\b|^balance$|^saldo$/.test(m);
   };
   // Words that say which way money went: withdrawal, purchase, fee → out; deposit, payroll, credit → in
   K.moneyDir = (text) => {
@@ -221,7 +221,12 @@
   };
   // A chequing PDF: Date | Description | Withdrawals | Deposits | Balance. Each amount goes to the column it sits under.
   const ONEAMT = /^(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*-?\(?\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}\)?(?:\s*(?:CR|DR|-))?$/;
-  const NOT_TX = /\b(credit limit|l[ií]mite|minimum|m[ií]nimo|payment due|due date|fecha de pago|available|disponible|points|puntos|rewards|annual interest|interest rate|tasa|apr|account number|n[uú]mero de cuenta|page|p[aá]gina|statement date|fecha de corte)\b/i;
+  const BANK_CATS = [
+    [/\bretail and grocery\b/i, 'groceries'], [/\brestaurants\b/i, 'dining'], [/\btransportation\b/i, 'transport'], [/\bhome and office improvement\b/i, 'shopping'],
+    [/\bhealth and education\b/i, 'health'], [/\bhotel,? entertainment and recreation\b/i, 'entertainment'], [/\bpersonal and household expenses\b/i, 'shopping'],
+    [/\bprofessional and financial services\b/i, 'bills'], [/\bforeign currency transactions\b/i, null], [/\bother transactions\b/i, null],
+  ];
+  const NOT_TX = /\b(credit limit|l[ií]mite|minimum|m[ií]nimo|payment due|due date|fecha de pago|available|disponible|points|puntos|rewards|annual interest|interest rate|tasa|apr|account number|n[uú]mero de cuenta|page|p[aá]gina|statement date|fecha de corte|cash advance|annual|total balance|amount due|new charges|payments and credits|previous balance|credit available|spend categor)\b/i;
   K.parseStatementRows = (rows, opts) => {
     let cols = null;
     const out = [];
@@ -253,13 +258,16 @@
       let desc = text;
       if (!d || isNaN(d)) {
         // Banks print the date once per day: later lines of that day have none. Summary figures (limit, minimum payment, points) are not movements.
-        if (NOT_TX.test(text)) { pending = null; return; }
+        if (NOT_TX.test(text) || /%/.test(line)) { pending = null; return; }
         if (pending) { d = pending.d; desc = (pending.text + ' ' + text).trim(); }
         else if (lastDate && text.length >= 2) d = lastDate;
         else return;
       } else if (pending && !text) desc = pending.text;
       pending = null;
       if (desc.length < 2 || (desc !== text && NOT_TX.test(desc))) return;
+      // CIBC prints a spend category next to each purchase: keep it as a hint, out of the description
+      let bankCat = null;
+      for (const [re, c] of BANK_CATS) if (re.test(desc)) { desc = desc.replace(re, ' ').replace(/\s+/g, ' ').trim(); bankCat = c; break; }
       let amt = null, dir = null, bal = null;
       if (cols && (cols.out != null || cols.in != null)) {
         amts.forEach((a) => {
@@ -267,6 +275,14 @@
           const near = ['out', 'in', 'bal'].filter((k) => cols[k] != null).sort((p, q) => Math.abs(cols[p] - c) - Math.abs(cols[q] - c))[0];
           if (near === 'bal') bal = num(a.s); else if (amt == null) { amt = near === 'out' ? -v : v; dir = near; }
         });
+      }
+      // A card statement has no running balance: the amount is the last figure on the line. A purchase in another
+      // currency ("12.34 USD @ 1.3700  16.91") also ends with the amount charged in the card's currency.
+      const foreignLine = /\b(USD|EUR|GBP|MXN|PEN|JPY|AUD|CHF|COP|CLP)\b|@\s*\d/.test(line);
+      if (amt == null && ((opts && opts.card) || foreignLine)) {
+        const raw = amts[amts.length - 1].s, v = Math.abs(num(raw));
+        const credit = /(CR|\))\s*$|^\(|^-|-\s*$/.test(raw.replace(/\s+/g, ''));
+        amt = credit ? -v : v;
       }
       if (amt == null) {
         // No usable header: with a running balance, the change in balance tells the direction
@@ -278,7 +294,7 @@
       }
       if (bal != null) lastBal = bal;
       justPushed = false;
-      if (amt) { out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 80), amt, dir }); lastDate = d; justPushed = true; }
+      if (amt) { out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 80), amt, dir, bankCat }); lastDate = d; justPushed = true; }
     });
     return K.settleYears(out, statementEnd(lines));
   };
