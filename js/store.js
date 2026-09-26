@@ -51,6 +51,7 @@
   const USD_RATES = { USD: 1, CAD: 1.364, PEN: 3.72, EUR: 0.92, GBP: 0.79, MXN: 18.1, COP: 4150, CLP: 940, ARS: 980, BRL: 5.6, JPY: 148, AUD: 1.52, CHF: 0.88 };
   // Words that suggest a category when a merchant has no rule yet
   const KEYWORDS = [
+    [/insur|seguro|assurance|intact|belair|aviva|desjardins ins|rimac|pacifico|la positiva|mapfre/i, 'bills'],
     [/costco|walmart|loblaw|metro|sobeys|no frills|superstore|tottus|plaza vea|wong|whole foods|safeway|kroger|grocer|market|mercado/i, 'groceries'],
     [/uber(?! ?eats)|lyft|shell|esso|petro|chevron|gas|presto|transit|parking|taxi|cabify|rail|toll/i, 'transport'],
     [/uber ?eats|doordash|skip|restaurant|cafe|café|coffee|starbucks|tim hortons|mcdonald|pizza|sushi|bar |grill|bistro/i, 'dining'],
@@ -393,6 +394,44 @@
     const src = d.income.find((i) => i.payroll && i.to === where) || (d.income.length === 1 && (!d.income[0].to || d.income[0].to === where) ? d.income[0] : null);
     return K.upsert(d, 'income', Object.assign({}, src || { name: 'Salary' }, { amt: plan.amt, cur: item.cur || d.base, freq: plan.freq, next: plan.next, to: where, payroll: true, varies: true }));
   };
+  // ---------------------------------------------------------------- payments that repeat every month (insurance, phone, gym…)
+  const NOISE = new Set(['pos', 'purchase', 'debit', 'visa', 'interac', 'preauthorized', 'pre', 'authorized', 'pad', 'bill', 'payment', 'pmt', 'online', 'web', 'www', 'com', 'ca', 'inc', 'ltd', 'the', 'de', 'pago', 'compra', 'recurring', 'autopay', 'withdrawal', 'dd', 'ach']);
+  K.merchantKey = (desc) => norm(desc).split(' ').filter((w) => w.length > 1 && !/\d/.test(w) && !NOISE.has(w)).slice(0, 3).join(' ');
+  const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+  // Expenses on one account or card that come back about once a month for about the same amount, and aren't bills yet
+  K.findRecurring = (d, extra) => {
+    const items = d.txns.filter((t) => t.type === 'expense' && !t.recurring && t.source === 'statement').map((t) => ({ date: t.date, amt: t.amt, desc: t.merchant, cat: t.cat, where: t.from }))
+      .concat((extra || []).filter((r) => r.type === 'expense' && r.date));
+    const groups = {};
+    items.forEach((x) => { const k = K.merchantKey(x.desc); if (k.length >= 3) (groups[x.where + '|' + k] = groups[x.where + '|' + k] || []).push(x); });
+    const billKeys = (d.bills || []).map((b) => K.merchantKey(b.name)).filter(Boolean);
+    const out = [];
+    Object.keys(groups).forEach((g) => {
+      const list = groups[g].sort((a, b) => (a.date < b.date ? -1 : 1));
+      const seen = new Set(); const uniq = list.filter((x) => { const id = x.date + x.amt; if (seen.has(id)) return false; seen.add(id); return true; });
+      if (uniq.length < 2) return;
+      const months = new Set(uniq.map((x) => x.date.slice(0, 7)));
+      if (months.size < 2 || uniq.length > months.size + 1) return; // several a month is shopping, not a bill
+      const gaps = uniq.slice(1).map((x, i) => days(parse(uniq[i].date), parse(x.date)));
+      if (!gaps.every((x) => x >= 24 && x <= 37)) return;
+      const amts = uniq.map((x) => x.amt);
+      if (Math.max(...amts) > Math.min(...amts) * 1.35) return;
+      const key = g.split('|')[1];
+      if (billKeys.some((b) => b === key || key.includes(b) || b.includes(key))) return;
+      const doms = uniq.map((x) => parse(x.date).getDate()).sort((a, b) => a - b);
+      const cats = uniq.map((x) => x.cat).filter((c) => c && c !== 'other');
+      const cat = cats.length ? cats[cats.length - 1] : 'bills';
+      out.push({ key, where: g.split('|')[0], name: titleCase(key), amt: amts[amts.length - 1], day: Math.min(28, doms[Math.floor(doms.length / 2)]), cat, kind: cat === 'subs' ? 'Subscription' : 'Bill', count: uniq.length, last: uniq[uniq.length - 1].date });
+    });
+    return out.sort((a, b) => b.amt - a.amt);
+  };
+  // Saves them as bills and links the payments already recorded, so Safe to Spend reserves the next one and doesn't count paid ones
+  K.addRecurringBills = (d, list) => list.reduce((acc, r) => {
+    const item = K.whereItem(acc, r.where) || {};
+    const id = uid('b');
+    acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true });
+    return Object.assign({}, acc, { txns: acc.txns.map((t) => (t.type === 'expense' && !t.recurring && t.from === r.where && K.merchantKey(t.merchant) === r.key ? Object.assign({}, t, { recurring: id, billMatch: 'auto' }) : t)) });
+  }, d);
   // The day a balance was typed in: movements up to then are already inside it
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {

@@ -325,6 +325,14 @@
     const total = list.reduce((a, t) => a + (t.base || 0), 0);
     return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${(list.length === 1 ? '1 imported movement (' + fmt(total) + ') was saved as a card payment but looks like a purchase.' : list.length + ' imported movements (' + fmt(total) + ') were saved as card payments but look like purchases.')}</span><button class="btn sec sm" onClick=${() => { commit(K.fixLikelyPurchases(data)); toast(list.length === 1 ? '1 movement is now an expense' : list.length + ' movements are now expenses'); }}>Make expenses</button></div>`;
   };
+  // Payments already imported that repeat every month: one tap makes each a bill
+  K.RecurringNote = function RecurringNote() {
+    const { data, commit, toast, fmt } = useApp();
+    const list = K.findRecurring(data);
+    if (!list.length) return null;
+    return html`<div class="card stack-s" style=${{ gap: '8px', borderColor: 'color-mix(in srgb, var(--acc) 35%, var(--line))' }}><span style=${{ fontWeight: 700 }}>Payments that repeat</span><span class="small muted" style=${{ lineHeight: 1.45 }}>Kipu found these every month in your statements. Are they bills?</span>
+      <div class="list">${list.map((r) => html`<div key=${r.where + r.key} class="lrow" style=${{ gap: '10px' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${fmt.native(r.amt, (K.whereItem(data, r.where) || {}).cur || data.base, { dec: 2 })} · ${K.ord(r.day) + ' of the month'} · ${K.whereName(data, r.where)}</span></span><button class="btn sec sm" onClick=${() => { commit(K.addRecurringBills(data, [r])); toast(r.name + ' added as a bill'); }}>Add bill</button></div>`)}</div></div>`;
+  };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

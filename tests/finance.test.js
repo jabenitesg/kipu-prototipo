@@ -340,3 +340,30 @@ test('payroll deposits set the salary: how often, the usual amount and the next 
   d = K.syncPayroll(d, 'acct:chq'); // again: updates, doesn't duplicate
   assert.equal(d.income.length, 1);
 });
+
+test('a payment that comes back every month is offered as a bill, and becomes one', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (merchant, amt, date) => { d = K.addTxn(d, { type: 'expense', merchant, amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true, cat: K.guessCat(d, merchant) }); };
+  add('PREAUTHORIZED DEBIT INTACT INSURANCE 44512', 145.2, '2026-06-12');
+  add('PREAUTHORIZED DEBIT INTACT INSURANCE 44513', 145.2, '2026-07-12');
+  add('PREAUTHORIZED DEBIT INTACT INSURANCE 44514', 148.9, '2026-08-12');
+  ['2026-07-02', '2026-07-09', '2026-07-20', '2026-08-03'].forEach((date, i) => add('METRO #' + i, 40 + i * 13, date)); // groceries: several a month, not a bill
+  add('ROGERS WIRELESS', 85, '2026-08-05'); // once only
+  const found = K.findRecurring(d);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'Intact Insurance');
+  assert.equal(found[0].day, 12);
+  assert.equal(found[0].amt, 148.9);
+  assert.equal(found[0].cat, 'bills');
+  d = K.addRecurringBills(d, found);
+  assert.equal(d.bills.length, 1);
+  assert.equal(d.bills[0].pay, 'acct:chq');
+  assert.equal(d.txns.filter((t) => t.recurring === d.bills[0].id).length, 3);
+  assert.equal(K.findRecurring(d).length, 0); // not offered again
+  // While importing: the new month joins the ones already in Kipu
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 5000)];
+  e = K.addTxn(e, { type: 'expense', merchant: 'GOODLIFE FITNESS', amt: 54.99, cur: 'CAD', from: 'acct:chq', date: '2026-07-01', source: 'statement', settled: true });
+  assert.equal(K.findRecurring(e, [{ type: 'expense', date: '2026-08-01', amt: 54.99, desc: 'GOODLIFE FITNESS', cat: 'health', where: 'acct:chq' }]).length, 1);
+});

@@ -202,8 +202,11 @@
     // Which sign is spending: cards list charges as positive; banks as negative
     const autoSign = K.spendSign(st.rows || [], isCard);
     const negIsSpend = sign === 'auto' ? autoSign < 0 : sign === 'neg';
+    // A bank file where every amount is positive: the words on each line say whether money went out or came in
+    const allPositive = !isCard && (st.rows || []).length > 0 && (st.rows || []).every((r) => r.amt > 0 && !r.dir);
     const classify = (r) => {
-      const spend = negIsSpend ? r.amt < 0 : r.amt > 0, amt = Math.abs(r.amt);
+      const amt = Math.abs(r.amt);
+      const spend = sign === 'auto' && r.dir ? r.dir === 'out' : sign === 'auto' && allPositive ? K.moneyDir(r.desc) !== 'in' && !K.isPayroll(r.desc) : negIsSpend ? r.amt < 0 : r.amt > 0;
       // On a card, a credit without payment wording is a refund: it lowers what you owe, it isn't a payment
       if (isCard && !spend && !K.looksLikePayment(r.desc)) return { type: 'income', amt, from: where, refund: true };
       // On a bank statement, paying a card moves money between your own accounts: it isn't spending
@@ -225,13 +228,18 @@
     const [useSalary, setUseSalary] = useState(true);
     const payroll = chosen.filter((r) => r.payroll);
     const salary = payroll.length ? K.payrollPlan(payroll.map((r) => ({ date: r.date, amt: r.amt })).concat(K.payrollDeposits(data, where))) : null;
+    // Payments that come back every month (insurance, phone, gym): offer them as bills
+    const [skipBills, setSkipBills] = useState([]);
+    const recurring = st.step === 'review' ? K.findRecurring(data, chosen.map((r) => ({ type: r.type, date: r.date, amt: r.amt, desc: r.desc, cat: r.cat, where: r.from }))) : [];
+    const newBills = recurring.filter((r) => !skipBills.includes(r.key));
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
       chosen.forEach((r) => { d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
       if (salary && useSalary) d = K.syncPayroll(d, where);
+      if (newBills.length) d = K.addRecurringBills(d, newBills);
       d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidCount }].concat(d.imports) });
-      commit(d); toast(salary && useSalary ? chosen.length + ' transactions imported · salary updated' : paidCount === chosen.length ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
+      commit(d); toast(newBills.length ? chosen.length + ' transactions imported · ' + newBills.length + (newBills.length === 1 ? ' bill added' : ' bills added') : salary && useSalary ? chosen.length + ' transactions imported · salary updated' : paidCount === chosen.length ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
     };
     const toggle = (i) => setSt(Object.assign({}, st, { rows: st.rows.map((r) => (r.i === i ? Object.assign({}, r, { keep: !r.keep }) : r)) }));
     if (!places.length) return html`<${Sheet} title="Upload statement" onClose=${onClose}><${NoPlace} /></${Sheet}>`;
@@ -242,9 +250,11 @@
       ${st.step === 'fail' && html`<div class="card flat stack-s"><span style=${{ fontWeight: 600 }}>No transactions found in ${st.name}</span><span class="small muted">${st.err ? 'The file couldn’t be read.' : 'Kipu looks for a date, a description and an amount on each line. Try the CSV export from your bank.'}</span><button class="btn sec" onClick=${() => setSt({ step: 'pick' })}>Choose another file</button></div>`}
       ${st.step === 'review' && html`
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
-        <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', 'Automatic · ' + (autoSign < 0 ? 'negative' : 'positive')], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
+        <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', (st.rows || []).some((r) => r.dir) ? 'Automatic · by column' : allPositive ? 'Automatic · by description' : 'Automatic · ' + (autoSign < 0 ? 'negative' : 'positive')], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
         <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => !r.dup && toggle(r.i)}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu' : r.bill ? 'Pays ' + r.bill.name : r.cardPay ? (r.cardPay === true ? 'Card payment · not spending' : 'Pays ' + r.cardPay + ' · not spending') : r.type === 'expense' ? K.CATS[r.cat].name : r.refund ? 'Refund' : r.payroll ? 'Salary' : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
         ${salary && html`<div class="card tight"><${ToggleRow} title="Use as my salary" sub=${payroll.length + ' payroll deposits · usually ' + fmt.native(salary.amt, cur) + ' · ' + { Weekly: 'weekly', 'Bi-weekly': 'every two weeks', 'Twice monthly': 'twice a month', Monthly: 'monthly' }[salary.freq] + ' · next ' + K.fmtDate(salary.next)} on=${useSalary} onChange=${setUseSalary} icon="income" tone="g" /></div>`}
+        ${recurring.length > 0 && html`<div class="card stack-s" style=${{ gap: '8px' }}><span style=${{ fontWeight: 600 }}>Payments that repeat</span><span class="small muted" style=${{ lineHeight: 1.45 }}>These come back every month. Saved as bills, Safe to Spend sets money aside for the next one.</span>
+          <div class="list">${recurring.map((r) => { const on = !skipBills.includes(r.key); return html`<button key=${r.key} class="lrow" style=${{ gap: '10px', opacity: on ? 1 : 0.5 }} onClick=${() => setSkipBills(on ? skipBills.concat([r.key]) : skipBills.filter((k) => k !== r.key))}><span class=${'ic ' + (on ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${on ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${K.ord(r.day) + ' of the month'} · ${r.count + ' times'}</span></span><span class="amt">${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`; })}</div></div>`}
         <div class="card stack-s" style=${{ gap: '10px' }}><span style=${{ fontWeight: 600 }}>Already paid?</span><${Seg} options=${['auto', 'all', 'none']} labels=${['Automatic', 'All', 'None']} value=${paidMode} onChange=${setPaidMode} />
           <span class="small muted" style=${{ lineHeight: 1.5 }}>${paidMode === 'auto' ? (balDate ? 'Up to ' + K.fmtDate(balDate, true) + ', when you typed this balance, movements are already inside it.' : oldFile ? 'This statement is more than 40 days old, so it’s taken as already paid.' : 'This looks like a current statement.') + ' ' : ''}${paidCount ? paidCount + ' only for statistics' : ''}${paidCount && paidCount < chosen.length ? ' · ' : ''}${paidCount < chosen.length ? (chosen.length - paidCount) + (isCard ? ' added to what you owe' : ' change the balance') : ''}.</span></div>
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;

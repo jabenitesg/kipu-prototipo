@@ -26,6 +26,9 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Sin conversiones inventadas:** si falta el tipo de cambio de una moneda, Kipu no la convierte 1 a 1. Esos montos quedan fuera de los totales con un aviso y se suman cuando llega la tasa.
 - **Estados de cuenta antiguos:** cada cuenta y tarjeta recuerda el día en que pusiste su saldo. Al importar, lo anterior a esa fecha ya está incluido en el saldo y solo cuenta para Estadísticas; lo posterior mueve el saldo. Se puede elegir Automático, Todo o Ninguno, y marcar importaciones anteriores o movimientos sueltos como "Ya está pagado".
 - **Pagos de tarjeta en el banco:** una línea como "PAGO TARJETA VISA" en un estado de cuenta del banco se importa como transferencia a esa tarjeta, no como gasto, para no contar las compras dos veces. Si ya se importaron como gasto, Estadísticas ofrece corregirlas sin cambiar saldos.
+- **Estados de cuenta chequing:** lee las columnas Withdrawal/Deposit (o Debit/Credit, Retiro/Depósito) en CSV y PDF; en PDF ubica cada monto en su columna o usa el saldo acumulado. Si todo viene en positivo, usa las palabras de cada línea.
+- **Sueldo:** las líneas PAYROLL, NOMINA o SUELDO se importan como sueldo y ajustan tu ingreso esperado (frecuencia, promedio de los últimos tres y próximo pago).
+- **Pagos recurrentes:** al importar, los pagos que se repiten cada mes por un monto parecido (seguro, teléfono, gimnasio) se proponen como recibos; también en Plan → Recibos para lo ya importado.
 - **Recibos pagados:** un gasto escrito o importado que coincide con un recibo (nombre parecido, monto dentro del 3 % y ±7 días) lo marca como pagado, así no se descuenta dos veces. Se puede vincular o desvincular a mano en el detalle del gasto.
 
 ## Bloqueo
@@ -57,7 +60,7 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 - `i18n.js`, `i18n-es.js`: idioma; las pantallas están escritas en inglés y el texto se reemplaza por su traducción al mostrarse
 - `app.js`: navegación y layout
 
-Las pruebas se ejecutan con `node --test tests/*.test.js` (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío y demo explícita, cifrado de archivos privados y conjuntos, lectura entre dispositivos, fusión de cambios simultáneos, monedas sin tasa, recibos pagados por gastos importados, vista por país y tarjetas bimoneda. Las políticas de Household se verificaron en Supabase con identidades simuladas de dueño, invitado y tercero; la prueba real con dos cuentas de Google debe completarse antes de considerarlo validado para uso habitual.
+Las pruebas se ejecutan con `node --test tests/*.test.js` (finanzas, nube y lectura de estados de cuenta) (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío y demo explícita, cifrado de archivos privados y conjuntos, lectura entre dispositivos, fusión de cambios simultáneos, monedas sin tasa, recibos pagados por gastos importados, vista por país y tarjetas bimoneda. Las políticas de Household se verificaron en Supabase con identidades simuladas de dueño, invitado y tercero; la prueba real con dos cuentas de Google debe completarse antes de considerarlo validado para uso habitual.
 
 ## Prototipo
 
