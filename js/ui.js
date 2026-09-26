@@ -367,6 +367,13 @@
     if (!list.length) return null;
     return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 transfer counts as spending or income.' : list.length + ' transfers count as spending or income.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixTransfers(data)); toast(list.length === 1 ? '1 transfer fixed' : list.length + ' transfers fixed'); }}>Fix</button></div>`;
   };
+  // Expenses still in Other: one tap to review them shop by shop
+  K.CatNote = function CatNote() {
+    const { data, openSheet } = useApp();
+    const n = data.txns.filter((t) => t.type === 'expense' && (!t.cat || t.cat === 'other')).length;
+    if (!n) return null;
+    return html`<button class="card lrow" style=${{ gap: '12px', textAlign: 'left' }} onClick=${() => openSheet({ k: 'reviewCats' })}><${Tile} icon="tag" tone="p" s=${34} /><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">Review categories</span><span class="tiny muted">${n === 1 ? '1 expense is in Other.' : n + ' expenses are in Other.'} Sort them shop by shop.</span></span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`;
+  };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

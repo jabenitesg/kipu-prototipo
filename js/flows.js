@@ -270,6 +270,20 @@
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
   };
 
+  // ---------------------------------------------------------------- categories reviewed once per shop
+  const ReviewCats = ({ onClose }) => {
+    const { data, commit, toast, fmt } = useApp();
+    const [view, setView] = useState('todo');
+    const groups = K.categoryGroups(data);
+    const todo = groups.filter((g) => g.cat === 'other' || g.mixed);
+    const list = view === 'todo' ? todo : groups;
+    const set = (g, cat) => { commit(K.setShopCategory(data, g.key, cat)); toast(g.name + ' · ' + K.CATS[cat].name); };
+    return html`<${Sheet} title="Review categories" sub="One choice per shop: it applies to all its expenses and to the next ones." onClose=${onClose}>
+      <${Seg} options=${['todo', 'all']} labels=${['To review (' + todo.length + ')', 'All shops']} value=${view} onChange=${setView} />
+      ${list.length ? html`<div class="card tight list">${list.slice(0, 150).map((g) => html`<div key=${g.key} class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '2px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${g.name}</span><span class="tiny muted num">${(g.count === 1 ? '1 expense' : g.count + ' expenses') + ' · ' + fmt(g.total)}${g.mixed ? html`<span style=${{ color: 'var(--warn)' }}>${' · mixed'}</span>` : ''}</span></span><select class="input cat-pick" aria-label=${'Category for ' + g.name} value=${g.mixed ? '' : g.cat} onChange=${(e) => e.target.value && set(g, e.target.value)}>${g.mixed && html`<option value="">Choose…</option>`}${K.CAT_ORDER.map((c) => html`<option key=${c} value=${c}>${K.CATS[c].name}</option>`)}</select></div>`)}</div>` : html`<div class="card flat stack-s" style=${{ alignItems: 'center', textAlign: 'center', padding: '24px' }}><${Icon} n="check" s=${22} c="var(--pos)" w=${2.4} /><span style=${{ fontWeight: 600 }}>All sorted</span><span class="small muted">Every shop has a category.</span></div>`}
+    </${Sheet}>`;
+  };
+
   // ---------------------------------------------------------------- imported statements that were already paid
   const SettleImports = ({ onClose, where }) => {
     const { data, commit, toast, fmt } = useApp();
@@ -439,5 +453,5 @@
       <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
   };
 
-  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
+  K.SHEETS = { reviewCats: ReviewCats, settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
 })();

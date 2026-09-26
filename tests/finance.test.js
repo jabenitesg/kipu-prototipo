@@ -564,3 +564,25 @@ test('a card with a closing day works out its statement: closes the 15th, due th
   const late = K.cardCycle(Object.assign({}, d, { txns: d.txns.filter((t) => t.type !== 'transfer') }), d.cards[0], new Date(2026, 9, 2));
   assert.equal(late.reserveOn, '2026-10-05');
 });
+
+test('categories: shops are recognized without store numbers, and one choice per shop sticks', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  assert.equal(K.guessCat(d, 'POS PURCHASE FRESHCO #5521'), 'groceries');
+  assert.equal(K.guessCat(d, 'PETRO-CANADA 88213'), 'transport');
+  assert.equal(K.guessCat(d, 'SKIPTHEDISHES'), 'dining');
+  assert.equal(K.guessCat(d, 'KOODO MOBILE PAD'), 'bills');
+  assert.equal(K.guessCat(d, 'GOODLIFE CLUBS'), 'health');
+  assert.equal(K.guessCat(d, 'PLAZA VEA SURCO'), 'groceries');
+  assert.equal(K.guessCat(d, 'INKAFARMA'), 'health');
+  assert.equal(K.guessCat(d, 'OPENAI *CHATGPT SUBSCR'), 'subs');
+  // Unknown shop in Other; setting it once covers every expense there and the next ones, even with a new store number
+  const add = (m) => { d = K.addTxn(d, { type: 'expense', merchant: m, amt: 12, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', cat: K.guessCat(d, m) }); };
+  add('ZIGGYS MARKET CORNER 0012'.replace('MARKET', 'MKT')); add('ZIGGYS MKT CORNER 0044');
+  assert.equal(d.txns[0].cat, 'other');
+  const g = K.categoryGroups(d).find((x) => x.key === 'ziggys mkt corner');
+  assert.equal(g.count, 2);
+  d = K.setShopCategory(d, g.key, 'groceries');
+  assert.deepEqual(d.txns.map((t) => t.cat), ['groceries', 'groceries']);
+  assert.equal(K.guessCat(d, 'ZIGGYS MKT CORNER 0099'), 'groceries');
+});

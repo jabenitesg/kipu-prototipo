@@ -50,28 +50,54 @@
   // Fallback rates per 1 USD, used until live rates arrive
   const USD_RATES = { USD: 1, CAD: 1.364, PEN: 3.72, EUR: 0.92, GBP: 0.79, MXN: 18.1, COP: 4150, CLP: 940, ARS: 980, BRL: 5.6, JPY: 148, AUD: 1.52, CHF: 0.88 };
   // Words that suggest a category when a merchant has no rule yet
+  // Shops and services by category (Canada, Peru and common online). Checked in order; the first match wins.
   const KEYWORDS = [
-    [/insur|seguro|assurance|intact|belair|aviva|desjardins ins|rimac|pacifico|la positiva|mapfre/i, 'bills'],
-    [/costco|walmart|loblaw|metro|sobeys|no frills|superstore|tottus|plaza vea|wong|whole foods|safeway|kroger|grocer|market|mercado/i, 'groceries'],
-    [/uber(?! ?eats)|lyft|shell|esso|petro|chevron|gas|presto|transit|parking|taxi|cabify|rail|toll/i, 'transport'],
-    [/uber ?eats|doordash|skip|restaurant|cafe|café|coffee|starbucks|tim hortons|mcdonald|pizza|sushi|bar |grill|bistro/i, 'dining'],
-    [/netflix|spotify|crave|disney|prime|icloud|apple\.com|adobe|youtube|audible|hbo|gym|fitness/i, 'subs'],
-    [/amazon|uniqlo|zara|h&m|best buy|ikea|shop|store|mall/i, 'shopping'],
-    [/rent|mortgage|condo|strata/i, 'housing'],
-    [/hydro|internet|rogers|bell|telus|fido|phone|water|electric|utility/i, 'bills'],
-    [/pharmacy|shoppers|drug|clinic|dental|doctor|hospital/i, 'health'],
-    [/airbnb|hotel|airline|air canada|westjet|latam|expedia|booking/i, 'travel'],
-    [/cinema|cineplex|theatre|concert|ticket|steam|playstation|xbox/i, 'entertainment'],
+    [/\b(insur\w*|seguros?|assurance|intact|belair|aviva|desjardins ins|td insurance|rimac|pacifico seguros|la positiva|mapfre|sura)\b/i, 'bills'],
+    [/\b(uber ?eats|doordash|skip ?the ?dishes|skipthedishes|rappi|pedidos ?ya|glovo|ritual|fantuan)\b/i, 'dining'],
+    [/\b(costco|walmart|wal-mart|loblaws?|no ?frills|superstore|real canadian|sobeys|freshco|food ?basics|farm ?boy|metro inc|metro #?\d*|t ?& ?t|longo'?s|fortinos|zehrs|save[- ]on|iga|provigo|maxi|safeway|whole ?foods|kroger|trader joe|aldi|lidl|nations fresh|grocer\w*|supermarket|supermercado|tottus|plaza ?vea|wong|vivanda|makro|mass|tambo|oxxo|minimarket|bodega|market|mercado)\b/i, 'groceries'],
+    [/\b(petro[- ]?canada|husky|pioneer|ultramar|circle ?k|shell|esso|chevron|mobil|sunoco|irving|primax|repsol|pecsa|gas ?station|gasolin\w*|grifo|ttc|presto|go ?transit|compass|oc ?transpo|stm|metrolinx|via ?rail|uber(?! ?eats)|lyft|taxi|cabify|beat|didi|indriver|parking|impark|green ?p|toll|407 etr|peaje|car ?wash|jiffy|midas|canadian tire gas)\b/i, 'transport'],
+    [/\b(restaurant\w*|restaurante|cafe|café|coffee|starbucks|tim ?hortons|second ?cup|mcdonald'?s|mcdo|a ?& ?w|wendy'?s|burger ?king|kfc|popeyes|subway|chipotle|harvey'?s|swiss ?chalet|boston ?pizza|pizza ?pizza|pizza ?hut|domino'?s|little ?caesars|sushi|ramen|grill|bistro|pub|bar|diner|bakery|panaderia|chifa|pollos? a la brasa|norky'?s|bembos|pardos|la lucha|starbuck|freshii|mary ?brown'?s|dairy ?queen|five ?guys|osmow'?s|pita|shawarma|taco)\b/i, 'dining'],
+    [/\b(netflix|spotify|crave|disney\+?|prime ?video|amazon ?prime|primevideo|icloud|apple\.com\/bill|apple ?music|apple ?tv|google ?(one|storage|play)|youtube ?premium|microsoft ?365|office ?365|adobe|openai|chatgpt|paramount|audible|patreon|dropbox|canva|duolingo|hbo|max\.com|nintendo online|xbox game pass|playstation plus)\b/i, 'subs'],
+    [/\b(hydro( one)?|toronto hydro|bc hydro|hydro-?qu[eé]bec|enbridge|fortis\w*|epcor|atco|rogers|bell( canada| mobility)?|telus|fido|koodo|virgin ?(plus|mobile)|freedom ?mobile|chatr|public ?mobile|lucky ?mobile|shaw|videotron|cogeco|teksavvy|movistar|claro|entel|bitel|luz del sur|enel|sedapal|c[aá]lidda|internet|phone|water|electric\w*|utility|utilities)\b/i, 'bills'],
+    [/\b(shoppers ?drug|shoppers|rexall|london ?drugs|jean ?coutu|pharmasave|guardian|pharmacy|farmacia|inkafarma|mifarma|boticas?|drug ?mart|clinic|clinica|dental|dentist|doctor|hospital|physio\w*|optometr\w*|lenscrafters|goodlife|planet ?fitness|fit4less|anytime ?fitness|equinox|ymca|gym|gimnasio|smart ?fit|bodytech)\b/i, 'health'],
+    [/\b(airbnb|hotel|marriott|hilton|hyatt|air ?canada|westjet|porter|flair|swoop|latam|sky ?airline|jetsmart|avianca|expedia|booking\.com|hotels\.com|trip\.com|kayak|air ?transat|sunwing|flighthub)\b/i, 'travel'],
+    [/\b(cineplex|cineplanet|cinemark|cinepolis|landmark cinemas|theatre|teatro|concert|ticketmaster|eventbrite|teleticket|joinnus|steam|playstation|xbox|nintendo|bowling|museum)\b/i, 'entertainment'],
+    [/\b(tuition|school|colegio|university|universidad|college|udemy|coursera|skillshare|pearson|bookstore|libreria)\b/i, 'education'],
+    [/\b(daycare|childcare|guarderia|toys ?r ?us|babies)\b/i, 'family'],
+    [/\b(rent|alquiler|mortgage|hipoteca|condo fees?|strata|property ?tax)\b/i, 'housing'],
+    [/\b(amazon|amzn|canadian ?tire|winners|marshalls|homesense|dollarama|dollar ?tree|staples|indigo|chapters|sport ?chek|lululemon|apple ?store|best ?buy|home ?depot|lowe'?s|rona|ikea|structube|wayfair|shein|temu|aliexpress|ebay|etsy|uniqlo|zara|h ?& ?m|old ?navy|gap|simons|hudson'?s bay|the bay|ripley|saga ?falabella|falabella|oechsle|promart|sodimac|real ?plaza|mall|shop|store|tienda)\b/i, 'shopping'],
   ];
+  // Rules and what you chose before are matched by shop, without store numbers or bank prefixes
+  const sameShop = (a, b) => !!a && !!b && (a === b || a.startsWith(b + ' ') || b.startsWith(a + ' '));
   K.guessCat = (data, merchant) => {
     const m = (merchant || '').toLowerCase();
-    const rule = (data.rules || []).find((r) => m.includes(r.merchant.toLowerCase()));
+    const key = K.merchantKey(merchant);
+    const rule = (data.rules || []).find((r) => (r.key ? sameShop(key, r.key) : m.includes(String(r.merchant || '').toLowerCase())));
     if (rule) return rule.cat;
-    const prev = data.txns.find((t) => t.type === 'expense' && t.merchant && t.merchant.toLowerCase() === m);
+    const prev = (data.txns || []).slice().reverse().find((t) => t.type === 'expense' && t.cat && t.cat !== 'other' && t.merchant && (t.merchant.toLowerCase() === m || sameShop(K.merchantKey(t.merchant), key)));
     if (prev) return prev.cat;
     for (const [re, c] of KEYWORDS) if (re.test(merchant || '')) return c;
     return 'other';
   };
+  // Expenses grouped by shop, to review categories once per shop instead of once per movement
+  K.categoryGroups = (d) => {
+    const g = {};
+    (d.txns || []).forEach((t) => {
+      if (t.type !== 'expense') return;
+      const key = K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim() || '—';
+      const x = (g[key] = g[key] || { key, name: '', count: 0, total: 0, cats: {} });
+      x.count++; x.total = r2(x.total + (t.base || 0)); x.cats[t.cat || 'other'] = (x.cats[t.cat || 'other'] || 0) + 1;
+      if (!x.name) x.name = K.txnName(d, t);
+    });
+    return Object.values(g).map((x) => { const cat = Object.keys(x.cats).sort((a, b) => x.cats[b] - x.cats[a])[0]; return Object.assign(x, { cat, mixed: Object.keys(x.cats).length > 1 }); }).sort((a, b) => b.total - a.total);
+  };
+  // One category for every expense at a shop, and remembered for the next ones
+  K.setShopCategory = (d, key, cat) => {
+    const txns = d.txns.map((t) => (t.type === 'expense' && (K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim()) === key ? Object.assign({}, t, { cat }) : t));
+    const rules = (d.rules || []).filter((r) => r.key !== key).concat([{ id: uid('r'), key, merchant: key, cat }]);
+    return Object.assign({}, d, { txns, rules });
+  };
+
 
   // ---------------------------------------------------------------- factory state
 
