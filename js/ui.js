@@ -374,6 +374,8 @@
     if (!n) return null;
     return html`<button class="card lrow" style=${{ gap: '12px', textAlign: 'left' }} onClick=${() => openSheet({ k: 'reviewCats' })}><${Tile} icon="tag" tone="p" s=${34} /><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">Review categories</span><span class="tiny muted">${n === 1 ? '1 expense is in Other.' : n + ' expenses are in Other.'} Sort them shop by shop.</span></span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`;
   };
+  // A big number that shrinks on narrow screens and when it has many digits, so it never runs past its card
+  K.fitSize = (text, max) => { const n = String(text || '').length; const cap = n > 12 ? max * 0.7 : n > 10 ? max * 0.8 : n > 8 ? max * 0.9 : max; return 'clamp(26px, ' + (cap / 3.9).toFixed(1) + 'vw, ' + Math.round(cap) + 'px)'; };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

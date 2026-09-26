@@ -474,15 +474,16 @@
   // In = income; out = spending plus loan payments; left = what stayed. Transfers between your own accounts don't count.
   K.totalsOf = (list) => {
     const cats = {};
-    let income = 0, spending = 0, debtPaid = 0, count = 0;
+    let income = 0, spending = 0, debtPaid = 0, saved = 0, count = 0;
     list.forEach((t) => {
       const v = t.base || 0; count++;
+      if (t.type === 'saving') saved += v;
       if (t.type === 'income') income += v;
       else if (t.type === 'expense') { const c = t.cat || 'other'; spending += v; cats[c] = r2((cats[c] || 0) + v); }
       else if (t.type === 'debt') debtPaid += v;
     });
     const out = spending + debtPaid, left = income - out;
-    return { income: r2(income), spending: r2(spending), debtPaid: r2(debtPaid), out: r2(out), left: r2(left), rate: income ? r2((left / income) * 100) : null, cats, count };
+    return { income: r2(income), spending: r2(spending), debtPaid: r2(debtPaid), saved: r2(saved), savedRate: income ? r2((saved / income) * 100) : 0, out: r2(out), left: r2(left), rate: income ? r2((left / income) * 100) : null, cats, count };
   };
   // A period cut to the same stretch as today's: Jan 1 – Sep 25 of another year, or the 1st – 25th of another month
   K.sameStretch = (txns, p) => {

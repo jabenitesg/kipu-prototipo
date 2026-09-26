@@ -94,12 +94,15 @@
     const { D, ctx, fmt, wide } = useApp();
     const p = periodTotals(D, ctx);
     const idx = K.statIdx(D, ctx);
-    const prev = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1] : null;
+    const prev0 = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1] : null;
+    // A month in progress is compared with the same days of the month before, not the whole month
+    const partial = prev0 && p.current;
+    const prev = partial ? (() => { const x = K.sameStretch(D.txAll, prev0); return Object.assign({}, prev0, { income: x.income, spending: x.spending, saved: x.saved, rate: x.savedRate }); })() : prev0;
     const tr = (a, b, goodUp, isPts) => (b == null ? null : html`<${Trend} small=${true} d=${a - b} good=${a === b ? null : (a > b) === goodUp} text=${isPts ? (a - b > 0 ? '+' : '') + (a - b).toFixed(1) + ' pts' : (pctCh(a, b) > 0 ? '+' : '') + pctCh(a, b).toFixed(1) + '%'} />`);
     const S = D.activeSeries;
     const Tile2 = ({ cls, label, value, trend, children }) => html`<div class=${'card ' + (cls || '')} style=${{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}><span class="metric stack-s" style=${{ gap: '4px' }}><span class="l">${label}</span><span class="v num" style=${{ fontSize: '22px' }}>${value}</span></span>${trend && html`<span>${trend}</span>`}${children}</div>`;
     return html`<div class="stack">
-      <div class="between"><h3 style=${{ fontSize: '16px' }}>${p.label}</h3>${prev && html`<span class="tiny muted">vs ${K.MONTH_LONG[prev.mi]}</span>`}</div>
+      ${prev && html`<span class="tiny muted" style=${{ textAlign: 'right' }}>${'vs ' + K.MONTH_LONG[prev.mi] + (partial ? ' · days 1–' + K.today().getDate() : '')}</span>`}
       <div class=${wide ? 'grid w3' : 'grid g2'} style=${{ gap: '12px' }}>
         <${Tile2} cls="solid" label="Spending" value=${fmt(p.spending)} trend=${tr(p.spending, prev && prev.spending, false)} />
         <${Tile2} cls="tint" label="Income" value=${fmt(p.income)} trend=${tr(p.income, prev && prev.income, true)} />

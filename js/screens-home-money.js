@@ -27,7 +27,7 @@
     const due = p.billsDueAmt + p.cardsDueAmt + p.loansDueAmt + p.savingsLeft;
     return html`<button class="hero" style=${{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', textAlign: 'left' }} onClick=${() => go({ r: 'plan', tab: 'overview' })}>
       <span class="between"><span class="soft" style=${{ fontSize: '13px', fontWeight: 500 }}>Safe to Spend</span><span class="soft tiny">${p.nextPay ? 'until payday · ' : 'until '}${K.fmtDate(p.nextPay || p.until)}</span></span>
-      <span class="disp num" style=${{ fontSize: '44px', lineHeight: '46px', fontWeight: 800 }}>${fmt(p.safe)}</span>
+      <span class="disp num" style=${{ fontSize: K.fitSize(fmt(p.safe), 44), lineHeight: 1.05, fontWeight: 800, whiteSpace: 'nowrap' }}>${fmt(p.safe)}</span>
       ${p.cashNow > 0 && html`<span style=${{ display: 'flex', gap: '2px', height: '8px' }}><i style=${{ width: Math.min(100, Math.max(0, (due / p.cashNow) * 100)) + '%', background: 'color-mix(in srgb, var(--hero-ink) 35%, transparent)', borderRadius: '999px 3px 3px 999px' }}></i><i style=${{ flex: 1, background: 'currentColor', borderRadius: '3px 999px 999px 3px', opacity: 0.95 }}></i></span>`}
       <span class="between small" style=${{ gap: '10px' }}><span class="soft">${neg ? 'Short by ' + fmt(-p.safe) : 'Cash ' + fmt(p.cashNow) + ' · due ' + fmt(due)}</span><span style=${{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>${neg ? 'See why' : 'About ' + fmt(p.perDay, { dec: 0 }) + '/day'}<${Icon} n="next" s=${13} w=${2.4} /></span></span>
       ${!p.hasIncome && html`<span class="soft tiny">Add your income so Kipu knows when your next payday is.</span>`}
