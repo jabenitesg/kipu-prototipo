@@ -339,10 +339,24 @@
     return K.settleYears(out, statementEnd(lines));
   };
   // opts.dmy: day before month when a date could be read both ways (most countries; Canada and the US write month first)
+  // What the file looks like: a credit card statement, and the card's last four digits if printed
+  K.statementKind = (text) => {
+    const t = String(text || '');
+    const hits = [/credit limit|l[ií]mite de cr[eé]dito/i, /minimum payment|pago m[ií]nimo/i, /payment thank you|paiement merci/i, /card number|n[uú]mero de tarjeta|tarjeta de cr[eé]dito/i, /cash advance/i, /\b(visa|mastercard|amex|american express)\b/i, /new balance|total balance|amount due/i].filter((re) => re.test(t)).length;
+    const m = t.match(/(?:X{4}|x{4}|\*{4}|•{4})[\s-]*(?:(?:X{4}|x{4}|\*{4}|•{4})[\s-]*)*(\d{4})\b/);
+    return { card: hits >= 2, last4: m ? m[1] : null };
+  };
   K.readStatement = async (file, opts) => {
     const name = (file.name || '').toLowerCase();
-    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file), opts); return rows.length ? rows : K.parseStatementLines(await K.readPDFText(file), opts); }
-    return K.parseCSV(await file.text(), opts);
+    let rows, text;
+    if (name.endsWith('.pdf') || file.type === 'application/pdf') {
+      const pr = await K.readPDFRows(file);
+      text = pr.map((r) => r.map((i) => i.s).join(' ')).join('\n');
+      rows = K.parseStatementRows(pr, opts);
+      if (!rows.length) rows = K.parseStatementLines(await K.readPDFText(file), opts);
+    } else { text = await file.text(); rows = K.parseCSV(text, opts); }
+    rows.kind = K.statementKind(text);
+    return rows;
   };
   // Existing transactions that look like the same purchase (same amount within 3 days)
   // Same account or card, same amount, within 3 days and the same shop (one typed by hand counts the same day)

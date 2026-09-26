@@ -63,6 +63,8 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^This is a credit card statement, so it goes to (.+)\.$/, (m) => 'Es un estado de cuenta de tarjeta de crédito, así que va a ' + m[1] + '.'],
+    [/^This looks like a credit card statement( \(card ending (\d{4})\))?\. Add the card first and import it there, so payments and credits are read right\.$/, (m) => 'Parece un estado de cuenta de tarjeta de crédito' + (m[2] ? ' (tarjeta terminada en ' + m[2] + ')' : '') + '. Agrega la tarjeta primero e impórtalo ahí, para que los pagos y créditos se lean bien.'],
     [/^(\d+) change what you owe$/, (m) => m[1] + ' cambian lo que debes'],
     [/^In (\w+) you kept (.+) \((-?\d+)% of income\)\.$/, (m, t) => 'En ' + t(m[1]).toLowerCase() + ' te quedaron ' + m[2] + ' (' + m[3] + '% de tus ingresos).'],
     [/^In (\w+) you spent (.+) more than came in \((-?\d+)% of income\)\.$/, (m, t) => 'En ' + t(m[1]).toLowerCase() + ' saliste ' + m[2] + ' más de lo que entró (' + m[3] + '% de tus ingresos).'],

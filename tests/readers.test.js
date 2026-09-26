@@ -213,3 +213,9 @@ test('a real card statement layout: only the transactions table is read', () => 
     ['2026-02-10', 'IMMIGRATION CANADA ONLINEOTTAWA ON', -155, 'in'],
   ]);
 });
+
+test('a credit card statement is recognized, with its last four digits', () => {
+  const k = K.statementKind('CIBC Dividend Visa Card Account number 4505 XXXX XXXX 4011\nCredit Limit $4,500.00\nMinimum Payment $0.00\nPAYMENT THANK YOU/PAIEMENT MERCI 635.01');
+  assert.deepEqual(k, { card: true, last4: '4011' });
+  assert.equal(K.statementKind('Date,Description,Withdrawals,Deposits\n2026-09-14,PAYROLL,,2689.00').card, false);
+});

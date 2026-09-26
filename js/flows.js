@@ -182,7 +182,7 @@
 
   // ---------------------------------------------------------------- statement import (real parsing)
   const StatementSheet = ({ onClose }) => {
-    const { data, commit, fmt, toast } = useApp();
+    const { data, commit, fmt, toast, openSheet } = useApp();
     const places = K.whereOptions(data);
     const [where, setWhere] = useState((places[0] || [])[0] || '');
     const [st, setSt] = useState({ step: 'pick' });
@@ -194,10 +194,18 @@
       if (!file) return;
       setSt({ step: 'reading', name: file.name });
       try {
-        const acc = K.whereItem(data, where) || {};
-        const rows = await K.readStatement(file, { dmy: !['CAD', 'USD'].includes(acc.cur || data.base), card: where.startsWith('card:') });
+        const read = (w) => { const acc = K.whereItem(data, w) || {}; return K.readStatement(file, { dmy: !['CAD', 'USD'].includes(acc.cur || data.base), card: w.startsWith('card:') }); };
+        let target = where, rows = await read(where), note = null;
+        // A credit card statement picked for a bank account: move it to the card it belongs to
+        if (rows.kind && rows.kind.card && !where.startsWith('card:')) {
+          const cards = data.cards || [];
+          const card = (rows.kind.last4 && cards.find((c) => c.last4 === rows.kind.last4)) || (cards.length === 1 ? cards[0] : null);
+          if (card) { target = 'card:' + card.id; rows = await read(target); note = { moved: card.name }; }
+          else note = { noCard: rows.kind.last4 || true };
+        }
+        if (target !== where) setWhere(target);
         if (!rows.length) { setSt({ step: 'fail', name: file.name }); return; }
-        setSt({ step: 'review', name: file.name, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) });
+        setSt({ step: 'review', name: file.name, note, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) });
       } catch (e) { setSt({ step: 'fail', name: file.name, err: String(e.message || e) }); }
     };
     // Which sign is spending: cards list charges as positive; banks as negative
@@ -221,6 +229,7 @@
       const loan = spend ? K.loanPaymentFor(data, r.desc, amt) : null;
       if (loan) return { type: 'debt', amt, from: where, loan: loan.id, loanName: loan.name };
       if (spend) return { type: 'expense', amt, from: where };
+      if (!isCard && K.looksLikePayment(r.desc) && /thank you|merci|gracias/i.test(r.desc)) return { type: 'transfer', amt, from: null, to: where, xfer: 'in' };
       return isCard ? { type: 'transfer', amt, from: null, to: where } : { type: 'income', amt, from: where, payroll: K.isPayroll(r.desc) };
     };
     const dups = K.markDuplicates(data, st.rows || [], where);
@@ -261,6 +270,8 @@
       ${st.step === 'reading' && html`<div class="card flat stack-s" style=${{ alignItems: 'center', padding: '28px' }}><${Tile} icon="doc" tone="b" /><span style=${{ fontWeight: 600 }}>Reading ${st.name}…</span><div style=${{ width: '100%' }}><${Bar} pct=${60} color="var(--info)" /></div></div>`}
       ${st.step === 'fail' && html`<div class="card flat stack-s"><span style=${{ fontWeight: 600 }}>No transactions found in ${st.name}</span><span class="small muted">${st.err ? 'The file couldn’t be read.' : 'Kipu looks for a date, a description and an amount on each line. Try the CSV export from your bank.'}</span><button class="btn sec" onClick=${() => setSt({ step: 'pick' })}>Choose another file</button></div>`}
       ${st.step === 'review' && html`
+        ${st.note && st.note.moved && html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--accbg)', alignItems: 'center' }}><${Icon} n="card" s=${16} /><span class="grow" style=${{ lineHeight: 1.45 }}>${'This is a credit card statement, so it goes to ' + st.note.moved + '.'}</span></div>`}
+        ${st.note && st.note.noCard && html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }}><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${'This looks like a credit card statement' + (st.note.noCard !== true ? ' (card ending ' + st.note.noCard + ')' : '') + '. Add the card first and import it there, so payments and credits are read right.'}</span><button class="btn sec sm" onClick=${() => openSheet({ k: 'addCard' })}>Add card</button></div>`}
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
         <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', (st.rows || []).some((r) => r.dir) ? 'Automatic · by column' : allPositive ? 'Automatic · by description' : 'Automatic · ' + (autoSign < 0 ? 'negative' : 'positive')], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
         <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => (r.dup ? force(r.i) : toggle(r.i))}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu · tap to import anyway' : r.bill ? 'Pays ' + r.bill.name : r.cardPay ? (r.cardPay === true ? 'Card payment · not spending' : 'Pays ' + r.cardPay + ' · not spending') : r.type === 'expense' ? K.CATS[r.cat].name : r.refund ? 'Refund' : r.payroll ? 'Salary' : r.loanName ? 'Pays ' + r.loanName + ' · loan payment' : r.xfer ? (r.xfer === 'out' ? 'Transfer out · not spending' : 'Transfer in · not income') : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
