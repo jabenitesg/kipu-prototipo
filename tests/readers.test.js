@@ -173,3 +173,43 @@ test('CIBC credit card: CSV download and PDF statement', () => {
   assert.equal(out.find((r) => r.desc.startsWith('PAYMENT')).amt, 1234.56);
   assert.equal(out.find((r) => r.desc === 'REFUND AMAZON').amt, -20);
 });
+
+test('a real card statement layout: only the transactions table is read', () => {
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 30, s }));
+  const out = K.parseStatementRows([
+    row([418, 'Statement Date']), row([418, 'February 14, 2026']),
+    row([73, 'Your account at a glance'], [418, 'February statement period']),
+    row([418, 'January 15'], [457, 'to February 14, 2026']),
+    row([73, 'Previous'], [116, 'balance'], [346, '$635.01']),
+    row([418, 'Contact us']), row([91, 'Payments'], [249, '$635.01']),
+    row([418, 'Customer Service'], [487, '1 800 000-0000']),
+    row([91, 'Other credits'], [254, '255.00'], [418, 'Lost/Stolen'], [487, '1 800 000-0000']),
+    row([73, 'Total balance'], [307, '='], [346, '$255.00'], [383, 'CR'], [418, 'Regular purchases'], [501, '21.99%']),
+    row([419, '0.5% Cash Back'], [532, '-'], [562, '1.28']),
+    row([415, 'Total Dividend Cash Back'], [532, '-'], [556, '$'], [560, '1.28']),
+    row([72, 'Tear Off here'], [192, 'Please turn over - Transactions begin on page 2'], [527, 'Page'], [549, '1'], [556, 'of 3']),
+    row([37, 'Transactions'], [148, 'from January 15'], [227, 'to February 14, 2026']),
+    row([37, 'Your payments']), row([37, 'Trans'], [79, 'Post']),
+    row([37, 'date'], [79, 'date'], [119, 'Description'], [504, 'Amount($)']),
+    row([37, 'Jan 30'], [79, 'Feb 02'], [119, 'PAYMENT THANK YOU/PAIEMENT MERCI'], [516, '635.01']),
+    row([37, 'Total payments'], [511, '$635.01']),
+    row([37, 'Your new charges and credits']), row([37, 'Trans'], [79, 'Post']),
+    row([37, 'date'], [79, 'date'], [122, 'Description'], [325, 'Spend Categories'], [504, 'Amount($)']),
+    row([37, 'Card number 4505 XXXX XXXX 0000']),
+    row([37, 'Feb 10'], [79, 'Feb 11'], [123, 'IMMIGRATION CANADA ONLINEOTTAWA'], [278, 'ON'], [341, 'Professional and Financial Services'], [513, '-100.00']),
+    row([37, 'Feb 10'], [79, 'Feb 11'], [123, 'IMMIGRATION CANADA ONLINEOTTAWA'], [278, 'ON'], [341, 'Professional and Financial Services'], [513, '-155.00']),
+    row([37, 'Total for 4505 XXXX XXXX 0000'], [509, '-$255.00']),
+    row([482, 'Page'], [503, '2'], [511, 'of 3']),
+    row([14, 'Information about your card account']),
+    row([14, 'days of this Statement Date. If you do not, we may regard this statement'], [398, 'applicable).']),
+    row([14, 'is charged retroactively from the Transaction date. You have a minimum'], [206, 'made a payment but it has not yet been posted']),
+    row([14, 'Spend Categories'], [120, 'Transactions'], [200, 'Amount($)'], [300, 'Budget ($)']),
+    row([14, 'Professional and Financial Services'], [120, '2'], [200, '-255.00'], [300, '-'], [340, '-'], [400, '2'], [460, '-255.00']),
+    row([14, 'Total'], [120, '2'], [200, '-255.00']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.date, r.desc, r.amt, r.dir]), [
+    ['2026-01-30', 'PAYMENT THANK YOU/PAIEMENT MERCI', 635.01, 'out'],
+    ['2026-02-10', 'IMMIGRATION CANADA ONLINEOTTAWA ON', -100, 'in'],
+    ['2026-02-10', 'IMMIGRATION CANADA ONLINEOTTAWA ON', -155, 'in'],
+  ]);
+});

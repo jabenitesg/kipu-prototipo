@@ -233,11 +233,21 @@
     let lastBal = null, lastDate = null, pending = null, justPushed = false;
     const lines = rows.map((items) => items.map((i) => i.s).join(' '));
     const dmy = K.dateOrder(lines.map((l) => firstTokens(l, 2)), opts && opts.dmy);
+    // Only the transactions table counts: it starts at its header (date + description, or money columns)
+    // and stops at its totals or the end of the page. Summaries, contact details and rates around it are skipped.
+    const MONEY_HEAD = (low) => /withdraw|debit|retiro|cargo|paid out|money out/.test(low) && /deposit|credit|abono|paid in|money in/.test(low);
+    // A header is a short line naming a date, a description and an amount column (legal text mentioning "transaction date" isn't one)
+    const TABLE_HEAD = (low) => low.length <= 140 && (MONEY_HEAD(low) || (/\b(date|fecha)\b/.test(low) && /\b(description|descripci[oó]n|details|detalle|concepto|transaction)\b/.test(low) && /(amount|monto|importe|withdraw|deposit|debit|credit|balance|saldo|cargo|abono)/.test(low)));
+    const TABLE_END = /^(total\b|information about|important information|if you find an error|page \d+ of \d+|p[aá]gina \d+ de \d+)/i;
+    const hasTable = lines.some((l) => TABLE_HEAD(l.toLowerCase()));
+    let inTable = !hasTable;
     rows.forEach((items) => {
       const line = items.map((i) => i.s).join(' ');
       const low = line.toLowerCase();
+      if (TABLE_HEAD(low)) { inTable = true; pending = null; }
+      else if (hasTable && TABLE_END.test(line.trim())) { inTable = false; pending = null; justPushed = false; lastDate = null; }
       // Header row: remember where each money column sits
-      if (/withdraw|debit|retiro|cargo|paid out|money out/.test(low) && /deposit|credit|abono|paid in|money in/.test(low)) {
+      if (MONEY_HEAD(low)) {
         cols = {};
         items.forEach((i) => { const t = i.s.toLowerCase(), c = i.x + i.w / 2; if (/withdraw|debit|retiro|cargo|paid out|money out/.test(t)) cols.out = c; else if (/deposit|credit|abono|paid in|money in/.test(t)) cols.in = c; else if (/balance|saldo/.test(t)) cols.bal = c; });
         return;
@@ -245,6 +255,7 @@
       const amts = items.filter((i) => ONEAMT.test(i.s));
       // "Opening balance 1,000.00": where the statement starts; it tells the direction of the first movement
       if (K.isBalanceLine(items.filter((i) => !ONEAMT.test(i.s) && !K.parseDateText(i.s)).map((i) => i.s).join(' '))) { if (amts.length) lastBal = num(amts[amts.length - 1].s); return; }
+      if (!inTable || TABLE_HEAD(low)) return;
       let d = K.parseDateText(firstTokens(line, 3), dmy);
       const text = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
       if (!amts.length) {
@@ -281,8 +292,10 @@
       const foreignLine = /\b(USD|EUR|GBP|MXN|PEN|JPY|AUD|CHF|COP|CLP)\b|@\s*\d/.test(line);
       if (amt == null && ((opts && opts.card) || foreignLine)) {
         const raw = amts[amts.length - 1].s, v = Math.abs(num(raw));
-        const credit = /(CR|\))\s*$|^\(|^-|-\s*$/.test(raw.replace(/\s+/g, ''));
+        const credit = /(CR|\))\s*$|^\(|^-|-\s*$/.test(raw.replace(/\s+/g, '')) || /\bCR\s*$/.test(line);
         amt = credit ? -v : v;
+        // On a card, what the bank prints as positive is a charge and negative (or CR) is a credit
+        if (opts && opts.card) dir = credit ? 'in' : 'out';
       }
       if (amt == null) {
         // No usable header: with a running balance, the change in balance tells the direction
