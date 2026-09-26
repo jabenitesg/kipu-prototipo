@@ -415,3 +415,53 @@ test('undoing a statement import removes its movements and puts balances back', 
   assert.deepEqual(d.txns.map((t) => t.merchant), ['Coffee']);
   assert.equal(d.imports.length, 0);
 });
+
+test('a loan taken by automatic debit is recognized by its name or lender and paid down', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  d.loans = [{ id: 'car', name: 'Car loan', lender: 'Toyota Financial', bal: 12000, rate: 5, pay: 420, freq: 'Monthly', next: '2026-10-05', cur: 'CAD' }, { id: 'sofa', name: 'Sofa financing', lender: 'Flexiti', bal: 600, rate: 0, pay: 50, freq: 'Monthly', next: '2026-10-12', cur: 'CAD' }];
+  assert.equal(K.loanPaymentFor(d, 'PAD TOYOTA FINANCIAL SVCS', 420).id, 'car');
+  assert.equal(K.loanPaymentFor(d, 'FLEXITI FINANCIAL 8837', 50).id, 'sofa');
+  assert.equal(K.loanPaymentFor(d, 'LOAN PAYMENT 0045', 421).id, 'car'); // generic words, one loan fits the amount
+  assert.equal(K.loanPaymentFor(d, 'TOYOTA DEALER SERVICE', 89.99), null); // same name, amount far from the payment
+  assert.equal(K.loanPaymentFor(d, 'METRO', 50), null);
+  // A current payment lowers the loan; one from an old statement doesn't (it's already in the typed balance)
+  const l = d.loans[0];
+  d = K.addTxn(d, Object.assign(K.loanPayment(d, l, 420, '2026-09-05'), { merchant: 'PAD TOYOTA FINANCIAL', amt: 420, cur: 'CAD', from: 'acct:chq', date: '2026-09-05', source: 'statement' }));
+  assert.equal(d.accounts[0].bal, 4580);
+  assert.ok(d.loans[0].bal < 12000 && d.loans[0].bal > 11500);
+  const bal = d.loans[0].bal;
+  d = K.addTxn(d, Object.assign(K.loanPayment(d, d.loans[0], 420, '2026-08-05'), { merchant: 'PAD TOYOTA FINANCIAL', amt: 420, cur: 'CAD', from: 'acct:chq', date: '2026-08-05', source: 'statement', settled: true }));
+  assert.equal(d.loans[0].bal, bal);
+  // Imported before as spending: fixed without moving any balance
+  d = K.addTxn(d, { type: 'expense', merchant: 'FLEXITI FINANCIAL 8837', amt: 50, cur: 'CAD', from: 'acct:chq', date: '2026-09-12', source: 'statement' });
+  const before = [d.accounts[0].bal, d.loans[1].bal];
+  assert.equal(K.misfiledLoanPayments(d).length, 1);
+  d = K.fixLoanPayments(d);
+  assert.deepEqual([d.accounts[0].bal, d.loans[1].bal], before);
+  assert.equal(d.txns.find((t) => t.merchant.startsWith('FLEXITI')).type, 'debt');
+});
+
+test('a bill follows its latest payment; a big jump waits; a bill with an end stops counting', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  d.bills = [{ id: 'ins', name: 'Car insurance', kind: 'Bill', amt: 148.9, cur: 'CAD', day: 12, cat: 'bills', pay: 'acct:chq' }, { id: 'net', name: 'Internet', kind: 'Bill', amt: 75, cur: 'CAD', day: 18, cat: 'bills', pay: 'acct:chq' }];
+  d = K.addTxn(d, { type: 'expense', merchant: 'INTACT', amt: 135, cur: 'CAD', from: 'acct:chq', date: '2026-09-12', recurring: 'ins', source: 'statement', settled: true });
+  assert.equal(d.bills[0].amt, 135);
+  assert.deepEqual([d.bills[0].lastChange.from, d.bills[0].lastChange.to], [148.9, 135]);
+  // An older payment doesn't bring the old price back
+  d = K.addTxn(d, { type: 'expense', merchant: 'INTACT', amt: 148.9, cur: 'CAD', from: 'acct:chq', date: '2026-08-12', recurring: 'ins', source: 'statement', settled: true });
+  assert.equal(d.bills[0].amt, 135);
+  // Internet charged 160 once: asked, not changed
+  d = K.addTxn(d, { type: 'expense', merchant: 'ROGERS', amt: 160, cur: 'CAD', from: 'acct:chq', date: '2026-09-18', recurring: 'net', source: 'statement', settled: true });
+  assert.equal(d.bills[1].amt, 75);
+  assert.equal(d.bills[1].pendingPrice.amt, 160);
+  d = K.keepPrice(d, 'net');
+  assert.equal(d.bills[1].pendingPrice, undefined);
+  // Ends in: after that month the bill no longer counts
+  const ctx2 = { scope: 'personal', currency: 'Combined' };
+  const before = K.derive(d, ctx2).plan.commitments;
+  d = K.upsert(d, 'bills', Object.assign({}, d.bills[1], { end: '2020-01' }));
+  assert.equal(K.billActive(d.bills[1]), false);
+  assert.ok(K.derive(d, ctx2).plan.commitments < before);
+});

@@ -30,6 +30,8 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Fechas de los estados de cuenta:** los meses solo cuentan como palabras completas ("14 MARKET" no es marzo), el orden día/mes se decide una vez por archivo (un día mayor que 12 lo define; si no, el orden cronológico y el país de la cuenta), y las fechas sin año toman el año del periodo del estado de cuenta. En Ajustes → Datos se puede deshacer una importación para volver a subirla.
 - **Sueldo:** las líneas PAYROLL, NOMINA o SUELDO se importan como sueldo y ajustan tu ingreso esperado (frecuencia, promedio de los últimos tres y próximo pago).
 - **Pagos recurrentes:** al importar, los pagos que se repiten cada mes por un monto parecido (seguro, teléfono, gimnasio) se proponen como recibos; también en Plan → Recibos para lo ya importado.
+- **Préstamos con débito automático:** al importar, la cuota de un préstamo registrado (auto, financiamiento, hipoteca) se reconoce por el nombre del préstamo o del prestamista y un monto parecido a la cuota, y se registra como pago del préstamo. Un pago recurrente que parece préstamo ofrece "Es un préstamo"; los pagos ya importados como gasto se pueden corregir sin mover saldos.
+- **Recibos que cambian de precio:** el recibo sigue su último pago (hasta 25% se actualiza solo y avisa; más, pregunta) y puede tener un mes de fin ("Termina en") después del cual deja de contar.
 - **Recibos pagados:** un gasto escrito o importado que coincide con un recibo (nombre parecido, monto dentro del 3 % y ±7 días) lo marca como pagado, así no se descuenta dos veces. Se puede vincular o desvincular a mano en el detalle del gasto.
 
 ## Bloqueo

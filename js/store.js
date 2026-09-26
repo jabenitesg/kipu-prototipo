@@ -278,7 +278,8 @@
     const postings = t.postings || postingsFor(d, t);
     postings.forEach((p) => { d = moveBal(d, p.where, p.amount * s, p.slot); });
     if (t.type === 'saving' && t.goal && !(t.to && t.to.startsWith('acct:'))) d = Object.assign({}, d, { goals: upd(d.goals, t.goal, (g) => Object.assign({}, g, { saved: r2((g.saved || 0) + t.base * s) })) });
-    if (t.type === 'debt' && t.loan) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(l.bal - (t.principal || 0) * s), next: s > 0 ? (t.loanNextAfter || l.next) : (l.next === t.loanNextAfter ? t.loanNextBefore : l.next) })) });
+    // A loan payment from an old statement (or one Kipu reclassified) is already inside the balance that was typed in
+    if (t.type === 'debt' && t.loan && !t.settled && !t.keepLoanBal) d = Object.assign({}, d, { loans: upd(d.loans, t.loan, (l) => Object.assign({}, l, { bal: r2(l.bal - (t.principal || 0) * s), next: s > 0 ? (t.loanNextAfter || l.next) : (l.next === t.loanNextAfter ? t.loanNextBefore : l.next) })) });
     return d;
   };
   // An expense that looks like a bill (similar name, amount within 3% or $1, within a week of its due date) pays that bill
@@ -310,13 +311,15 @@
     if (t.type === 'expense' && !t.recurring && t.billMatch !== 'off') { const b = K.matchBill(d, t); if (b) { t.recurring = b.id; t.billMatch = 'auto'; } }
     if (t.type === 'expense' && !t.trip) { const trip = K.activeTrip(d, parse(t.date)); if (trip && t.autoTrip !== false && cur !== d.base) t.trip = trip.id; }
     d = effects(d, t, 1);
-    return K.snapshot(Object.assign({}, d, { txns: d.txns.concat([t]) }));
+    d = Object.assign({}, d, { txns: d.txns.concat([t]) });
+    if (t.recurring && t.type === 'expense') d = K.applyBillPrice(d, t.recurring);
+    return K.snapshot(d);
   };
   K.removeTxn = (d, id) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; d = effects(d, t, -1); return K.snapshot(Object.assign({}, d, { txns: d.txns.filter((x) => x.id !== id) })); };
   K.editTxn = (d, id, patch) => {
     const t = d.txns.find((x) => x.id === id); if (!t) return d;
     const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
-    if (!financial) return Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) });
+    if (!financial) { const next = Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) }); return patch.recurring ? K.applyBillPrice(next, patch.recurring) : next; }
     const next = Object.assign({}, t, patch);
     delete next.postings;
     if (patch.amt != null || patch.cur != null) { next.base = K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
@@ -437,6 +440,53 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // ---------------------------------------------------------------- bills whose price changes (insurance renewal, a new internet plan)
+  // The bill follows its latest payment. Up to 25% it updates and says so; a bigger jump waits for the person, it may be a one-off charge.
+  K.applyBillPrice = (d, billId) => {
+    const b = d.bills.find((x) => x.id === billId); if (!b) return d;
+    const cur = b.cur || d.base;
+    const pays = d.txns.filter((t) => t.type === 'expense' && t.recurring === billId && t.date).sort((x, y) => (x.date < y.date ? -1 : 1));
+    const last = pays[pays.length - 1]; if (!last || (b.priceDate && last.date <= b.priceDate)) return d;
+    const amt = (last.cur || d.base) === cur ? last.amt : (() => { const k = K.rate(d, cur, d.base); return k && last.base != null ? r2(last.base / k) : null; })();
+    if (amt == null || !b.amt) return K.upsert(d, 'bills', Object.assign({}, b, { priceDate: last.date }));
+    const change = Math.abs(amt - b.amt) / b.amt;
+    if (change < 0.005) { const nb = Object.assign({}, b, { priceDate: last.date }); delete nb.pendingPrice; return K.upsert(d, 'bills', nb); }
+    if (change <= 0.25) { const nb = Object.assign({}, b, { amt, priceDate: last.date, lastChange: { from: b.amt, to: amt, date: last.date } }); delete nb.pendingPrice; return K.upsert(d, 'bills', nb); }
+    return K.upsert(d, 'bills', Object.assign({}, b, { pendingPrice: { amt, date: last.date } }));
+  };
+  K.acceptPrice = (d, id) => { const b = d.bills.find((x) => x.id === id); if (!b || !b.pendingPrice) return d; const nb = Object.assign({}, b, { amt: b.pendingPrice.amt, priceDate: b.pendingPrice.date, lastChange: { from: b.amt, to: b.pendingPrice.amt, date: b.pendingPrice.date, seen: true } }); delete nb.pendingPrice; return K.upsert(d, 'bills', nb); };
+  K.keepPrice = (d, id) => { const b = d.bills.find((x) => x.id === id); if (!b || !b.pendingPrice) return d; const nb = Object.assign({}, b, { priceDate: b.pendingPrice.date }); delete nb.pendingPrice; return K.upsert(d, 'bills', nb); };
+  K.seenPrice = (d, id) => { const b = d.bills.find((x) => x.id === id); if (!b || !b.lastChange) return d; return K.upsert(d, 'bills', Object.assign({}, b, { lastChange: Object.assign({}, b.lastChange, { seen: true }) })); };
+  // A bill with an end month ("Ends in") stops counting after it
+  K.billActive = (b, T) => !b.end || b.end >= monthKey(T || today());
+
+  // ---------------------------------------------------------------- loan payments taken automatically (car loan, financing, mortgage)
+  K.LOAN_WORDS = /\b(loan|loans|financ\w*|lease|leasing|mortgage|hipoteca|prestamo|prestamos|cuota|cuotas|instal+ments?|credito vehicular|car payment|auto payment)\b/;
+  const GENERIC = new Set(['loan', 'loans', 'car', 'auto', 'payment', 'personal', 'student', 'mortgage', 'vehicle', 'line', 'credit', 'other', 'prestamo', 'pago']);
+  // Which loan a statement line pays: its name or lender appears and the amount is near the payment, or the line says "loan" and only one loan fits the amount
+  K.loanPaymentFor = (d, desc, amt) => {
+    const m = norm(desc);
+    const live = (d.loans || []).filter((l) => l.bal > 0);
+    const near = (l) => !l.pay || Math.abs(amt - l.pay) <= Math.max(1, l.pay * 0.15);
+    const named = live.filter((l) => [l.name, l.lender].map(norm).join(' ').split(' ').filter((w) => w.length >= 3 && !GENERIC.has(w)).some((w) => m.split(' ').includes(w)));
+    const byName = named.filter(near);
+    if (byName.length === 1) return byName[0];
+    if (K.LOAN_WORDS.test(m)) { const byAmt = live.filter((l) => l.pay && near(l)); if (byAmt.length === 1) return byAmt[0]; }
+    return null;
+  };
+  // A loan payment as a movement: principal and interest split, next payment date moved on
+  K.loanPayment = (d, l, amt, date) => {
+    const { interest } = K.loanSplit(l);
+    const i = r2(Math.min(interest, amt));
+    const principal = r2(Math.min(l.bal, Math.max(0, amt - i)));
+    const after = iso(K.nextDate(l.next || date, l.freq, addDays(parse(date), 1)));
+    return { type: 'debt', cat: 'debt', loan: l.id, principal, interest: i, loanNextBefore: l.next, loanNextAfter: after };
+  };
+  // Loan payments imported before Kipu knew them, saved as spending
+  K.misfiledLoanPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && K.loanPaymentFor(d, t.merchant, t.amt));
+  // Become loan payments; balances stay as they are
+  K.fixLoanPayments = (d) => K.misfiledLoanPayments(d).reduce((acc, t) => { const l = K.loanPaymentFor(acc, t.merchant, t.amt); return l ? K.editTxn(acc, t.id, Object.assign(K.loanPayment(acc, l, t.amt, t.date), { recurring: null, keepLoanBal: true })) : acc; }, d);
+
   // The movements one statement import added. Imports from before they were tagged: everything imported on that account or card
   K.importTxns = (d, imp) => {
     const tagged = d.txns.filter((t) => t.imp === imp.id);
@@ -574,7 +624,7 @@
     const B = K.balances(data, scope);
 
     // Plan: the one source of Safe to Spend
-    const bills = data.bills.filter(inS);
+    const bills = data.bills.filter((b) => inS(b) && K.billActive(b, T));
     const billDates = (b) => occurrences(iso(billAnchor(b)), billFreq(b), monthStart, monthEnd);
     const commitments = r2(sum(bills, (b) => billDates(b).length * K.toBase(data, b.amt, b.cur || data.base)));
     const loanPays = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: futureOccurrences(l.next || iso(T), l.freq, monthStart, monthEnd).length }));
