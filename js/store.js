@@ -997,6 +997,68 @@
     return { base, scen, h, flexible: r2(flexible), savingsBase, summary: { net: [tot(base, 'net'), tot(scen, 'net')], savings: [tot(base, 'savings'), tot(scen, 'savings')], interest: [tot(base, 'interest'), tot(scen, 'interest')], nw: [base.months[h - 1].nw, scen.months[h - 1].nw], loan: [base.months[h - 1].loanBal, scen.months[h - 1].loanBal] } };
   };
 
+  // ---------------------------------------------------------------- ask Kipu (plain arithmetic, worked out on this device)
+  // Will the money last to the end of the month? Cash now, plus pay still to come, minus what's due and the everyday spending you usually do.
+  K.askMonthEnd = (data, D) => {
+    const T = D.T, end = new Date(T.getFullYear(), T.getMonth() + 1, 0);
+    const daysLeft = Math.max(1, days(T, end) + 1);
+    const inWin = (u) => parse(u.date) <= end;
+    const cardBill = (u) => { const b = u.billId && data.bills.find((x) => x.id === u.billId); return b && (b.pay || '').startsWith('card:'); };
+    const incomeLeft = r2(sum(D.upcoming.filter((u) => u.income && inWin(u) && parse(u.date) > T), (u) => u.amt || 0));
+    const today = iso(T);
+    const dueList = D.upcoming.filter((u) => !u.income && inWin(u) && !cardBill(u)).concat((D.dueSoon || []).filter((u) => u.date === today && !(u.kind === 'Loan payment' || u.kind === 'Card due')));
+    const due = r2(sum(dueList, (u) => u.amt || 0));
+    const flexMonth = K.forecast(data, D, { assumption: data.prefs.assumption || 'Recent average' }).flexible;
+    const flexSpentMonth = D.plan.flexibleSpent || 0;
+    const everyday = r2(Math.max(0, flexMonth - flexSpentMonth, flexMonth * (daysLeft / new Date(T.getFullYear(), T.getMonth() + 1, 0).getDate()) * 0.5));
+    const savings = D.plan.savingsLeft || 0;
+    const endCash = r2(D.plan.cashNow + incomeLeft - due - everyday - savings);
+    // The low point: before your next payday (Safe to Spend already counts all that's due until then) or at month end
+    const low = r2(D.plan.hasIncome ? Math.min(endCash, D.plan.safe) : endCash);
+    return { end, daysLeft, cash: D.plan.cashNow, incomeLeft, due, dueList, everyday, savings, endCash, low, beforePay: D.plan.safe, nextPay: D.plan.nextPay, short: low < 0 ? r2(-low) : 0, perDayCut: low < 0 ? r2(-low / daysLeft) : 0, hasData: D.plan.hasAccounts };
+  };
+  // Can I buy this? Today's Safe to Spend, payday, savings as a cushion, or installments
+  K.askAfford = (data, D, amount, opts) => {
+    const o = opts || {};
+    const amt = Math.max(0, Number(amount) || 0);
+    const p = D.plan;
+    const month = K.askMonthEnd(data, D);
+    const savingsCash = r2(sum(D.accts.filter((a) => a.kind === 'Savings'), (a) => a.baseBal));
+    const monthlyCost = r2((p.commitments || 0) + (p.debtPlanned || 0) + K.forecast(data, D, { assumption: 'Recent average' }).flexible);
+    const margin = r2((p.expectedIncome || 0) - monthlyCost - (p.savingsPlanned || 0));
+    const n = Math.max(1, Math.round(o.installments || 1));
+    const perMonth = r2(amt / n);
+    const cushionMonths = monthlyCost > 0 ? r2((savingsCash - amt) / monthlyCost) : null;
+    // What one paycheck leaves after its share of the month's costs
+    const main = (D.incomeSrc || [])[0];
+    const perCheck = main ? r2(margin / Math.max(1, K.perYear(main.freq) / 12)) : 0;
+    let verdict;
+    if (!p.hasAccounts) verdict = 'nodata';
+    else if (p.safe - amt >= 0) verdict = 'yes';
+    else if (p.nextPay && perCheck > 0 && amt <= Math.max(0, p.safe) + perCheck) verdict = 'wait';
+    else if (margin > 0 && perMonth <= margin && n > 1) verdict = 'installments';
+    else if (savingsCash > 0 && savingsCash - amt >= monthlyCost) verdict = 'savings';
+    else if (margin > 0) verdict = 'save';
+    else verdict = 'no';
+    const monthsToSave = margin > 0 ? Math.ceil(amt / margin) : null;
+    // Installments that fit: the fewest that keep each payment inside your monthly margin
+    const fitN = margin > 0 ? Math.max(2, Math.ceil(amt / margin)) : null;
+    return { amt, verdict, perCheck, safe: p.safe, afterSafe: r2(p.safe - amt), nextPay: p.nextPay, until: p.until, endAfter: r2(month.endCash - amt), savingsCash, afterSavings: r2(savingsCash - amt), cushionMonths, monthlyCost, margin, n, perMonth, monthsToSave, fitN };
+  };
+  // "¿Puedo comprar una laptop de 3000?", "can I afford 250", "¿llego a fin de mes?"
+  K.parseQuestion = (text) => {
+    const s = String(text || '').toLowerCase();
+    const num = /(\d{1,3}(?:[,.]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/.exec(s);
+    const inst = /(\d{1,2})\s*(cuotas|installments|meses sin|payments|pagos)/.exec(s);
+    if (/fin de mes|end of (the )?month|llego|make it|alcanza el mes|me quedo sin|run out/.test(s) && !(num && !inst && /compr|buy|afford|gast|pag/.test(s))) return { kind: 'month' };
+    if (num) {
+      let raw = num[1]; raw = /^\d{1,3}([,.]\d{3})+/.test(raw) && !/[.,]\d{1,2}$/.test(raw.replace(/^\d{1,3}([,.]\d{3})+/, '')) ? raw.replace(/[.,](?=\d{3}\b)/g, '') : raw.replace(',', '.');
+      if (inst && inst[1] === num[1]) return { kind: 'afford', amount: null };
+      return { kind: 'afford', amount: Number(raw.replace(/,/g, '')), installments: inst ? Number(inst[1]) : 1 };
+    }
+    return { kind: /compr|buy|afford|gast/.test(s) ? 'afford' : 'unknown', amount: null };
+  };
+
   // ---------------------------------------------------------------- insights (rule-based, only with enough data)
   K.insights = (data, D) => {
     const out = [];

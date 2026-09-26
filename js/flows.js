@@ -533,5 +533,50 @@
         <button class="btn pri block" disabled=${busy || pass.length < 12}>${busy ? 'Opening…' : 'Open'}</button></form></${Sheet}>`;
   };
 
-  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold };
+  // Ask Kipu: will the money last, and can I buy this? Plain arithmetic with your numbers, on this device.
+  const AskKipu = ({ onClose, preset }) => {
+    const { data, D, fmt, go } = useApp();
+    const [q, setQ] = useState((preset && preset.q) || '');
+    const [kind, setKind] = useState((preset && preset.kind) || null);
+    const [amt, setAmt] = useState('');
+    const [n, setN] = useState(1);
+    const ask = (text) => { const r = K.parseQuestion(text); setKind(r.kind === 'unknown' ? 'unknown' : r.kind); if (r.amount) setAmt(String(r.amount)); if (r.installments) setN(r.installments); };
+    const v = numv(amt);
+    const row = (l, x, strong) => html`<div class="between small" style=${{ padding: '6px 0', fontWeight: strong ? 700 : 400 }}><span class=${strong ? '' : 'muted'}>${l}</span><span class="num">${x}</span></div>`;
+    const date = (d) => (d ? K.fmtDate(K.iso(d)) : '');
+    let answer = null;
+    if (kind === 'month') {
+      const m = K.askMonthEnd(data, D);
+      answer = !m.hasData ? html`<span class="small">Add an everyday account first, so Kipu knows what you have.</span>` : html`<div class="stack-s" style=${{ gap: '10px' }}>
+        <strong style=${{ fontSize: '17px', lineHeight: 1.35, color: m.short ? 'var(--crit)' : 'var(--pos)' }}>${m.short ? 'You’d be short about ' + fmt(m.short) + '.' : 'Yes. You’d reach ' + date(m.end) + ' with about ' + fmt(m.low) + ' to spare.'}</strong>
+        <div class="list">${row('Cash now', fmt(m.cash))}${row('Pay still coming this month', '+' + fmt(m.incomeLeft))}${row('Bills, loans and cards due', '−' + fmt(m.due))}${row('Your usual everyday spending', '−' + fmt(m.everyday))}${m.savings > 0 && row('Planned savings left', '−' + fmt(m.savings))}${row('End of month', fmt(m.endCash), true)}${m.nextPay && m.beforePay !== m.endCash && row('Before your next payday (' + date(m.nextPay) + ')', fmt(m.beforePay), true)}</div>
+        ${m.short > 0 && html`<div class="card flat small stack-s" style=${{ lineHeight: 1.5, gap: '6px' }}><span>${'To make it: bring in ' + fmt(m.short) + ' more, or spend ' + fmt(m.perDayCut, { dec: 0 }) + ' less a day for ' + m.daysLeft + ' days.'}</span>${m.savings > 0 && html`<span>${'Pausing this month’s planned savings frees ' + fmt(m.savings) + '.'}</span>`}</div>`}
+        <span class="tiny muted">Everyday spending comes from your recent months. Card-paid bills are left to the card payment.</span></div>`;
+    }
+    if (kind === 'afford' && v > 0) {
+      const a = K.askAfford(data, D, v, { installments: n });
+      const H = {
+        nodata: 'Add an everyday account first, so Kipu knows what you have.',
+        yes: 'Yes. After it you’d still have ' + fmt(a.afterSafe) + ' to spend until payday.',
+        wait: 'Better after payday (' + date(a.nextPay) + '). Today it leaves you ' + fmt(-a.afterSafe) + ' short; your next pay leaves about ' + fmt(a.perCheck) + ' free.',
+        savings: 'Only from savings. You’d keep ' + fmt(a.afterSavings) + ', about ' + (a.cushionMonths != null ? a.cushionMonths.toFixed(1) : '?') + ' months of expenses.',
+        installments: 'In ' + a.n + ' payments of ' + fmt(a.perMonth) + ' it fits: about ' + fmt(a.margin) + ' is free each month.',
+        save: 'Not yet. Saving the ' + fmt(a.margin) + ' free each month, you’d have it in ' + a.monthsToSave + (a.monthsToSave === 1 ? ' month.' : ' months.'),
+        no: 'Not now. What comes in each month already goes to your regular costs.',
+      };
+      const good = ['yes', 'installments'].includes(a.verdict), meh = ['wait', 'savings', 'save'].includes(a.verdict);
+      answer = html`<div class="stack-s" style=${{ gap: '10px' }}><strong style=${{ fontSize: '17px', lineHeight: 1.35, color: good ? 'var(--pos)' : meh ? 'var(--warn)' : 'var(--crit)' }}>${H[a.verdict]}</strong>
+        ${a.verdict !== 'nodata' && html`<div class="list">${row('Safe to Spend now', fmt(a.safe))}${row('After buying it', fmt(a.afterSafe), true)}${a.savingsCash > 0 && row('In savings', fmt(a.savingsCash))}${row('Free each month (income − costs − savings)', fmt(a.margin))}${a.n > 1 && row(a.n + ' payments of', fmt(a.perMonth))}</div>`}
+        ${a.verdict === 'save' && a.fitN && html`<span class="small muted">${'In ' + a.fitN + ' payments it would fit your monthly margin, if they come without interest.'}</span>`}
+        ${a.n > 1 && html`<span class="tiny muted">Installments often carry interest. Check the rate before choosing them.</span>`}</div>`;
+    }
+    return html`<${Sheet} title="Ask Kipu" sub="Worked out with your own numbers, on this device." onClose=${onClose}>
+      <form class="row" style=${{ gap: '8px' }} onSubmit=${(e) => { e.preventDefault(); ask(q); }}><input class="input grow" aria-label="Your question" value=${q} onInput=${(e) => setQ(e.target.value)} placeholder="e.g. Can I buy a 3,000 laptop?" enterkeyhint="send" /><button class="btn pri sm" disabled=${!q.trim()}>Ask</button></form>
+      <div class="chips"><button class=${'chip' + (kind === 'month' ? ' on' : '')} onClick=${() => setKind('month')}>Will I make it to month end?</button><button class=${'chip' + (kind === 'afford' ? ' on' : '')} onClick=${() => setKind('afford')}>Can I afford something?</button></div>
+      ${kind === 'unknown' && html`<span class="small muted">Kipu can answer two things for now: whether your money lasts to month end, and whether you can afford a purchase. Try one of the buttons.</span>`}
+      ${kind === 'afford' && html`<div class="stack-s" style=${{ gap: '10px' }}><${Amount} value=${amt} onChange=${setAmt} cur=${data.base} id="ask-amt" /><${Seg} options=${[1, 3, 6, 12]} labels=${['Pay once', '3 payments', '6 payments', '12 payments']} value=${n} onChange=${setN} /></div>`}
+      ${answer && html`<div class="card stack-s">${answer}</div>`}</${Sheet}>`;
+  };
+
+  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold, ask: AskKipu };
 })();

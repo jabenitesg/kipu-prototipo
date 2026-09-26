@@ -346,7 +346,7 @@
     const rootOf = stack[0].r;
 
     // Same menu as the rail's sections: what you can add, one tap each
-    const ADD = [['expense', 'expense', 'r', 'Add expense'], ['income', 'income', 'g', 'Add income'], ['receipt', 'scan', 'p', 'Scan receipt'], ['statement', 'upload', 'b', 'Upload statement'], ['transfer', 'transfer', 'n', 'Transfer']];
+    const ADD = [['expense', 'expense', 'r', 'Add expense'], ['income', 'income', 'g', 'Add income'], ['receipt', 'scan', 'p', 'Scan receipt'], ['statement', 'upload', 'b', 'Upload statement'], ['transfer', 'transfer', 'n', 'Transfer'], ['ask', 'spark', 'a', 'Ask Kipu']];
     const addMenu = (cls) => html`<div class=${cls} role="menu" aria-label="Add" onClick=${(e) => e.stopPropagation()}><span class="fly-title">Add</span>${ADD.map(([k, ic, tone, l]) => html`<button key=${k} role="menuitem" class="fly-item" onClick=${() => { setFly(null); setSheet({ k }); }}><span class="row" style=${{ gap: '10px' }}><span class=${'ic ' + tone} style=${{ width: '30px', height: '30px', borderRadius: '10px' }}><${Icon} n=${ic} s=${15} /></span>${l}</span></button>`)}<span class="tiny muted" style=${{ padding: '6px 12px 4px', lineHeight: 1.4 }}>Accounts, cards and loans are in Money. Bills, goals and trips in Plan.</span></div>`;
     if (wide) {
       const nav = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan'], ['stats', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];

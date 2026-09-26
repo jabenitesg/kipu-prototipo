@@ -672,3 +672,20 @@ test('movements on a shared account are shared, so both people see them', () => 
   d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 60, cur: 'CAD', from: 'acct:mine' });
   assert.deepStrictEqual(d.txns.map((t) => t.shared), [true, true, false]);
 });
+
+test('ask Kipu: reaching month end and whether something fits', () => {
+  let d = K.factory();
+  const T = K.today();
+  d.accounts = [account('chq', 'CAD', 1000), Object.assign(account('sav', 'CAD', 8000), { kind: 'Savings' })];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 2000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 40)), to: 'acct:chq' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 28, cat: 'housing', pay: 'acct:chq' }];
+  let D = K.derive(d, ctx);
+  const m = K.askMonthEnd(d, D);
+  if (T.getDate() < 28) { assert.ok(m.short > 0); assert.ok(m.perDayCut > 0); } // rent is more than the cash left
+  assert.equal(K.askAfford(d, D, 50).verdict, D.plan.safe >= 50 ? 'yes' : K.askAfford(d, D, 50).verdict);
+  const big = K.askAfford(d, D, 4000);
+  assert.ok(['savings', 'installments', 'save', 'no'].includes(big.verdict));
+  assert.equal(big.afterSavings, 4000);
+  assert.deepStrictEqual(K.parseQuestion('quiero comprar un celular de 2,500 en 12 cuotas'), { kind: 'afford', amount: 2500, installments: 12 });
+  assert.equal(K.parseQuestion('¿llego a fin de mes?').kind, 'month');
+});

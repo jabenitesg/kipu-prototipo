@@ -95,6 +95,13 @@
     return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="split" tone=${owed > 0.009 ? 'g' : owed < -0.009 ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Shared with ' + who}</span><span class="small muted">${text}</span></span></div>
       <div class="row" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => openSheet({ k: 'expense', preset: { shared: true } })}>Shared expense</button>${Math.abs(owed) >= 0.01 && html`<button class="btn pri sm" onClick=${() => openSheet({ k: 'settle' })}>Settle up</button>`}</div></div>`;
   };
+  // Questions people ask about money, one tap away
+  const AskRow = () => {
+    const { openSheet, D } = useApp();
+    if (!D.plan.hasAccounts) return null;
+    return html`<div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}><button class="chip" onClick=${() => openSheet({ k: 'ask', kind: 'month' })}><${Icon} n="spark" s=${14} />Will I make it to month end?</button><button class="chip" onClick=${() => openSheet({ k: 'ask', kind: 'afford' })}><${Icon} n="spark" s=${14} />Can I afford it?</button></div>`;
+  };
+
   // This device remembers your account: ask for Face ID or a PIN so only you can open it
   const ProtectDevice = () => {
     const { cloud, go } = useApp();
@@ -218,13 +225,13 @@
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1></div>${kpis}</header>
         ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
-          <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
+          <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${AskRow} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
           ${upcomingW}${nwW}${flowW}${spendW}${budgetW}${recentW}${insW}
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${AskRow} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
