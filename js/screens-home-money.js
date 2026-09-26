@@ -308,37 +308,55 @@
     if (!n) return null;
     return html`<button class="card lrow" style=${{ gap: '12px', textAlign: 'left' }} onClick=${() => openSheet({ k: 'settleImports', where })}><${Tile} icon="check" tone="g" s=${34} /><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">Imported movements</span><span class="tiny muted">${n} from statements change this balance. Already paid? Keep them only for statistics.</span></span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`;
   };
-  // Spending, income or transfer: fixes imports that landed as the wrong kind
-  const TypeSwitch = ({ t }) => {
-    const { data, commit, toast } = useApp();
-    const imp = t.imp && (data.imports || []).find((i) => i.id === t.imp);
-    // A card deleted after importing leaves the movement pointing nowhere; then ask where it belongs
-    const known = [t.from, t.to, imp && imp.where].find((w) => w && K.whereItem(data, w)) || null;
-    const places = K.whereOptions(data);
-    const [place, setPlace] = React.useState(known || (places[0] || [])[0] || '');
-    const set = (type) => { if (type === t.type) return; commit(K.changeType(data, t.id, type, known ? null : place)); toast({ expense: 'Now an expense', income: 'Now income', transfer: 'Now a transfer' }[type]); };
-    return html`<div class="card stack-s" style=${{ gap: '10px' }}><span class="eyebrow">Type</span><${K.Seg} options=${['expense', 'income', 'transfer']} labels=${['Expense', 'Income', 'Transfer']} value=${t.type} onChange=${set} />
-      ${!known && html`<label class="stack-s" style=${{ gap: '4px' }}><span class="small muted">Account or card it belongs to</span><select class="input" value=${place} onChange=${(e) => setPlace(e.target.value)}>${places.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select></label>`}</div>`;
-  };
+  // One settings-style row: tap to open its choices right below it
+  const OptRow = ({ icon, label, value, open, onToggle, right, children }) => html`<div class=${'txo' + (open ? ' open' : '')}>
+    ${right ? html`<div class="lrow set-row"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><span class="grow t1">${label}</span>${right}</div>` : html`<button type="button" class="lrow set-row" aria-expanded=${!!open} onClick=${onToggle}><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><span class="grow t1" style=${{ textAlign: 'left' }}>${label}</span><span class="txo-val">${value}</span><${Icon} n=${open ? 'down' : 'next'} s=${15} c="var(--muted)" /></button>`}
+    ${open && html`<div class="txo-body">${children}</div>`}</div>`;
+
   K.TxnDetail = function TxnDetail({ route }) {
     const { data, commit, fmt, go, toast, back, openSheet } = useApp();
+    const [open, setOpen] = useState(null);
     const t = data.txns.find((x) => x.id === route.id);
+    const imp = t && t.imp && (data.imports || []).find((i) => i.id === t.imp);
+    // A card deleted after importing leaves the movement pointing nowhere; then it asks where it belongs
+    const known = t ? [t.from, t.to, imp && imp.where].find((w) => w && K.whereItem(data, w)) || null : null;
+    const places = K.whereOptions(data);
+    const [place, setPlace] = useState(known || (places[0] || [])[0] || '');
     if (!t) return html`<${EmptyState} title="Transaction not found" text="It may have been deleted." />`;
     const foreign = t.cur !== data.base;
     const liveNow = foreign ? K.toBase(data, t.amt, t.cur) : null;
     const trip = t.trip && data.trips.find((x) => x.id === t.trip);
     const typeLabel = { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
     const c = K.CATS[t.cat];
-    return html`<div class="stack" style=${{ maxWidth: '640px' }}>
-      <div class="card stack-s" style=${{ alignItems: 'center', textAlign: 'center', padding: '24px 18px' }}><${Tile} icon=${c ? c.icon : t.type === 'income' ? 'income' : 'transfer'} tone=${c ? c.tone : 'n'} /><span class="t1" style=${{ marginTop: '6px' }}>${t.merchant || typeLabel}</span><span class="disp num" style=${{ fontSize: '34px', fontWeight: 800, color: t.type === 'income' ? 'var(--pos)' : null }}>${t.type === 'income' ? '+' : ''}${foreign ? fmt.native(t.amt, t.cur, { dec: 2 }) : fmt(t.base, { dec: 2 })}</span>${foreign && html`<span class="small muted num">${fmt(t.base, { dec: 2 })}${t.estimate ? ' estimated' : ''}</span>`}<span class="pill neu">${typeLabel}</span></div>
-      ${['expense', 'income', 'transfer'].includes(t.type) && html`<${TypeSwitch} t=${t} />`}
-      ${foreign && html`<div class="card stack-s"><div class="between"><span style=${{ fontWeight: 600 }}>Stored conversion</span><span class="pill pos"><${Icon} n="lock" s=${12} w=${2.2} />Locked</span></div><span class="small muted num" style=${{ lineHeight: 1.5 }}>1 ${t.cur} = ${K.sym(data.base)}${(t.rate || 0).toFixed(4)} on ${K.fmtDate(t.date)}. Today’s rate would make it ${fmt(liveNow, { dec: 2 })}, but past amounts don’t change.</span></div>`}
-      ${t.type === 'expense' && html`<div class="stack-s"><span class="eyebrow">Category</span><div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (t.cat === k ? ' on' : '')} onClick=${() => { commit(K.editTxn(data, t.id, { cat: k })); toast('Category updated'); }}>${K.CATS[k].name}</button>`)}</div><button class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((r) => r.merchant.toLowerCase() !== (t.merchant || '').toLowerCase()).concat([{ id: K.uid('r'), merchant: t.merchant, cat: t.cat }]) })); toast('New ' + t.merchant + ' purchases will use ' + K.CATS[t.cat].name); }}>Always use this category for ${t.merchant}</button></div>`}
-      ${['expense', 'income', 'transfer'].includes(t.type) && (t.from || t.to) && html`<div class="card tight"><${K.ToggleRow} title="Already paid" sub=${t.settled ? 'Counts in statistics only. It doesn’t change any balance.' : 'Turn on for an old movement that’s already in your balance.'} on=${!!t.settled} onChange=${(v) => { commit(K.editTxn(data, t.id, { settled: v || undefined })); toast(v ? 'Marked as already paid · balance updated' : 'Balance updated'); }} /></div>`}
-      ${t.type === 'expense' && html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="between"><span style=${{ fontWeight: 600 }}>Bill payment</span>${t.recurring && html`<span class="pill pos"><${Icon} n="check" s=${12} w=${2.4} />${t.billMatch === 'auto' ? 'Matched' : 'Linked'}</span>`}</div><span class="small muted" style=${{ lineHeight: 1.45 }}>${t.recurring ? 'This pays ' + ((data.bills.find((b) => b.id === t.recurring) || {}).name || 'a bill') + ', so Safe to Spend doesn’t count that bill again this month.' : 'If this pays one of your bills, link it so Safe to Spend doesn’t count the bill twice.'}</span>
-        ${data.bills.length > 0 && html`<select class="input" aria-label="Bill this pays" value=${t.recurring || ''} onChange=${(e) => { commit(K.editTxn(data, t.id, { recurring: e.target.value || null, billMatch: e.target.value ? 'manual' : 'off' })); toast(e.target.value ? 'Linked to bill' : 'Unlinked'); }}><option value="">Not a bill</option>${data.bills.map((b) => html`<option key=${b.id} value=${b.id}>${b.name}</option>`)}</select>`}${!t.recurring && t.from && html`<button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(K.billFromTxn(data, t.id)); toast('Saved as a repeating bill'); }}><${Icon} n="repeat" s=${14} />It repeats · make it a bill</button>`}</div>`}
-      <${Facts} rows=${[['Date', K.fmtDate(t.date, true)], t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.recurring && ['Recurring', 'Yes · in Bills & recurring'], t.note && ['Note', t.note]]} />
-      <div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}><${Icon} n="edit" s=${16} />Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
+    const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);
+    const toggle = (k) => setOpen(open === k ? null : k);
+    const editable = ['expense', 'income', 'transfer'].includes(t.type);
+    const where = K.whereName(data, t.from || t.to);
+    const setType = (type) => { if (type === t.type) return; commit(K.changeType(data, t.id, type, known ? null : place)); toast({ expense: 'Now an expense', income: 'Now income', transfer: 'Now a transfer' }[type]); };
+    const setBill = (id) => { commit(K.editTxn(data, t.id, { recurring: id || null, billMatch: id ? 'manual' : 'off' })); toast(id ? 'Linked to bill' : 'Unlinked'); setOpen(null); };
+    const choice = (on, label, onClick, key) => html`<button key=${key} type="button" class="txo-choice" aria-pressed=${on} onClick=${onClick}><span class="grow" style=${{ textAlign: 'left' }}>${label}</span>${on && html`<${Icon} n="check" s=${16} c="var(--acc)" w=${2.4} />`}</button>`;
+    return html`<div class="stack" style=${{ maxWidth: '640px', width: '100%', margin: '0 auto', gap: '14px' }}>
+      <div class="txd-hero"><${Tile} icon=${c ? c.icon : t.type === 'income' ? 'income' : 'transfer'} tone=${c ? c.tone : 'n'} s=${48} />
+        <span class="txd-name">${t.merchant || typeLabel}</span>
+        <span class="disp num txd-amt" style=${{ color: t.type === 'income' ? 'var(--pos)' : null }}>${t.type === 'income' ? '+' : ''}${foreign ? fmt.native(t.amt, t.cur, { dec: 2 }) : fmt(t.base, { dec: 2 })}</span>
+        <span class="small muted">${K.fmtDate(t.date, true)}${where ? ' · ' + where : ''}</span>
+        ${(t.settled || bill) && html`<div class="row" style=${{ gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>${bill && html`<span class="pill pos"><${Icon} n="repeat" s=${12} w=${2.4} />${bill.name}</span>`}${t.settled && html`<span class="pill neu"><${Icon} n="check" s=${12} w=${2.4} />Already paid</span>`}</div>`}</div>
+
+      ${editable && html`<div class="card tight list">
+        <${OptRow} icon="transfer" label="Type" value=${typeLabel} open=${open === 'type'} onToggle=${() => toggle('type')}>
+          <${K.Seg} options=${['expense', 'income', 'transfer']} labels=${['Expense', 'Income', 'Transfer']} value=${t.type} onChange=${setType} />
+          ${!known && places.length > 0 && html`<label class="stack-s" style=${{ gap: '4px' }}><span class="tiny muted">Account or card it belongs to</span><select class="input" value=${place} onChange=${(e) => setPlace(e.target.value)}>${places.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select></label>`}</${OptRow}>
+        ${t.type === 'expense' && html`<${OptRow} icon="tag" label="Category" value=${c ? c.name : 'Other'} open=${open === 'cat'} onToggle=${() => toggle('cat')}>
+          <div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (t.cat === k ? ' on' : '')} onClick=${() => { commit(K.editTxn(data, t.id, { cat: k })); toast('Category updated'); }}>${K.CATS[k].name}</button>`)}</div>
+          <button class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((r) => r.merchant.toLowerCase() !== (t.merchant || '').toLowerCase()).concat([{ id: K.uid('r'), merchant: t.merchant, cat: t.cat }]) })); toast('New ' + t.merchant + ' purchases will use ' + K.CATS[t.cat].name); }}>Always use this category for ${t.merchant}</button></${OptRow}>`}
+        ${t.type === 'expense' && html`<${OptRow} icon="repeat" label="Bill" value=${bill ? bill.name : 'None'} open=${open === 'bill'} onToggle=${() => toggle('bill')}>
+          <div class="txo-choices">${choice(!t.recurring, 'Not a bill', () => setBill(null), 'none')}${data.bills.map((b) => choice(t.recurring === b.id, b.name, () => setBill(b.id), b.id))}</div>
+          ${!t.recurring && t.from && html`<button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(K.billFromTxn(data, t.id)); toast('Saved as a repeating bill'); setOpen(null); }}><${Icon} n="plus" s=${14} w=${2.2} />New bill from this payment</button>`}</${OptRow}>`}
+        ${(t.from || t.to) && html`<${OptRow} icon="check" label="Already paid" right=${html`<${K.Switch} on=${!!t.settled} label="Already paid" onChange=${(v) => { commit(K.editTxn(data, t.id, { settled: v || undefined })); toast(v ? 'Marked as already paid · balance updated' : 'Balance updated'); }} />`} onToggle=${() => {}} />`}
+      </div>`}
+
+      <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
+      <div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
       <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />
     </div>`;
   };

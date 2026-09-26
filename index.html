@@ -290,6 +290,18 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 .switch.on i { transform: translateX(18px); }
 .sheet-bg { position: fixed; inset: 0; z-index: 60; background: rgba(12, 10, 24, 0.4); display: flex; align-items: flex-end; justify-content: center; animation: fadein 0.18s ease; }
 .sheet { width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; background: var(--surface); border-radius: 28px 28px 0 0; padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 28px); display: flex; flex-direction: column; gap: 16px; animation: up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Movement detail: a quiet header and one list of choices */
+.txd-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 18px 12px 8px; }
+.txd-name { font-weight: 600; font-size: 15px; margin-top: 6px; overflow-wrap: anywhere; }
+.txd-amt { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.txo + .txo { border-top: 1px solid var(--line); }
+.txo-val { font-size: 14px; color: var(--muted); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.txo-body { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px 64px; }
+.txo-choices { display: flex; flex-direction: column; border-radius: 14px; background: var(--surface2); overflow: hidden; }
+.txo-choice { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; font-size: 14px; text-align: left; }
+.txo-choice + .txo-choice { border-top: 1px solid var(--line); }
+.txo-choice[aria-pressed="true"] { font-weight: 600; }
+@media (max-width: 420px) { .txo-body { padding-left: 16px; } }
 /* A long sheet scrolls; its rows keep their height instead of squeezing */
 .sheet > * { flex-shrink: 0; }
 .wide .sheet-bg { align-items: center; }
