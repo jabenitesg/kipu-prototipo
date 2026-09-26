@@ -50,7 +50,7 @@
   K.Icon = Icon;
 
   // ---------------------------------------------------------------- money formatting (one place)
-  // Amounts in the model are stored in CA$. Display converts to the chosen base currency at the live rate.
+  // Totals use the selected base currency; native amounts remain available beside conversions.
   function makeFmt(settings, data) {
     const base = data.base;
     const num = (n, dec) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -201,11 +201,12 @@
   const UpcomingItem = ({ u }) => {
     const { go, fmt } = useApp();
     const d = K.parse(u.date);
-    const tone = u.kind === 'Card due' ? 'b' : u.kind === 'Loan payment' ? 'b' : u.kind === 'Planned saving' ? 'p' : u.kind === 'Subscription' ? 'a' : 'n';
+    const converted = u.native && (u.native.length > 1 || u.native.some((x) => x.cur !== fmt.base));
+    const native = converted ? u.native.map((x) => fmt.native(x.amt, x.cur) + ' ' + x.cur).join(' + ') : '';
     return html`<button class="lrow" onClick=${() => go(u.route)}>
       <span class="stack-s" style=${{ width: '40px', alignItems: 'center', gap: 0 }}><span class="tiny muted">${K.MON[d.getMonth()].toUpperCase()}</span><span class="disp num" style=${{ fontSize: '18px', fontWeight: 700 }}>${d.getDate()}</span></span>
-      <span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${u.name}</span><span class="t2">${u.kind}</span></span>
-      <span class="amt">${fmt(u.amt)}</span></button>`;
+      <span class="grow stack-s" style=${{ gap: '2px' }}><span class="t1">${u.name}</span><span class="t2">${u.kind}${converted ? ' · ' + native : ''}</span></span>
+      <span class="amt">${u.amt == null ? 'Rate missing' : (converted ? '≈ ' : '') + fmt(u.amt)}</span></button>`;
   };
   K.UpcomingItem = UpcomingItem;
 

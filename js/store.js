@@ -188,14 +188,15 @@
   // base = what both started from, local = this device, remote = the other device. Lists merge by id;
   // balances merge by adding both sides' changes, because each side's transactions moved them.
   const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const DELTA = { accounts: ['bal'], cards: ['bal', 'bal2', 'stmtBal', 'stmtBal2'], loans: ['bal'], goals: ['saved'] };
+  const DELTA = { accounts: ['bal'], cards: ['bal', 'bal2'], loans: ['bal'], goals: ['saved'] };
   const mergeObj = (b, l, r) => {
     b = b || {}; l = l || {}; r = r || {};
     const out = {};
     new Set(Object.keys(l).concat(Object.keys(r))).forEach((k) => { const v = sameJSON(l[k], b[k]) ? r[k] : l[k]; if (v !== undefined) out[k] = v; });
     return out;
   };
-  const mergeList = (b, l, r, delta) => {
+  const MERGE_FINANCIAL = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'interest', 'loanNextBefore', 'loanNextAfter', 'keepLoanBal', 'settled', 'charged', 'postings'];
+  const mergeList = (b, l, r, delta, collection) => {
     const byId = (a) => new Map((a || []).map((x) => [x.id, x]));
     const B = byId(b), L = byId(l), Rm = byId(r);
     const order = (r || []).map((x) => x.id).concat((l || []).map((x) => x.id).filter((id) => !Rm.has(id)));
@@ -206,6 +207,9 @@
       if (!ri) { if (!(bi && sameJSON(li, bi))) out.push(li); return; }
       if (sameJSON(li, bi) || !bi) { out.push(sameJSON(li, bi) ? ri : mergeObj({}, li, ri)); return; }
       if (sameJSON(ri, bi)) { out.push(li); return; }
+      // One complete financial edit wins. Combining the amount from one device with the
+      // postings or destination from the other would produce an impossible transaction.
+      if (collection === 'txns' && MERGE_FINANCIAL.some((f) => !sameJSON(li[f], bi[f])) && MERGE_FINANCIAL.some((f) => !sameJSON(ri[f], bi[f]))) { out.push(li); return; }
       const m = mergeObj(bi, li, ri);
       (delta || []).forEach((f) => { if (typeof bi[f] === 'number' || typeof li[f] === 'number' || typeof ri[f] === 'number') m[f] = r2((bi[f] || 0) + ((li[f] || 0) - (bi[f] || 0)) + ((ri[f] || 0) - (bi[f] || 0))); });
       out.push(m);
@@ -213,6 +217,53 @@
     return out;
   };
   const isIdList = (a) => Array.isArray(a) && a.every((x) => x && typeof x === 'object' && 'id' in x);
+  // A balance is a stored starting value plus the effects of its transactions. When both devices
+  // edit one transaction, only the selected version may contribute to the merged balance.
+  const transactionEffects = (d) => {
+    const out = new Map();
+    const add = (key, amount) => out.set(key, r2((out.get(key) || 0) + amount));
+    (d.txns || []).forEach((t) => {
+      if (t.type === 'debt' && t.loan && !t.settled && !t.keepLoanBal) add('loans:' + t.loan + ':bal', -(t.principal || 0));
+      if (t.type === 'saving' && t.goal && !(t.to && t.to.startsWith('acct:'))) add('goals:' + t.goal + ':saved', t.base || 0);
+      let postings = t.postings;
+      if (!postings) { try { postings = postingsFor(d, t); } catch (e) { postings = []; } }
+      postings.forEach((p) => {
+        if (!p.where) return;
+        if (p.where.startsWith('acct:')) add('accounts:' + p.where.slice(5) + ':bal', p.amount);
+        if (p.where.startsWith('card:')) add('cards:' + p.where.slice(5) + ':' + (p.slot === 2 ? 'bal2' : 'bal'), -p.amount);
+      });
+    });
+    return out;
+  };
+  const reconcileBalances = (base, local, remote, merged) => {
+    const effects = [base, local, remote, merged].map(transactionEffects);
+    Object.entries(DELTA).forEach(([coll, fields]) => {
+      const lists = [base, local, remote, merged].map((d) => new Map((d[coll] || []).map((x) => [x.id, x])));
+      if (!Array.isArray(merged[coll])) return;
+      merged[coll] = merged[coll].map((item) => {
+        const [b, l, r] = lists.map((xs) => xs.get(item.id));
+        if (!b || !l || !r) return item;
+        if (coll === 'accounts' || coll === 'cards') {
+          const localCurrency = l.cur !== b.cur || l.cur2 !== b.cur2;
+          const remoteCurrency = r.cur !== b.cur || r.cur2 !== b.cur2;
+          const localBalance = fields.some((f) => (l[f] || 0) !== (b[f] || 0));
+          const remoteBalance = fields.some((f) => (r[f] || 0) !== (b[f] || 0));
+          if ((localCurrency && remoteBalance) || (remoteCurrency && localBalance) || (localCurrency && remoteCurrency && (l.cur !== r.cur || l.cur2 !== r.cur2))) throw new Error('Account currency changed while another device changed its balance. Reopen the latest data before editing this account.');
+        }
+        const next = Object.assign({}, item);
+        fields.forEach((field) => {
+          if (![b[field], l[field], r[field]].some((v) => typeof v === 'number')) return;
+          const key = coll + ':' + item.id + ':' + field;
+          const before = effects[0].get(key) || 0;
+          const own = r2((l[field] || 0) - (b[field] || 0) - ((effects[1].get(key) || 0) - before));
+          const theirs = r2((r[field] || 0) - (b[field] || 0) - ((effects[2].get(key) || 0) - before));
+          next[field] = r2((b[field] || 0) + (effects[3].get(key) || 0) - before + own + theirs);
+        });
+        return next;
+      });
+    });
+    return merged;
+  };
   K.mergeData = (base, local, remote) => {
     if (!base) return local;
     if (sameJSON(local, base)) return remote;
@@ -220,12 +271,13 @@
     const out = {};
     new Set(Object.keys(local).concat(Object.keys(remote))).forEach((k) => {
       const b = base[k], l = local[k], r = remote[k];
-      if (isIdList(l || []) && isIdList(r || []) && (Array.isArray(l) || Array.isArray(r))) out[k] = mergeList(b || [], l || [], r || [], DELTA[k]);
+      if (isIdList(l || []) && isIdList(r || []) && (Array.isArray(l) || Array.isArray(r))) out[k] = mergeList(b || [], l || [], r || [], DELTA[k], k);
       else if (Array.isArray(l) || Array.isArray(r)) out[k] = sameJSON(l, b) ? r : sameJSON(r, b) ? l : [...new Set([].concat(r || [], l || []))];
       else if (l && r && typeof l === 'object' && typeof r === 'object') out[k] = mergeObj(b, l, r);
       else out[k] = sameJSON(l, b) ? r : l;
     });
-    return out;
+    const merged = reconcileBalances(base, local, remote, out);
+    return base.fx && merged.fx ? K.snapshot(merged) : merged;
   };
 
   K.factory = () => ({
@@ -296,27 +348,91 @@
   // ---------------------------------------------------------------- personal and Household spaces, opened together
   // Personal things live only in your own encrypted file; shared things live in the Household file both of you open.
   // On screen they're one list; on save each item goes back to its own file.
-  const SPACE_COLLS = ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips'];
+  const SPACE_COLLS = ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips', 'imports'];
   const byId = (list) => { const seen = new Set(); return list.filter((x) => (x && !seen.has(x.id) ? seen.add(x.id) : false)); };
   K.combineSpaces = (p, h, hh) => {
+    const sharedData = h.base !== p.base ? K.changeBase(Object.assign({}, h, { fx: Object.assign({}, h.fx, { usd: Object.assign({}, h.fx.usd, p.fx.usd) }) }), p.base) : h;
     const out = Object.assign({}, p);
     SPACE_COLLS.forEach((k) => {
-      const shared = (h[k] || []).map((x) => (x.shared ? x : Object.assign({}, x, { shared: true })));
+      const shared = (sharedData[k] || []).map((x) => (x.shared ? x : Object.assign({}, x, { shared: true })));
+      const sharedImports = k === 'imports' ? new Set((p.txns || []).concat(sharedData.txns || []).filter((t) => t.shared && t.imp).map((t) => t.imp)) : null;
+      const personal = k === 'imports' ? (p[k] || []).map((x) => sharedImports.has(x.id) && !x.shared ? Object.assign({}, x, { shared: true }) : x) : p[k] || [];
       // Things marked shared in your own file (from before the Household existed) move to the Household on the next save
-      out[k] = byId((p[k] || []).filter((x) => !x.shared).concat(shared, (p[k] || []).filter((x) => x.shared)));
+      out[k] = byId(personal.filter((x) => !x.shared).concat(shared, personal.filter((x) => x.shared)));
     });
-    out.customCats = byId((p.customCats || []).concat(h.customCats || []));
-    out.active = [...new Set((p.active || []).concat(h.active || []))];
+    out.customCats = byId((sharedData.customCats || []).map((x) => x.shared ? x : Object.assign({}, x, { shared: true })).concat(p.customCats || []));
+    out.active = [...new Set((p.active || []).concat(sharedData.active || []))];
+    out.householdBudget = Object.assign({}, sharedData.budget || {});
     out.household = Object.assign({ partner: '', split: 50 }, p.household, { enabled: true, mode: 'mixed', name: hh.name, cloudId: hh.id });
     return out;
   };
   K.splitSpaces = (d, hPrev) => {
-    const p = Object.assign({}, d), h = Object.assign(K.factory(), hPrev || {}, { onboarded: true });
+    const p = Object.assign({}, d); let h = Object.assign(K.factory(), hPrev || {}, { onboarded: true });
     SPACE_COLLS.forEach((k) => { p[k] = (d[k] || []).filter((x) => !x.shared); h[k] = (d[k] || []).filter((x) => x.shared); });
-    h.customCats = d.customCats || [];
+    const usedBy = (part) => new Set((part.txns || []).concat(part.bills || []).map((x) => x.cat).filter(Boolean));
+    const privateCats = usedBy(p), sharedCats = usedBy(h);
+    p.customCats = (d.customCats || []).filter((c) => !c.shared || privateCats.has(c.id));
+    h.customCats = (d.customCats || []).filter((c) => c.shared || sharedCats.has(c.id)).map((c) => c.shared ? c : Object.assign({}, c, { shared: true }));
+    h.budget = Object.assign({}, d.householdBudget || h.budget || {});
+    delete p.householdBudget;
+    delete h.householdBudget;
     if (!hPrev) { h.base = d.base; h.active = d.active; }
     delete h.hhKeys; // your key to the Household never goes into the Household file
+    if (hPrev) {
+      const displayed = hPrev.base === d.base ? hPrev : K.changeBase(Object.assign({}, hPrev, { fx: d.fx }), d.base);
+      const shared = (list) => (list || []).map((x) => x.shared ? x : Object.assign({}, x, { shared: true }));
+      if (SPACE_COLLS.every((k) => sameJSON(h[k], shared(displayed[k]))) && sameJSON(h.customCats, shared(displayed.customCats)) && sameJSON(d.householdBudget || {}, displayed.budget || {})) return [p, hPrev];
+    }
+    if (hPrev && hPrev.base !== d.base) {
+      const oldSnapshots = hPrev.snapshots;
+      h = K.changeBase(Object.assign({}, h, { base: d.base, fx: d.fx, snapshots: {} }), hPrev.base);
+      h.snapshots = oldSnapshots;
+    }
     return [p, h];
+  };
+  // A transaction and every account/plan it refers to must live in the same encrypted space.
+  // Move the whole connected group, never just an account while leaving its history behind.
+  K.moveSpace = (d, coll, id, desired) => {
+    const collections = ['accounts', 'cards', 'loans', 'bills', 'income', 'goals', 'trips', 'imports'];
+    const item = collections.includes(coll) && (d[coll] || []).find((x) => x.id === id);
+    if (!item) return { data: d, items: [], transactions: 0 };
+    const target = desired == null ? !item.shared : !!desired;
+    const nodes = new Set([coll + ':' + id]), txns = new Set();
+    const whereNode = (where) => where && (where.startsWith('acct:') ? 'accounts:' + where.slice(5) : where.startsWith('card:') ? 'cards:' + where.slice(5) : null);
+    const refs = (t) => [whereNode(t.from), whereNode(t.to), t.loan && 'loans:' + t.loan, t.recurring && 'bills:' + t.recurring, t.goal && 'goals:' + t.goal, t.trip && 'trips:' + t.trip, t.imp && 'imports:' + t.imp].filter(Boolean);
+    const edges = [
+      ['bills', 'pay', whereNode], ['income', 'to', whereNode], ['loans', 'from', whereNode], ['imports', 'where', whereNode],
+      ['goals', 'linked', (x) => x && 'accounts:' + x],
+    ];
+    let changed;
+    do {
+      changed = false;
+      (d.txns || []).forEach((t) => {
+        const linked = refs(t);
+        if (txns.has(t.id) || linked.some((n) => nodes.has(n))) {
+          if (!txns.has(t.id)) { txns.add(t.id); changed = true; }
+          linked.forEach((n) => { if (!nodes.has(n)) { nodes.add(n); changed = true; } });
+        }
+      });
+      edges.forEach(([name, field, key]) => (d[name] || []).forEach((x) => {
+        const a = name + ':' + x.id, b = key(x[field]);
+        if (b && (nodes.has(a) || nodes.has(b))) {
+          if (!nodes.has(a)) { nodes.add(a); changed = true; }
+          if (!nodes.has(b)) { nodes.add(b); changed = true; }
+        }
+      }));
+    } while (changed);
+    const items = [];
+    const next = Object.assign({}, d);
+    collections.forEach((name) => {
+      next[name] = (d[name] || []).map((x) => {
+        if (!nodes.has(name + ':' + x.id) || !!x.shared === target) return x;
+        items.push(x.name || x.id);
+        return Object.assign({}, x, { shared: target });
+      });
+    });
+    next.txns = (d.txns || []).map((t) => txns.has(t.id) && !!t.shared !== target ? Object.assign({}, t, { shared: target }) : t);
+    return { data: next, items, transactions: txns.size, shared: target };
   };
 
   // ---------------------------------------------------------------- currency
@@ -352,7 +468,9 @@
     const budget = {}; Object.keys(d.budget || {}).forEach((cat) => (budget[cat] = c(d.budget[cat])));
     return Object.assign({}, d, {
       base: nb, active: [nb].concat(d.active.filter((x) => x !== nb)),
-      txns: d.txns.map((t) => Object.assign({}, t, { base: c(t.base), rate: t.rate != null ? t.rate * k : t.rate, principal: c(t.principal), interest: c(t.interest) })),
+      // Loan principal and interest belong to the loan's native currency, so changing the
+      // display base must not change what is subtracted from the outstanding loan balance.
+      txns: d.txns.map((t) => Object.assign({}, t, { base: c(t.base), rate: t.rate != null ? t.rate * k : t.rate })),
       // Legacy cards had no currency and were denominated in the old base.
       cards: d.cards.map((x) => x.cur ? x : Object.assign({}, x, { cur: ob })),
       // Loans without a currency were in the old main currency; they keep their amounts and gain that currency
@@ -360,6 +478,7 @@
       goals: d.goals.map((x) => Object.assign({}, x, { target: c(x.target), monthly: c(x.monthly), saved: c(x.saved) })),
       trips: d.trips.map((x) => Object.assign({}, x, { budget: c(x.budget) })),
       budget, snapshots: snaps,
+      ...(d.householdBudget ? { householdBudget: Object.fromEntries(Object.entries(d.householdBudget).map(([cat, amount]) => [cat, c(amount)])) } : {}),
     });
   };
 
@@ -540,9 +659,10 @@
       const named = strong || n.includes(m) || words.some((w) => n.split(' ').includes(w));
       if (!named) return false;
       const amt = K.toBase(d, b.amt, b.cur || d.base); if (amt == null) return false;
-      // Prices change (insurance renewal, a new plan): when the shop clearly matches, a different amount still pays the bill
-      // and the bill then follows it. A loose name match needs the same amount.
-      if (Math.abs(amt - t.base) > Math.max(1, amt * (strong ? 0.6 : 0.03))) return false;
+      // Only a bank descriptor with an established payment history can follow a large price change.
+      // A generic shop name (Amazon, Apple, a supermarket) needs a close amount match.
+      const established = b.match && K.merchantKey(t.merchant) === b.match && d.txns.filter((x) => x.recurring === b.id).length >= 2;
+      if (Math.abs(amt - t.base) > Math.max(1, amt * (established ? 0.6 : 0.03))) return false;
       const due = b.kind === 'Annual' ? new Date(when.getFullYear(), (b.month || 1) - 1, b.day || 1) : new Date(when.getFullYear(), when.getMonth(), b.day || 1);
       const near = [addMonths(due, -1), due, addMonths(due, 1)].some((x) => Math.abs(days(x, when)) <= 7);
       if (!near) return false;
@@ -903,12 +1023,19 @@
     const item = K.whereItem(acc, r.where) || {};
     const id = uid('b');
     acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true, match: r.key });
-    return Object.assign({}, acc, { txns: acc.txns.map((t) => (t.type === 'expense' && !t.recurring && t.from === r.where && K.merchantKey(t.merchant) === r.key ? Object.assign({}, t, { recurring: id, billMatch: 'auto' }) : t)) });
+    let linked = acc;
+    acc.txns.forEach((t) => {
+      if (t.type !== 'expense' || t.recurring || t.from !== r.where || K.merchantKey(t.merchant) !== r.key) return;
+      const match = K.matchBill(linked, t);
+      if (match && match.id === id) linked = Object.assign({}, linked, { txns: linked.txns.map((x) => x.id === t.id ? Object.assign({}, x, { recurring: id, billMatch: 'auto' }) : x) });
+    });
+    return linked;
   }, d);
   // The day a balance was typed in: movements up to then are already inside it
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {
     const old = d[coll].find((x) => x.id === item.id);
+    const moving = old && Object.prototype.hasOwnProperty.call(item, 'shared') && !!old.shared !== !!item.shared && ['accounts', 'cards', 'loans', 'bills', 'income', 'goals', 'trips'].includes(coll);
     // The day a balance was typed: statement lines up to then are already inside it. A new card or account
     // with nothing typed (0) has no such day, so its statements move the balance.
     if (['accounts', 'cards'].includes(coll) && (old ? old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0) : item.bal || item.bal2)) item = Object.assign({}, item, { balDate: iso(today()) });
@@ -919,7 +1046,7 @@
       if (ratio == null) throw new Error('NO_RATE:' + (K.hasRateFor(d, old.cur || d.base) ? item.cur : old.cur));
       next.txns = d.txns.map((t) => t.postings ? Object.assign({}, t, { postings: t.postings.map((p) => p.where === where ? Object.assign({}, p, { amount: r2(p.amount * ratio) }) : p) }) : t);
     }
-    return K.snapshot(next);
+    return K.snapshot(moving ? K.moveSpace(next, coll, item.id, item.shared).data : next);
   };
   K.remove = (d, coll, id) => K.snapshot(Object.assign({}, d, { [coll]: d[coll].filter((x) => x.id !== id) }));
   K.payLoan = (d, loanId, fromAcct, extra) => {
@@ -943,8 +1070,8 @@
   const curCountry = (c) => (K.countryOfCur ? K.countryOfCur(c) : null) || String(c).slice(0, 2);
   K.itemCountry = (d, x) => { if (x.country) return x.country; const c = x.cur || d.base; return curCountry(HELD_AT_HOME.includes(c) ? d.base : c); };
   K.countries = (d) => { const s = []; [].concat(d.accounts.filter((a) => !a.archived), d.cards, d.loans).forEach((x) => { const c = K.itemCountry(d, x); if (c && !s.includes(c)) s.push(c); }); return s; };
-  // The country's own currency: its everyday accounts first, then anything else there
-  K.countryCur = (d, cc) => { const pick = (list) => { const m = {}; list.forEach((x) => { if (K.itemCountry(d, x) === cc) m[x.cur || d.base] = (m[x.cur || d.base] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a])[0]; }; return pick(d.accounts) || pick(d.cards) || pick(d.loans) || d.base; };
+  // Use the country's home currency for its view, even when most accounts there hold foreign currency.
+  K.countryCur = (d, cc) => { const native = K.currencyForCountry && K.currencyForCountry(cc); if (native) return native; const pick = (list) => { const m = {}; list.forEach((x) => { if (K.itemCountry(d, x) === cc) m[x.cur || d.base] = (m[x.cur || d.base] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a])[0]; }; return pick(d.accounts) || pick(d.cards) || pick(d.loans) || d.base; };
   // Just this country's money, in its own currency. Transactions in that currency keep their exact amounts.
   K.countryView = (d, cc) => {
     const inC = (x) => K.itemCountry(d, x) === cc;
@@ -1051,7 +1178,7 @@
       const mt = list.filter((t) => inMonth(t, y, m));
       const cats = {}; K.CAT_ORDER.forEach((c) => (cats[c] = 0));
       mt.filter((t) => t.type === 'expense').forEach((t) => (cats[t.cat] = r2((cats[t.cat] || 0) + f(t))));
-      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), flex: r2(sum(mt.filter((t) => t.type === 'expense' && !t.recurring), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => t.interest || 0)), count: mt.length, cats };
+      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), flex: r2(sum(mt.filter((t) => t.type === 'expense' && !t.recurring), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => (t.interest || 0) * (useVal && cur !== 'Combined' ? 1 : t.rate == null ? 0 : t.rate))), count: mt.length, cats };
       o.net = r2(o.income - o.spending - o.saved - o.debtPaid); o.rate = o.income ? r2((o.saved / o.income) * 100) : 0;
       return o;
     };
@@ -1072,14 +1199,14 @@
     const expectedIncome = r2(Math.max(incomeExpected, monthAll.income));
     const flexSpent = r2(sum(txAll.filter((t) => t.type === 'expense' && !t.recurring && inMonth(t, T.getFullYear(), T.getMonth())), (t) => t.base * share(t)));
     const available = r2(expectedIncome - commitments - debtPlanned - savingsPlanned);
-    const budgetRows = Object.keys(data.budget).filter((c) => data.budget[c] > 0).map((c) => ({ cat: c, plan: data.budget[c], actual: monthAll.cats[c] || 0 }));
+    const selectedBudget = scope === 'household' && data.householdBudget ? data.householdBudget : data.budget;
+    const budgetRows = Object.keys(selectedBudget).filter((c) => selectedBudget[c] > 0).map((c) => ({ cat: c, plan: selectedBudget[c], actual: monthAll.cats[c] || 0 }));
 
     // Safe to Spend = cash you can use today minus everything due before your next payday
     // (or month end when no income is set). It works from the first day, without history.
     const nextPays = incomeSrc.map((s) => K.nextDate(s.next || iso(T), s.freq, addDays(T, 1)));
     const nextPay = nextPays.length ? nextPays.reduce((a, b) => (b < a ? b : a)) : null;
     const until = nextPay ? addDays(nextPay, -1) : monthEnd;
-    const inWin = (d) => d >= T && d <= until;
     // A payment covers the due date it sits closest to: within half a cycle before it, so
     // last month's rent never counts for the rent due on the 1st of next month
     const unpaidDates = (b, dates) => {
@@ -1096,24 +1223,26 @@
     const cashNow = r2(sum(spendable, (a) => a.baseBal));
     const billsDue = bills.map((b) => ({ b, n: unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, until)).length })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
-    const cardsDue = B.cards.map((c) => {
+    const cardPayment = (c, through) => {
       // With a closing day: the statement Kipu works out, reserved for the day it's usually paid (or due)
       const cyc = !c.cur2 && K.cardCycle(data, c, T);
-      if (cyc && cyc.reserveOn) { const by = parse(cyc.reserveOn); return cyc.owed > 0 && inWin(by) ? Object.assign({}, c, { dueAmount: cyc.owed, dueAmount2: 0, payBy: cyc.reserveOn }) : null; }
+      if (cyc && cyc.reserveOn) { const by = parse(cyc.reserveOn); return cyc.owed > 0 && by >= T && by <= through ? Object.assign({}, c, { dueAmount: cyc.owed, dueAmount2: 0, payBy: cyc.reserveOn }) : null; }
       // Without a statement balance typed in, reserve what's owed on the card
       if (!(c.stmtBal > 0 || c.stmtBal2 > 0)) c = Object.assign({}, c, { stmtBal: Math.max(0, c.bal || 0), stmtBal2: Math.max(0, c.bal2 || 0) });
       if (!c.dueDay || !(c.stmtBal > 0 || c.stmtBal2 > 0)) return null;
       const due = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T);
-      if (!inWin(due)) return null;
+      if (due > through) return null;
       const priorDue = addMonths(due, -1);
       const paid = sum(txAll.filter((t) => t.to === 'card:' + c.id && parse(t.date) > priorDue && parse(t.date) <= T), (t) => {
         const p = (t.postings || []).find((x) => x.where === 'card:' + c.id && x.slot !== 2);
         return p ? p.amount : t.base / K.rate(data, c.cur || data.base, data.base);
       });
       const paid2 = c.cur2 ? sum(txAll.filter((t) => t.to === 'card:' + c.id && parse(t.date) > priorDue && parse(t.date) <= T), (t) => { const p = (t.postings || []).find((x) => x.where === 'card:' + c.id && x.slot === 2); return p ? p.amount : 0; }) : 0;
-      return Object.assign({}, c, { dueAmount: r2(Math.max(0, Math.min(c.bal, c.stmtBal - paid))), dueAmount2: c.cur2 ? r2(Math.max(0, Math.min(c.bal2 || 0, (c.stmtBal2 || 0) - paid2))) : 0 });
-    }).filter((c) => c && (c.dueAmount > 0 || c.dueAmount2 > 0));
-    const cardsDueAmt = r2(sum(cardsDue, (c) => K.toBase(data, c.dueAmount, c.cur || data.base) + (c.cur2 ? K.toBase(data, c.dueAmount2, c.cur2) : 0)));
+      return Object.assign({}, c, { dueAmount: r2(Math.max(0, Math.min(c.bal, c.stmtBal - paid))), dueAmount2: c.cur2 ? r2(Math.max(0, Math.min(c.bal2 || 0, (c.stmtBal2 || 0) - paid2))) : 0, payBy: iso(due) });
+    };
+    const cardPaymentBase = (c) => { const a = c.dueAmount > 0 ? K.toBase(data, c.dueAmount, c.cur || data.base) : 0, b = c.cur2 && c.dueAmount2 > 0 ? K.toBase(data, c.dueAmount2, c.cur2) : 0; return a == null || b == null ? null : r2(a + b); };
+    const cardsDue = B.cards.map((c) => cardPayment(c, until)).filter((c) => c && (c.dueAmount > 0 || c.dueAmount2 > 0));
+    const cardsDueAmt = r2(sum(cardsDue, cardPaymentBase));
     const loansDue = B.loans.filter((l) => l.bal > 0 && l.pay).map((l) => ({ l, n: futureOccurrences(l.next || iso(T), l.freq, T, until).length })).filter((x) => x.n);
     const loansDueAmt = r2(sum(loansDue, (x) => x.n * x.l.pay));
     const savingsLeft = r2(Math.max(0, savingsPlanned - monthAll.saved));
@@ -1155,7 +1284,7 @@
     const horizon = addDays(T, 45), upcoming = [];
     bills.forEach((b) => occurrences(iso(billAnchor(b)), billFreq(b), addDays(T, 1), horizon).forEach((d) => upcoming.push({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' }, billId: b.id })));
     B.loans.filter((l) => l.bal > 0 && l.pay).forEach((l) => futureOccurrences(l.next || iso(T), l.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: l.name, amt: l.pay, kind: 'Loan payment', route: { r: 'loan', id: l.id } })));
-    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const cyc = !c.cur2 && K.cardCycle(data, c, T); if (cyc && cyc.reserveOn) { if (cyc.owed > 0 && parse(cyc.reserveOn) <= horizon) upcoming.push({ date: cyc.reserveOn, name: c.name + ' payment', amt: K.toBase(data, cyc.owed, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); return; } const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
+    B.cards.map((c) => cardPayment(c, horizon)).filter((c) => c && (c.dueAmount > 0 || c.dueAmount2 > 0)).forEach((c) => upcoming.push({ date: c.payBy, name: c.name + ' payment', amt: cardPaymentBase(c), native: [{ cur: c.cur || data.base, amt: c.dueAmount }].concat(c.cur2 ? [{ cur: c.cur2, amt: c.dueAmount2 }] : []).filter((x) => x.amt > 0), kind: 'Card due', route: { r: 'card', id: c.id } }));
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
     // Due in the next three days and not paid yet: what reminders talk about. Card-charged bills pay themselves.

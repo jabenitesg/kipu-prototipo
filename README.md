@@ -83,6 +83,8 @@ Sitio estático sin compilación: React 18 y htm desde CDN, y el código en `js/
 
 Las pruebas se ejecutan con `node --test tests/*.test.js` (finanzas, nube y lectura de estados de cuenta) (Node.js 18 o posterior). Cubren cálculos financieros, inicio vacío y demo explícita, cifrado de archivos privados y conjuntos, lectura entre dispositivos, fusión de cambios simultáneos, monedas sin tasa, recibos pagados por gastos importados, vista por país y tarjetas bimoneda. Las políticas de Household se verificaron en Supabase con identidades simuladas de dueño, invitado y tercero; la prueba real con dos cuentas de Google debe completarse antes de considerarlo validado para uso habitual.
 
+Las pruebas de sincronización incluyen ahora la edición simultánea del mismo movimiento y de cuentas distintas; el saldo se reconcilia con los movimientos que realmente se conservan. Al pasar una cuenta o plan entre Personal y Household, Kipu muestra los elementos vinculados y mueve con ellos su historial e importaciones. Los presupuestos y categorías privadas permanecen en su espacio. Si dos personas usan monedas principales distintas, la vista conjunta convierte los montos del Household para presentarlos y vuelve a guardarlos en la moneda del Household. Los vencimientos de tarjetas bimoneda usan el mismo monto pendiente que Safe to Spend.
+
 ## Prototipo
 
 Las 202 pantallas de diseño originales siguen en [`/prototipo`](prototipo/).

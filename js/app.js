@@ -26,7 +26,7 @@
     const spaceChoiceRef = useRef(false);
     // Spaces already unlocked in this session (personal and each Household), so switching back needs no passphrase
     const openVaultsRef = useRef({});
-    const makeVault = (household) => { const v = household ? new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }, 'household_vaults', 'household_id') : new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }); return v; };
+    const makeVault = (household) => { const v = household ? new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) reportSync('household', status, error); }, 'household_vaults', 'household_id') : new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) reportSync('personal', status, error); }); return v; };
     // Personal and Household open together: the Household file sits next to yours, and saves go to each by item
     const hhVaultRef = useRef(null);
     const hhDataRef = useRef(null);
@@ -34,6 +34,12 @@
     const forgetVaults = () => { Object.values(openVaultsRef.current).forEach((v) => v !== vaultRef.current && v.clear()); openVaultsRef.current = {}; closeCombined(); };
     const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
     const cloudRef = useRef(cloud); cloudRef.current = cloud;
+    const reportSync = (space, status, error) => setCloud((c) => {
+      const detail = Object.assign({}, c.syncDetail, { [space]: { status, error: error || '' } });
+      const active = c.combined ? ['personal', 'household'] : [c.target === 'household' ? 'household' : 'personal'];
+      const states = active.map((key) => detail[key] || { status: 'synced', error: '' });
+      return Object.assign({}, c, { syncDetail: detail, sync: states.some((x) => x.status === 'error') ? 'error' : states.some((x) => x.status === 'saving') ? 'saving' : 'synced', error: states.map((x) => x.error).filter(Boolean).join(' · ') });
+    });
     // When another device saved first, the vault merges both and hands the result back here
     K.onVaultMerged = (vault, merged) => {
       const c = cloudRef.current;
@@ -42,7 +48,7 @@
       const next = c.combined && hhDataRef.current ? K.combineSpaces(merged, hhDataRef.current, c.household) : c.target === 'household' && c.household ? K.jointData(merged, c.household.name) : merged;
       dataRef.current = next; setData(next);
     };
-    if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
+    if (!vaultRef.current && K.cloudClient) vaultRef.current = makeVault(null);
     useEffect(() => {
       if (!K.cloudClient) { setCloud({ status: 'guest', user: null, error: 'Cloud sign-in is unavailable.' }); return; }
       const { data: listener } = K.cloudClient.auth.onAuthStateChange((event, session) => {
@@ -57,7 +63,7 @@
         spaceChoiceRef.current = false;
         forgetVaults();
         if (vaultRef.current) vaultRef.current.clear();
-        vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
+        vaultRef.current = makeVault(null);
         const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
         setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '', target: 'personal', household: null, households: [] });
         // A device that unlocked before opens without the passphrase; the app lock (Face ID or PIN) guards it
@@ -84,7 +90,7 @@
           const household = households.find((h) => h.id === preferred) || null;
           if (household && !spaceChoiceRef.current) {
             if (vaultRef.current) vaultRef.current.clear();
-            vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
+            vaultRef.current = makeVault(household);
             setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 });
             setCloud((c) => Object.assign({}, c, { households, target: 'household', household }));
           } else setCloud((c) => Object.assign({}, c, { households }));
@@ -110,9 +116,10 @@
     const commit = useCallback((next) => {
       const cc = cloudRef.current;
       if (cc.combined && hhVaultRef.current && vaultRef.current && vaultRef.current.key) {
-        const [mine, ours] = K.splitSpaces(next, hhDataRef.current);
+        const [mine, shared] = K.splitSpaces(next, hhDataRef.current);
+        const ours = JSON.stringify(shared) === JSON.stringify(hhDataRef.current) ? shared : K.snapshot(shared);
         dataRef.current = next; setData(next);
-        vaultRef.current.enqueue(mine);
+        if (JSON.stringify(mine) !== JSON.stringify(vaultRef.current.latest || vaultRef.current.inFlight || vaultRef.current.base)) vaultRef.current.enqueue(mine);
         if (JSON.stringify(ours) !== JSON.stringify(hhDataRef.current)) { hhDataRef.current = ours; hhVaultRef.current.enqueue(ours); }
         return;
       }
@@ -147,7 +154,7 @@
     }, []);
     // Switch spaces. A space opened earlier in this session opens straight away; otherwise it asks for its passphrase.
     const switchSpace = (household) => {
-      if (cloudRef.current.combined) { if (hhVaultRef.current && (hhVaultRef.current.latest || hhVaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.'); closeCombined(); setCloud((x) => Object.assign({}, x, { combined: false })); cloudRef.current = Object.assign({}, cloudRef.current, { combined: false }); }
+      if (cloudRef.current.combined) { if (hhVaultRef.current && (hhVaultRef.current.latest || hhVaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.'); closeCombined(); setCloud((x) => Object.assign({}, x, { combined: false, syncDetail: {} })); cloudRef.current = Object.assign({}, cloudRef.current, { combined: false }); }
       const cur = vaultRef.current;
       if (cur && (cur.latest || cur.busy)) throw new Error('Wait for sync before switching spaces.');
       const from = cloudRef.current.target === 'household' && cloudRef.current.household ? cloudRef.current.household.id : 'personal';
@@ -175,7 +182,7 @@
     const cloudOpenHousehold = useCallback(async (household, passphrase, remember) => {
       const c = cloudRef.current;
       if (!c.user || c.target !== 'personal' || c.status !== 'ready') throw new Error('Unlock your personal space first.');
-      const v = new K.CloudVault(K.cloudClient, (status, error) => { if (hhVaultRef.current === v) setCloud((x) => Object.assign({}, x, { sync: status, error: error || '' })); }, 'household_vaults', 'household_id');
+      const v = new K.CloudVault(K.cloudClient, (status, error) => { if (hhVaultRef.current === v) reportSync('household', status, error); }, 'household_vaults', 'household_id');
       const remote = await v.open(household.id, passphrase);
       if (!remote) { v.clear(); throw new Error('This Household is still being set up. Ask its creator to finish setup.'); }
       closeCombined();
@@ -195,7 +202,7 @@
       const next = Object.assign({}, mine, { household: Object.assign({}, mine.household, { enabled: false, mode: 'solo' }), hhKeys: undefined });
       closeCombined();
       cloudRef.current = Object.assign({}, c, { combined: false, household: null });
-      setCloud((x) => Object.assign({}, x, { combined: false, household: null }));
+      setCloud((x) => { const personal = (x.syncDetail || {}).personal || { status: 'synced', error: '' }; return Object.assign({}, x, { combined: false, household: null, syncDetail: { personal }, sync: personal.status, error: personal.error }); });
       setCtxRaw((x) => Object.assign({}, x, { scope: 'personal' }));
       commitRef.current(next);
     }, []);
@@ -220,7 +227,7 @@
       if (error) throw error;
       let created = false;
       try {
-        const vault = new K.CloudVault(K.cloudClient, (status, issue) => setCloud((c) => Object.assign({}, c, { sync: status, error: issue || '' })), 'household_vaults', 'household_id');
+        const vault = new K.CloudVault(K.cloudClient, (status, issue) => reportSync('household', status, issue), 'household_vaults', 'household_id');
         await vault.open(household.id, passphrase);
         const initial = K.jointData(Object.assign(K.factory(), { onboarded: true, base: currency, active: [currency] }), household.name);
         await vault.create(initial); created = true;
@@ -258,7 +265,7 @@
           if (!fresh && !freshH) return;
           const mine = fresh || (cloud.combined ? K.splitSpaces(dataRef.current, hhDataRef.current)[0] : dataRef.current);
           const next = cloud.combined && hhDataRef.current ? K.combineSpaces(mine, hhDataRef.current, cloud.household) : cloud.target === 'household' ? K.jointData(mine, cloud.household.name) : mine;
-          dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { sync: 'synced' }));
+          dataRef.current = next; setData(next);
         } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); }
       };
       const timer = setInterval(check, 30000);
@@ -332,7 +339,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, view, updateRates, displayName, commit, cloud, cloudOpen, cloudOpenHousehold, cloudCloseHousehold, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, view, updateRates, displayName, commit, cloud, cloudOpen, cloudOpenHousehold, cloudCloseHousehold, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => { if (vaultRef.current) vaultRef.current.retry(); if (hhVaultRef.current) hhVaultRef.current.retry(); }, ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;

@@ -38,6 +38,7 @@
   // Main currency to suggest on first run, from the phone's region (es-PE → PEN)
   const EURO = 'AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK'.split(' ');
   const REGION_CUR = { PE: 'PEN', CA: 'CAD', US: 'USD', MX: 'MXN', CO: 'COP', CL: 'CLP', AR: 'ARS', BR: 'BRL', BO: 'BOB', UY: 'UYU', PY: 'PYG', EC: 'USD', SV: 'USD', PA: 'USD', PR: 'USD', GT: 'GTQ', CR: 'CRC', DO: 'DOP', HN: 'HNL', NI: 'NIO', VE: 'VES', GB: 'GBP', CH: 'CHF', AU: 'AUD', NZ: 'NZD', JP: 'JPY', IN: 'INR', CN: 'CNY' };
+  K.currencyForCountry = (cc) => REGION_CUR[cc] || (EURO.includes(cc) ? 'EUR' : null);
   K.guessBase = () => {
     const langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']);
     for (const l of langs) { const m = /-([A-Za-z]{2})\b/.exec(l || ''); if (!m) continue; const r = m[1].toUpperCase(); if (REGION_CUR[r]) return REGION_CUR[r]; if (EURO.includes(r)) return 'EUR'; }
