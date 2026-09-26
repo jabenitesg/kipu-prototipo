@@ -123,11 +123,41 @@
   K.setCustom = (cfg) => { K.THEMES.Custom = K.buildCustom(cfg); };
   K.setCustom(null);
   // Text color for a card look: the theme's ink for theme colors, white for the fixed dark looks
-  K.inkFor = (look) => (!look || !look.kind || look.kind === 'theme' || String(look.key || '').startsWith('theme-') ? 'var(--hero-ink)' : '#FFFFFF');
+  K.inkFor = (look) => { if (!look || !look.kind || look.kind === 'theme' || String(look.key || '').startsWith('theme-')) return 'var(--hero-ink)'; const g = look.kind === 'gradient' && K.LOOK_GRADS.find((x) => x[0] === look.key); return (g && g[3]) || '#FFFFFF'; };
 
   // Curated looks for cards, goals and trips: theme default, the palette's own colors, then a short fixed set
   K.LOOK_SOLIDS = [['purple', 'Purple', '#5B3FD6'], ['indigo', 'Indigo', '#3F46C9'], ['blue', 'Blue', '#1D5FD1'], ['teal', 'Teal', '#127C80'], ['green', 'Green', '#1E7A55'], ['terracotta', 'Terracotta', '#B8482A'], ['gold', 'Gold', '#8F6A22'], ['black', 'Black', '#161616']];
-  K.LOOK_GRADS = [['purple-indigo', 'Purple to Indigo', ['#6A4BFF', '#3F46C9']], ['indigo-blue', 'Indigo to Blue', ['#3F46C9', '#2F6BFF']], ['blue-cyan', 'Blue to Cyan', ['#1D5FD1', '#18B5D8']], ['green-teal', 'Green to Teal', ['#1E7A55', '#2A9D8F']], ['orange-rose', 'Orange to Rose', ['#E0703A', '#D9486F']], ['graphite', 'Graphite', ['#1C1C1E', '#48484C']]];
+  // Gradients drawn from card colors around the world: black and metal premium cards, the deep blue of travel cards,
+  // the green, purple, coral and aqua of neobanks, and the reds and oranges of big retail banks. Light metals use dark text.
+  // [key, name, stops, ink?, group]
+  K.LOOK_GRADS = [
+    ['black', 'Black', ['#0B0B0D', '#2B2B30', '#111114'], null, 'metal'],
+    ['graphite', 'Graphite', ['#1C1C1E', '#48484C'], null, 'metal'],
+    ['silver', 'Platinum', ['#8B9098', '#E2E5EA', '#A3A8B0'], '#141414', 'metal'],
+    ['pearl', 'Pearl white', ['#E6E6E3', '#FFFFFF', '#DADAD6'], '#141414', 'metal'],
+    ['gold', 'Gold', ['#A87A22', '#EDCF7E', '#B3862C'], '#141414', 'metal'],
+    ['rose-gold', 'Rose gold', ['#B06A74', '#EDBDBF', '#B8757E'], '#141414', 'metal'],
+    ['copper', 'Copper', ['#6B3A1A', '#B8733A', '#7A4520'], null, 'metal'],
+    ['sapphire', 'Sapphire', ['#081636', '#1F3F8F', '#0A1A3F'], null, 'cool'],
+    ['indigo-blue', 'Royal blue', ['#2A3FC4', '#3B82F6']],
+    ['blue-cyan', 'Ocean', ['#1D5FD1', '#18B5D8']],
+    ['aqua', 'Aqua', ['#0E7C8C', '#2FB8B4']],
+    ['green-teal', 'Teal', ['#0F6B63', '#1FA595']],
+    ['emerald', 'Emerald', ['#064E33', '#15925C']],
+    ['lime', 'Lime', ['#5E9A12', '#B4E34A'], '#141414'],
+    ['purple-indigo', 'Violet', ['#6A4BFF', '#3F46C9']],
+    ['purple', 'Purple', ['#5A0FA8', '#9B3DE8']],
+    ['plum', 'Plum', ['#2E0B35', '#7A1F66']],
+    ['fuchsia', 'Fuchsia', ['#9D1BB2', '#EC4899']],
+    ['rose', 'Rose', ['#C2366B', '#F07AA0']],
+    ['coral', 'Coral', ['#F2545B', '#FF9166']],
+    ['orange-rose', 'Sunset', ['#E0703A', '#D9486F']],
+    ['red', 'Red', ['#9F1515', '#E53935']],
+    ['burgundy', 'Burgundy', ['#4A0A18', '#98203A']],
+    ['orange', 'Orange', ['#D9480F', '#F59E0B']],
+    ['amber', 'Amber', ['#9A5B0B', '#E8A93A']],
+  ];
+  K.LOOK_GROUPS = [['metal', 'Black and metal', ['black', 'graphite', 'silver', 'pearl', 'gold', 'rose-gold', 'copper']], ['cool', 'Blues and greens', ['sapphire', 'indigo-blue', 'blue-cyan', 'aqua', 'green-teal', 'emerald', 'lime']], ['pink', 'Purples and pinks', ['purple-indigo', 'purple', 'plum', 'fuchsia', 'rose']], ['warm', 'Reds and oranges', ['coral', 'orange-rose', 'red', 'burgundy', 'orange', 'amber']]];
   // look: { kind: 'theme' | 'solid' | 'gradient', key }. Returns a CSS background.
   K.lookBg = (look, fallback) => {
     if (!look || look.kind === 'theme' || !look.key) return fallback || 'var(--grad)';
@@ -139,12 +169,12 @@
   };
   K.LookPicker = function LookPicker({ value, onChange, fallback, label }) {
     const v = value || { kind: 'theme' };
-    const Sw = ({ look, bg, name }) => { const on = (v.kind || 'theme') === look.kind && (look.kind === 'theme' || v.key === look.key); return html`<button type="button" aria-label=${name} aria-pressed=${on} title=${name} onClick=${() => onChange(look)} style=${{ width: '38px', height: '38px', borderRadius: '12px', background: bg, boxShadow: on ? '0 0 0 2px var(--surface), 0 0 0 4px var(--ink)' : 'inset 0 0 0 1px rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>${on && html`<${K.Icon} n="check" s=${15} w=${3} />`}</button>`; };
+    const Sw = ({ look, bg, name, ink }) => { const on = (v.kind || 'theme') === look.kind && (look.kind === 'theme' || v.key === look.key); return html`<button type="button" aria-label=${name} aria-pressed=${on} title=${name} onClick=${() => onChange(look)} style=${{ width: '38px', height: '38px', borderRadius: '12px', background: bg, boxShadow: on ? '0 0 0 2px var(--surface), 0 0 0 4px var(--ink)' : 'inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink || '#FFFFFF', flexShrink: 0 }}>${on && html`<${K.Icon} n="check" s=${15} w=${3} />`}</button>`; };
     return html`<div class="stack-s" style=${{ gap: '8px' }}>
       <span class="small muted" style=${{ fontWeight: 600 }}>${label || 'Appearance'}</span>
       <div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}><${Sw} look=${{ kind: 'theme' }} bg=${fallback || 'var(--grad)'} name="Theme default" /><${Sw} look=${{ kind: 'solid', key: 'theme-solid' }} bg="var(--solid)" name="Theme color" /><${Sw} look=${{ kind: 'gradient', key: 'theme-grad2' }} bg="var(--grad2)" name="Theme gradient" /></div>
-      <span class="tiny muted">Solid</span><div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}>${K.LOOK_SOLIDS.map(([k, n, c]) => html`<${Sw} key=${k} look=${{ kind: 'solid', key: k }} bg=${c} name=${n} />`)}</div>
-      <span class="tiny muted">Gradient</span><div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}>${K.LOOK_GRADS.map(([k, n, g]) => html`<${Sw} key=${k} look=${{ kind: 'gradient', key: k }} bg=${gradCss(g, 140)} name=${n} />`)}</div></div>`;
+      ${v.kind === 'solid' && !String(v.key || '').startsWith('theme-') && K.LOOK_SOLIDS.some((x) => x[0] === v.key) && html`<div class="row" style=${{ gap: '8px' }}><${Sw} look=${v} bg=${K.lookBg(v)} name="Current color" /><span class="tiny muted">Your current color. Pick a gradient to change it.</span></div>`}
+      ${K.LOOK_GROUPS.map(([gk, gname, keys]) => html`<div key=${gk} class="stack-s" style=${{ gap: '6px' }}><span class="tiny muted">${gname}</span><div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}>${keys.map((k) => { const g = K.LOOK_GRADS.find((x) => x[0] === k); return html`<${Sw} key=${k} look=${{ kind: 'gradient', key: k }} bg=${gradCss(g[2], 140)} name=${g[1]} ink=${g[3]} />`; })}</div></div>`)}</div>`;
   };
 
   // Miniature app used for theme previews. Tokens are scoped to the preview element.
