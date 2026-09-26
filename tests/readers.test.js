@@ -258,3 +258,9 @@ test('a movement you renamed is still found as already in Kipu when the statemen
   const data = { txns: [{ id: 't1', type: 'expense', merchant: 'Tim Hortons', raw: 'TIM HORTONS #2445 LANGFORD', amt: 5, from: 'acct:chq', date: '2026-09-03', source: 'statement' }] };
   assert.ok(K.findDuplicate(data, { desc: 'TIM HORTONS #2445 LANGFORD', amt: -5, date: '2026-09-03' }, 'acct:chq'));
 });
+
+test('the payment line on a card statement is found as the payment already brought in from the bank', () => {
+  const data = { txns: [{ id: 't1', type: 'transfer', merchant: 'AMERICAN EXPRESS', amt: 707.41, from: 'acct:chq', to: 'card:cobalt', date: '2026-02-12', source: 'statement' }] };
+  assert.ok(K.findDuplicate(data, { desc: 'PAYMENT RECEIVED - THANK YOU', amt: 707.41, date: '2026-02-16' }, 'card:cobalt'));
+  assert.equal(K.findDuplicate(data, { desc: 'UBER', amt: 707.41, date: '2026-02-16' }, 'card:cobalt'), undefined);
+});

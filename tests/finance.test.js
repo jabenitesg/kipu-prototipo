@@ -671,3 +671,31 @@ test('a bank line with only the card company name ("AMERICAN EXPRESS") is a paym
   assert.equal(K.cardPaymentFor(d, 'CAPITAL ONE'), null); // no such card
   assert.equal(K.cardPaymentFor(d, 'TIM HORTONS'), null);
 });
+
+test('a card payment seen on both statements (bank and card) counts once', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  d.cards = [Object.assign(card('cobalt', 'CAD', 800, 4800), { name: 'Cobalt', network: 'Amex' })];
+  // Card statement first: "PAYMENT RECEIVED - THANK YOU" into the card
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT RECEIVED - THANK YOU', amt: 700, cur: 'CAD', from: null, to: 'card:cobalt', date: '2026-08-06', source: 'statement' });
+  assert.equal(d.cards[0].bal, 100);
+  // Bank statement: "AMERICAN EXPRESS" two days earlier is the same payment
+  const row = { type: 'transfer', amt: 700, from: 'acct:chq', to: 'card:cobalt', date: '2026-08-04' };
+  const twin = K.findCardPaymentIn(d, row);
+  assert.ok(twin);
+  d = K.editTxn(d, twin.id, { from: 'acct:chq' });
+  assert.equal(d.cards[0].bal, 100);
+  assert.equal(d.accounts[0].bal, 4300);
+  assert.equal(d.txns.length, 1);
+  // Already both in Kipu: joining them undoes the second payment on the card
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 5000)];
+  e.cards = [Object.assign(card('cobalt', 'CAD', 800, 4800), { name: 'Cobalt', network: 'Amex' })];
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT RECEIVED - THANK YOU', amt: 700, cur: 'CAD', from: null, to: 'card:cobalt', date: '2026-08-06', source: 'statement' });
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'AMERICAN EXPRESS', amt: 700, cur: 'CAD', from: 'acct:chq', to: 'card:cobalt', date: '2026-08-04', source: 'statement' });
+  assert.equal(e.cards[0].bal, -600); // counted twice
+  e = K.mergeCardPaymentTwin(e, e.txns.find((t) => t.merchant === 'AMERICAN EXPRESS').id);
+  assert.equal(e.cards[0].bal, 100);
+  assert.equal(e.accounts[0].bal, 4300);
+  assert.equal(e.txns.length, 1);
+});

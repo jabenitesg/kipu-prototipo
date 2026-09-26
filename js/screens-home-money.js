@@ -405,7 +405,7 @@
     const cardPay = t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:');
     const typeLabel = cardPay ? 'Card payment' : { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
     const payable = (t.from || '').startsWith('acct:') && data.cards.length > 0;
-    const payCard = (id) => { const card = data.cards.find((x) => x.id === id); commit(K.editTxn(data, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: 'card:' + id })); setPickCard(false); toast('Payment to ' + card.name + ' · not counted as spending'); };
+    const payCard = (id) => { const card = data.cards.find((x) => x.id === id); let next = K.editTxn(data, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: 'card:' + id }); const twin = K.cardPaymentTwin(next, next.txns.find((x) => x.id === t.id)); if (twin) next = K.mergeCardPaymentTwin(next, t.id); commit(next); setPickCard(false); toast(twin ? 'Payment to ' + card.name + ' · joined with the one on its statement' : 'Payment to ' + card.name + ' · not counted as spending'); };
     const toCardPay = () => { const hit = K.cardPaymentFor(data, t.merchant); if (hit && hit.card) payCard(hit.card.id); else if (data.cards.length === 1) payCard(data.cards[0].id); else setPickCard(true); };
     const c = K.CATS[t.cat];
     const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);

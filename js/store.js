@@ -441,7 +441,22 @@
   // Card payments imported from a bank before Kipu recognized them: they count as spending twice
   K.misfiledCardPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && (t.from || '').startsWith('acct:') && K.cardPaymentFor(d, t.merchant));
   // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
-  K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d);
+  const fixOne = (acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); };
+  K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => K.mergeCardPaymentTwin(fixOne(acc, t), t.id), d);
+  // A card payment out of the bank and the same payment read from the card's statement (into the card from nowhere):
+  // one movement counted twice. The bank one stays (it says where the money came from); the card's copy goes.
+  K.cardPaymentTwin = (d, t) => t && t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:') ? d.txns.filter((x) => x.id !== t.id && x.type === 'transfer' && x.to === t.to && !x.from && Math.abs(Math.abs(x.amt) - Math.abs(t.amt)) < 0.01 && Math.abs(K.days(parse(x.date), parse(t.date))) <= 7).sort((a, b) => Math.abs(K.days(parse(a.date), parse(t.date))) - Math.abs(K.days(parse(b.date), parse(t.date))))[0] || null : null;
+  // The other way round: a card payment out of the bank, when the card's statement already brought in that payment
+  // (a transfer into the card from nowhere). They're one movement: the bank side fills in where the money came from.
+  K.findCardPaymentIn = (data, row, used) => data.txns.filter((t) => !(used && used.has(t.id)) && t.type === 'transfer' && t.to === row.to && !t.from && Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) < 0.01 && Math.abs(K.days(K.parse(t.date), K.parse(row.date))) <= 7)
+    .sort((a, b) => Math.abs(K.days(K.parse(a.date), K.parse(row.date))) - Math.abs(K.days(K.parse(b.date), K.parse(row.date))))[0];
+  K.mergeCardPaymentTwin = (d, id) => {
+    const t = d.txns.find((x) => x.id === id), twin = K.cardPaymentTwin(d, t);
+    if (!twin) return d;
+    // Keep what the card side knew: if it was counted (lowered the debt), the bank one is counted too
+    d = K.removeTxn(d, twin.id);
+    return !!twin.settled !== !!t.settled ? K.editTxn(d, id, { settled: twin.settled || undefined }) : d;
+  };
   // Payment wording on a card statement ("PAYMENT - THANK YOU", "PAGO RECIBIDO", "ABONO")
   K.looksLikePayment = (desc) => { const m = norm(desc); return PAY.test(m) || /\b(thank you|gracias|recibido|received)\b/.test(m); };
   // On a statement most lines are purchases, so the sign most lines share is spending

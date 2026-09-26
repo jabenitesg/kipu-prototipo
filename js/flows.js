@@ -264,7 +264,8 @@
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
-      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
+      const linked = new Set();
+      chosen.forEach((r) => { if (r.type === 'transfer' && r.from === where && (r.to || '').startsWith('card:')) { const t = K.findCardPaymentIn(d, r, linked); if (t) { linked.add(t.id); d = K.editTxn(d, t.id, { from: where }); return; } } const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));

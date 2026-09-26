@@ -376,11 +376,15 @@
     const w1 = (x) => (K.merchantKey(x) || String(x || '').toLowerCase()).split(' ')[0];
     const key = w1(row.desc);
     const gapOf = (t) => Math.abs(K.days(K.parse(t.date), K.parse(row.date)));
+    // "PAYMENT RECEIVED - THANK YOU" on a card statement is the payment already brought in from the bank statement
+    // ("AMERICAN EXPRESS" out of chequing): the card gets it a few days later, and the wording never matches
+    const payIn = where && where.startsWith('card:') && K.looksLikePayment(row.desc);
     return data.txns.filter((t) => {
       if (used && used.has(t.id)) return false;
       if (Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) >= 0.01) return false;
       if (where && t.from !== where && t.to !== where) return false;
       const gap = gapOf(t);
+      if (payIn && t.type === 'transfer' && t.to === where && (t.from || '').startsWith('acct:') && gap <= 7) return true;
       if (gap > 3) return false;
       return (key && (w1(t.merchant) === key || (t.raw && w1(t.raw) === key))) || (t.source !== 'statement' && gap <= 1);
     }).sort((a, b) => gapOf(a) - gapOf(b))[0];

@@ -63,6 +63,7 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Payment to (.+) · joined with the one on its statement$/, (m) => 'Pago a ' + m[1] + ' · unido con el de su estado de cuenta'],
     [/^Payment to (.+) · not counted as spending$/, (m) => 'Pago a ' + m[1] + ' · no cuenta como gasto'],
     [/^(\d+) recent movements? (?:was|were) imported as already paid, so this card shows nothing owed and utilization stays at 0%\.$/, (m) => (m[1] === '1' ? '1 movimiento reciente se importó como ya pagado' : m[1] + ' movimientos recientes se importaron como ya pagados') + ', así que esta tarjeta no muestra deuda y el uso se queda en 0%.'],
     [/^Count it · (.+)$/, (m) => 'Contarlo · ' + m[1]],
