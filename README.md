@@ -42,6 +42,11 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Plan para salir de deudas:** en Cifras → Deuda, eliges un pago extra al mes y el orden (primero el interés más alto o el saldo más chico) y ves la fecha sin deudas, el interés y cuánto ahorras.
 - **Perú:** reconoce Yape y Plin en los estados de cuenta ("Yape · María López", sin número ni código) y categoriza comercios peruanos como Plaza Vea, Tottus, Rappi, Inkafarma, Movistar, Cineplanet o Saga Falabella. La moneda principal se sugiere según la región del teléfono (es-PE → PEN).
 
+- **Personal y hogar, privados de verdad:** al crear una cuenta, tarjeta, préstamo, recibo, meta o ingreso, o al subir un estado de cuenta, eliges *Personal* o *Hogar*. Con sesión iniciada, tu archivo personal y el del hogar se abren juntos: lo personal se guarda solo en tu archivo cifrado (tu pareja nunca lo recibe) y lo del hogar en el archivo compartido que abren los dos. Los movimientos de una cuenta compartida son del hogar. Arriba de Inicio, Dinero, Plan y Cifras eliges *Personal · Hogar · Todo*.
+- **Entrar sin frase en tu dispositivo:** la frase se pide una sola vez por dispositivo. Luego Kipu guarda la llave en el teléfono como una llave no extraíble y abre directo; con Bloqueo de la app, primero pide Face ID, huella o PIN. Cerrar sesión u "Olvidar este dispositivo" la borra.
+- **Pagar en otra moneda:** la compra guarda su moneda y monto; si la tarjeta o cuenta es de otra moneda, Kipu estima el cargo (tasa del día más la comisión de esa tarjeta, que aprende de cargos reales) y acepta el monto exacto del banco. Los estados de cuenta que traen monto original y tipo de cambio lo conservan.
+- **Pagos de tarjeta sin doble conteo:** un pago de tarjeta nunca es gasto, aunque el banco no diga "pago" (AUTOPAY, emisores como Amex o MBNA). Si el mismo pago aparece en el estado del banco y en el de la tarjeta, se empareja por monto y fecha y cuenta una sola vez.
+
 ## Bloqueo
 
 En Settings → App lock puedes pedir un PIN de 6 dígitos (y Face ID, Touch ID o huella si tu dispositivo lo permite) al abrir Kipu y al volver después de un rato. El PIN no se guarda, solo una versión cifrada irreversible. El bloqueo no cifra los datos: mantén también el bloqueo de pantalla de tu teléfono o computadora.

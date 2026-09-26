@@ -9,6 +9,12 @@
 
   const words = {
     // added with the solo and household pass
+    "This device remembers you": "Este dispositivo te recuerda",
+    "Next time Kipu opens without your passphrase. Add Face ID, fingerprint or a PIN so only you can open it.": "La próxima vez Kipu abre sin tu frase. Agrega Face ID, huella o un PIN para que solo tú puedas abrirlo.",
+    "Add Face ID or PIN": "Agregar Face ID o PIN",
+    "This device remembers your key, so Kipu opens without the passphrase. Face ID or a PIN in App lock keeps it yours.": "Este dispositivo recuerda tu llave, así Kipu abre sin la frase. Face ID o un PIN en Bloqueo de la app lo mantienen solo tuyo.",
+    "Forget this device": "Olvidar este dispositivo",
+    "This device will ask for the passphrase next time.": "La próxima vez este dispositivo pedirá la frase.",
     "Shared money appears next to yours. What you mark Personal stays only in your own file; your partner never receives it.": "La plata compartida aparece junto a la tuya. Lo que marcas como Personal se queda solo en tu archivo; tu pareja nunca lo recibe.",
     "Household passphrase": "Frase del hogar",
     "Remember it on my account": "Recordarla en mi cuenta",
@@ -219,6 +225,7 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Private \+ (.+)$/, (m) => 'Privado + ' + m[1]],
     [/^Open (.+)$/, (m, t) => 'Abrir ' + t(m[1])],
     [/^(.+) is open$/, (m) => m[1] + ' está abierto'],
     [/^That passphrase doesn’t open (.+)\.$/, (m) => 'Esa frase no abre ' + m[1] + '.'],

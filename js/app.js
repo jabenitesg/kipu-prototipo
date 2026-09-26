@@ -51,6 +51,8 @@
         if (event === 'PASSWORD_RECOVERY' && user) { setCloud((c) => Object.assign({}, c, { status: 'reset-password', user, error: '' })); return; }
         const id = user ? user.id : null;
         if (cloudUserRef.current === id) return;
+        // Signing out: this device stops remembering the keys
+        if (cloudUserRef.current && !id) K.deviceKey.forget();
         cloudUserRef.current = id;
         spaceChoiceRef.current = false;
         forgetVaults();
@@ -58,6 +60,22 @@
         vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
         const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
         setCloud({ status: user ? 'locked' : 'guest', user: user || null, error: '', target: 'personal', household: null, households: [] });
+        // A device that unlocked before opens without the passphrase; the app lock (Face ID or PIN) guards it
+        if (user) K.deviceKey.get('personal:' + id).then(async (dk) => {
+          if (!dk || cloudUserRef.current !== id || cloudRef.current.target !== 'personal' || cloudRef.current.status !== 'locked') return;
+          const v = vaultRef.current;
+          setCloud((c) => Object.assign({}, c, { status: 'opening' }));
+          try {
+            const remote = await v.open(id, null, dk);
+            if (cloudUserRef.current !== id || vaultRef.current !== v) return;
+            if (!remote) { v.clear(); setCloud((c) => Object.assign({}, c, { status: 'locked' })); return; }
+            dataRef.current = remote; setData(remote);
+            setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '', remembered: true }));
+          } catch (e) {
+            if (e.message === 'DEVICE_KEY_STALE') K.deviceKey.forget('personal:' + id);
+            v.clear(); setCloud((c) => Object.assign({}, c, { status: 'locked', error: '' }));
+          }
+        });
         if (user) K.cloudHouseholds().then((households) => {
           if (cloudUserRef.current !== id) return;
           let preferred = null;
@@ -110,12 +128,13 @@
       setCloud((c) => Object.assign({}, c, { status: 'opening', error: '' }));
       try {
         const remote = await vaultRef.current.open(cloud.target === 'household' ? cloud.household.id : cloud.user.id, passphrase);
-        if (remote) { const next = cloud.target === 'household' ? K.jointData(remote, cloud.household.name) : remote; dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: vaultRef.current.error ? 'error' : 'synced', error: vaultRef.current.error ? vaultRef.current.error.message : '' })); return 'opened'; }
+        if (remote) { K.deviceKey.put(cloud.target === 'household' ? 'household:' + cloud.household.id : 'personal:' + cloud.user.id, vaultRef.current); const next = cloud.target === 'household' ? K.jointData(remote, cloud.household.name) : remote; dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: vaultRef.current.error ? 'error' : 'synced', error: vaultRef.current.error ? vaultRef.current.error.message : '' })); return 'opened'; }
         if (cloud.target === 'household') throw new Error('This Household is still being set up. Ask its creator to finish setup.');
         if (!seed) { setCloud((c) => Object.assign({}, c, { status: 'choose' })); return 'choose'; }
         const initial = seed === 'local' ? K.load() : K.factory();
         if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.');
         await vaultRef.current.create(initial);
+        K.deviceKey.put('personal:' + cloud.user.id, vaultRef.current);
         if (seed === 'local') K.wipe();
         dataRef.current = initial; setData(initial);
         setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced' }));
@@ -123,7 +142,7 @@
       } catch (e) { vaultRef.current.clear(); setCloud((c) => Object.assign({}, c, { status: 'locked', error: e.message })); throw e; }
     }, [cloud.user, cloud.target, cloud.household]);
     const cloudCreate = useCallback(async (seed) => {
-      try { const initial = seed === 'local' ? K.load() : K.factory(); if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.'); await vaultRef.current.create(initial); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
+      try { const initial = seed === 'local' ? K.load() : K.factory(); if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.'); await vaultRef.current.create(initial); if (cloudRef.current.user) K.deviceKey.put('personal:' + cloudRef.current.user.id, vaultRef.current); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
       catch (e) { setCloud((c) => Object.assign({}, c, { error: e.message })); throw e; }
     }, []);
     // Switch spaces. A space opened earlier in this session opens straight away; otherwise it asks for its passphrase.

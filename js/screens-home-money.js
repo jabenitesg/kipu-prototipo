@@ -95,6 +95,15 @@
     return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="split" tone=${owed > 0.009 ? 'g' : owed < -0.009 ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Shared with ' + who}</span><span class="small muted">${text}</span></span></div>
       <div class="row" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => openSheet({ k: 'expense', preset: { shared: true } })}>Shared expense</button>${Math.abs(owed) >= 0.01 && html`<button class="btn pri sm" onClick=${() => openSheet({ k: 'settle' })}>Settle up</button>`}</div></div>`;
   };
+  // This device remembers your account: ask for Face ID or a PIN so only you can open it
+  const ProtectDevice = () => {
+    const { cloud, go } = useApp();
+    const [hidden, setHidden] = useState(() => { try { return !!localStorage.getItem('kipu-protect-hidden'); } catch (e) { return false; } });
+    if (hidden || !cloud.user || cloud.status !== 'ready' || K.lockCfg().enabled) return null;
+    const hide = () => { try { localStorage.setItem('kipu-protect-hidden', '1'); } catch (e) {} setHidden(true); };
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="lock" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>This device remembers you</span><span class="small muted" style=${{ lineHeight: 1.45 }}>Next time Kipu opens without your passphrase. Add Face ID, fingerprint or a PIN so only you can open it.</span></span></div><div class="row" style=${{ gap: '8px' }}><button class="btn pri sm" onClick=${() => go({ r: 'settings', s: 'security' })}>Add Face ID or PIN</button><button class="btn sec sm" onClick=${hide}>Not now</button></div></div>`;
+  };
+
   // Signed in with a Household that isn't open yet
   const HouseholdClosed = () => {
     const { cloud, openSheet } = useApp();
@@ -207,7 +216,7 @@
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -215,7 +224,7 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
