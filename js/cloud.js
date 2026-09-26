@@ -32,10 +32,12 @@
       if (error) throw error;
       return data;
     }
-    async open(userId, passphrase) {
+    // `device`: a key this device kept from an earlier unlock ({ key, salt }), instead of the passphrase
+    async open(userId, passphrase, device) {
       const row = await this.read(userId);
+      if (device && (!row || row.payload.salt !== device.salt)) throw new Error('DEVICE_KEY_STALE');
       const salt = row ? unb64(row.payload.salt) : bytes(16);
-      const key = await derive(passphrase, salt);
+      const key = device ? device.key : await derive(passphrase, salt);
       let data = row ? await decrypt(row.payload, key) : null;
       this.userId = userId; this.salt = salt; this.key = key; this.revision = row ? row.revision : 0; this.base = data;
       const pending = localStorage.getItem(this.outboxKey());
@@ -117,6 +119,18 @@
     retry() { if (!this.latest) return; this.error = null; void this.flush(); }
   }
   K.CloudVault = CloudVault;
+  // ---------------------------------------------------------------- trusted device
+  // After the first unlock, this device keeps the vault key in IndexedDB as a non-extractable CryptoKey:
+  // it can decrypt here but can't be read out or copied. The app lock (Face ID, fingerprint or PIN) guards it.
+  const IDB = 'kipu-device', STORE = 'keys';
+  const idb = () => new Promise((ok, bad) => { if (!window.indexedDB) return bad(new Error('no indexedDB')); const r = indexedDB.open(IDB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error); });
+  const tx = async (mode, fn) => { const db = await idb(); return new Promise((ok, bad) => { const t = db.transaction(STORE, mode); const out = fn(t.objectStore(STORE)); t.oncomplete = () => { db.close(); ok(out && out.result); }; t.onerror = () => { db.close(); bad(t.error); }; }); };
+  K.deviceKey = {
+    get: async (id) => { try { return (await tx('readonly', (s) => s.get(id))) || null; } catch (e) { return null; } },
+    put: async (id, vault) => { try { if (vault && vault.key && vault.salt) await tx('readwrite', (s) => s.put({ key: vault.key, salt: b64(vault.salt), at: Date.now() }, id)); return true; } catch (e) { return false; } },
+    forget: async (prefix) => { try { const db = await idb(); await new Promise((ok) => { const t = db.transaction(STORE, 'readwrite'); const st = t.objectStore(STORE); const r = st.getAllKeys(); r.onsuccess = () => { (r.result || []).filter((k) => !prefix || String(k).startsWith(prefix)).forEach((k) => st.delete(k)); }; t.oncomplete = () => { db.close(); ok(); }; t.onerror = () => { db.close(); ok(); }; }); } catch (e) {} },
+  };
+
   K.jointData = (data, name) => {
     const next = Object.assign({}, data, { household: { enabled: false, joint: true, name } });
     ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips'].forEach((key) => {

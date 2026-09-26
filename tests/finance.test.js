@@ -1,5 +1,5 @@
 const test = require('node:test');
-const assert = require('node:assert/strict');
+const assert = require('./assert.js');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
@@ -178,6 +178,33 @@ test('an imported or typed rent payment pays the bill instead of being reserved 
   assert.equal(K.derive(d, ctx).plan.safe, before); // cash went down 1,500 and the bill is no longer due
   const other = K.addTxn(K.factory(), { type: 'expense', merchant: 'Coffee', amt: 5, cur: 'CAD' });
   assert.equal(other.txns[0].recurring, undefined);
+});
+
+test('last month’s rent payment doesn’t cover the rent due before next payday', () => {
+  let d = K.factory();
+  const T = K.today(), due = new Date(T.getFullYear(), T.getMonth() + 1, 1); // rent on the 1st, payday on the 2nd
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 2000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(due, 1)), to: 'acct:cad' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 1, cat: 'housing', pay: 'acct:cad' }];
+  d.txns = [{ id: 'old', type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', base: 1500, date: K.iso(K.addMonths(due, -1)), recurring: 'rent', cat: 'housing', from: 'acct:cad' }];
+  let plan = K.derive(d, ctx).plan;
+  assert.equal(plan.billsDue.length, 1);
+  assert.equal(plan.safe, 1500);
+  d.txns.push({ id: 'now', type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', base: 1500, date: K.iso(T), recurring: 'rent', cat: 'housing', from: 'acct:cad' });
+  if (K.addDays(due, -15) < T) assert.equal(K.derive(d, ctx).plan.billsDue.length, 0); // paid a few days early
+});
+
+test('the forecast assumes the everyday spending you really do, not zero', () => {
+  const d = K.factory();
+  const T = K.today(), last = new Date(T.getFullYear(), T.getMonth() - 1, 1), iso = (n) => K.iso(K.addDays(last, n));
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 4000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 10)), to: 'acct:cad' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 1, cat: 'housing', pay: 'acct:cad' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 50, cur: 'CAD', day: 2, cat: 'subs', pay: 'acct:cad' }];
+  const tx = (id, amt, day, extra) => Object.assign({ id, type: 'expense', merchant: id, amt, cur: 'CAD', base: amt, date: iso(day), cat: 'groceries', from: 'acct:cad' }, extra);
+  // Only rent was paid last month (the gym bill was added later): the gap must not eat groceries
+  d.txns = [tx('rent', 1500, 0, { recurring: 'rent', cat: 'housing' }), tx('food', 400, 3), tx('food2', 200, 12)];
+  const D = K.derive(d, ctx);
+  assert.equal(K.forecast(d, D, { assumption: 'Recent average' }).flexible, 600);
 });
 
 test('edits made on two devices at once are merged, balances included', () => {
@@ -464,6 +491,203 @@ test('a bill follows its latest payment; a big jump waits; a bill with an end st
   d = K.upsert(d, 'bills', Object.assign({}, d.bills[1], { end: '2020-01' }));
   assert.equal(K.billActive(d.bills[1]), false);
   assert.ok(K.derive(d, ctx2).plan.commitments < before);
+});
+
+test('couples who split some costs: your part in your numbers, the whole in the Household, and who owes whom', () => {
+  let d = K.setHouseholdMode(K.factory(), 'mixed', { partner: 'Kari', split: 50 });
+  d.accounts = [account('cad', 'CAD', 1000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 100, cur: 'CAD', from: 'acct:cad', shared: true, split: { by: 'me', mine: 50 } });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Dinner', cat: 'dining', amt: 80, cur: 'CAD', from: '', shared: true, split: { by: 'partner', mine: 50 } });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 60, cur: 'CAD', from: 'acct:cad' });
+  assert.equal(d.accounts[0].bal, 840); // Kari's dinner doesn't touch your account
+  assert.equal(K.derive(d, ctx).month.spending, 150); // 50 + 40 + 60
+  assert.equal(K.derive(d, { scope: 'household', currency: 'Combined' }).month.spending, 180); // the whole shared costs
+  assert.equal(K.splitBalance(d).owed, 10); // Kari owes 50, you owe 40
+  d = K.settleUp(d, { amt: 10, where: 'acct:cad', dir: 'in' });
+  assert.equal(K.splitBalance(d).owed, 0);
+  assert.equal(d.accounts[0].bal, 850);
+  assert.equal(K.derive(d, ctx).month.income, 0); // settling up isn't income
+});
+
+test('couples who share everything see it all in the Household, without marking each item', () => {
+  let d = K.setHouseholdMode(K.factory(), 'together', { partner: 'Kari' });
+  d.profile.name = 'Jose';
+  d.accounts = [account('cad', 'CAD', 500)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Rent', cat: 'housing', amt: 400, cur: 'CAD', from: 'acct:cad' });
+  const H = K.derive(d, { scope: 'household', currency: 'Combined' });
+  assert.equal(H.month.spending, 400);
+  assert.equal(H.plan.cashNow, 100);
+  assert.equal(K.hhMode(d), 'together');
+  assert.equal(K.hhMode(K.setHouseholdMode(d, 'solo')), 'solo');
+  assert.equal(K.hhMode(Object.assign(K.factory(), { household: { enabled: true, name: 'Old' } })), 'mixed'); // households made before modes
+});
+
+test('a debt plan: extra money pays loans off sooner and with less interest, highest rate first', () => {
+  const d = K.factory();
+  const loans = [
+    { id: 'car', name: 'Car', bal: 10000, pay: 300, rate: 9, freq: 'Monthly', cur: 'CAD' },
+    { id: 'card', name: 'Card loan', bal: 3000, pay: 100, rate: 24, freq: 'Monthly', cur: 'CAD' },
+  ];
+  const base = K.debtPlan(d, loans, 0, 'avalanche');
+  const more = K.debtPlan(d, loans, 200, 'avalanche');
+  const snow = K.debtPlan(d, loans, 200, 'snowball');
+  assert.ok(more.months < base.months);
+  assert.ok(more.interest < base.interest);
+  assert.equal(more.loans[0].id, 'card'); // 24% goes first
+  assert.ok(more.interest <= snow.interest);
+  assert.equal(K.debtPlan(d, [], 100), null);
+});
+
+test('one line is enough to add an expense', () => {
+  const d = K.factory();
+  assert.deepStrictEqual(K.parseQuick('45 Wong', d), { amt: 45, cur: null, merchant: 'Wong', date: K.iso(K.today()) });
+  const q = K.parseQuick('S/ 12.50 taxi ayer', d);
+  assert.equal(q.amt, 12.5); assert.equal(q.cur, 'PEN'); assert.equal(q.merchant, 'Taxi'); assert.equal(q.date, K.iso(K.addDays(K.today(), -1)));
+  assert.equal(K.parseQuick('1,250 laptop', d).amt, 1250);
+  assert.equal(K.parseQuick('almuerzo', d), null);
+  assert.equal(K.tidyDesc('TRANSF.YAPE-MARIA LOPEZ 987654321'), 'Yape · Maria Lopez');
+  assert.equal(K.guessCat(d, 'PLAZA VEA SAN ISIDRO'), 'groceries');
+});
+
+test('reminders cover what is due in the next three days and not paid yet', () => {
+  let d = K.factory();
+  const T = K.today(), due = K.addDays(T, 2);
+  d.accounts = [account('cad', 'CAD', 3000)];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: due.getDate(), cat: 'housing', pay: 'acct:cad' }, { id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20, cur: 'CAD', day: due.getDate(), cat: 'subs', pay: 'card:x' }];
+  assert.deepStrictEqual(K.derive(d, ctx).dueSoon.map((x) => x.name), due.getDate() <= 28 ? ['Rent'] : []);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', from: 'acct:cad', recurring: 'rent', cat: 'housing' });
+  assert.equal(K.derive(d, ctx).dueSoon.length, 0); // paid early
+});
+
+test('bought in one currency, charged in another: the card moves by what the bank charged', () => {
+  let d = K.factory();
+  d.base = 'CAD'; d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.cards = [{ id: 'us', name: 'US card', cur: 'USD', bal: 0, limit: 5000 }, { id: 'pe', name: 'Two-currency', cur: 'PEN', cur2: 'USD', bal: 0, bal2: 0, limit: 8000, fxFee: 3 }];
+  const est = K.chargeEstimate(d, 135, 'CAD', 'card:us');
+  assert.equal(est.cur, 'USD'); assert.equal(est.market, 100); assert.equal(est.amt, 102.5); // 2.5% default card fee
+  const est2 = K.chargeEstimate(d, 135, 'CAD', 'card:pe');
+  assert.equal(est2.cur, 'USD'); assert.equal(est2.amt, 103); // foreign purchase billed in dollars, 3% fee
+  assert.equal(K.chargeEstimate(d, 50, 'PEN', 'card:pe'), null); // same currency: nothing to convert
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 135, cur: 'CAD', from: 'card:us', charged: { amt: 103.1, cur: 'USD', market: 100, exact: true } });
+  assert.equal(d.cards[0].bal, 103.1);
+  assert.equal(d.txns[0].amt, 135); assert.equal(d.txns[0].cur, 'CAD'); // the purchase keeps its own currency
+  assert.equal(d.txns[0].base, K.toBase(d, 103.1, 'USD')); // what it really cost you
+  assert.equal(K.fxCost(d, 'card:us').pct, 3.1);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 67.5, cur: 'CAD', from: 'card:pe', charged: { amt: 51.5, cur: 'USD' } });
+  assert.equal(d.cards[1].bal2, 51.5); assert.equal(d.cards[1].bal, 0);
+});
+
+test('statement lines that show the original purchase and the rate', () => {
+  assert.deepStrictEqual(K.parseFxInfo('AMAZON.CA CAD 45.00 T/C 0.7412', 'USD'), { cur: 'CAD', amt: 45, rate: 0.7412, desc: 'AMAZON.CA' });
+  assert.equal(K.parseFxInfo('UBER USD 12,50 TC:3.745', 'PEN').amt, 12.5);
+  assert.equal(K.parseFxInfo('WALMART USD 1,234.50', 'PEN').amt, 1234.5);
+  assert.equal(K.parseFxInfo('WONG PEN 45.00', 'PEN'), null); // same currency as the statement
+  assert.equal(K.parseFxInfo('TIM HORTONS #123', 'CAD'), null);
+});
+
+test('a card payment is never spending, whatever the bank calls it', () => {
+  const d = K.factory();
+  d.cards = [{ id: 'amex', name: 'Amex Cobalt', network: 'Amex', cur: 'CAD', bal: 500 }, { id: 'v', name: 'Visa Infinite', network: 'Visa', last4: '1187', cur: 'CAD', bal: 0 }];
+  assert.equal(K.cardPaymentFor(d, 'AMEX BANK OF CANADA').card.id, 'amex'); // issuer only, no "payment"
+  assert.equal(K.cardPaymentFor(d, 'CHASE CREDIT CRD AUTOPAY').card, null); // a card that isn't in Kipu: still not spending
+  assert.equal(K.cardPaymentFor(d, 'TD VISA PREAUTH PYMT 1187').card.id, 'v');
+  assert.equal(K.cardPaymentFor(d, 'APPLE PAY STARBUCKS'), null); // paying with a phone wallet is a purchase
+  assert.equal(K.cardPaymentFor(d, 'BILL PAY HYDRO ONE'), null);
+});
+
+test('the same card payment on the bank and the card statement counts once', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 2000)];
+  d.cards = [card('visa', 'CAD', 800)];
+  // Bank line with no payment wording, imported as spending
+  d = K.addTxn(d, { type: 'expense', merchant: 'ONLINE TRANSFER 00123', cat: 'other', amt: 800, cur: 'CAD', from: 'acct:chq', date: K.iso(K.addDays(K.today(), -3)), source: 'statement' });
+  // The card statement shows the payment arriving
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT - THANK YOU', amt: 800, cur: 'CAD', from: null, to: 'card:visa', date: K.iso(K.addDays(K.today(), -1)), source: 'statement' });
+  assert.equal(K.misfiledCardPayments(d).length, 1);
+  d = K.fixCardPayments(d);
+  assert.equal(K.derive(d, ctx).month.spending, 0);
+  assert.equal(d.accounts[0].bal, 1200); // left the bank once
+  assert.equal(d.cards[0].bal, 0); // paid once
+  assert.equal(K.cardPaymentPairs(d).length, 0);
+  // A transfer typed by hand and the card statement's payment line: the card isn't credited twice
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 2000)]; e.cards = [card('visa', 'CAD', 800)];
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'Payment to Visa', amt: 800, cur: 'CAD', from: 'acct:chq', to: 'card:visa' });
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'PAGO RECIBIDO', amt: 800, cur: 'CAD', from: null, to: 'card:visa', source: 'statement' });
+  assert.equal(e.cards[0].bal, -800); // credited twice before merging
+  e = K.mergeCardPayments(e);
+  assert.equal(e.cards[0].bal, 0); assert.equal(e.accounts[0].bal, 1200);
+});
+
+test('each card’s own fee: the one you set, else what it really charged before', () => {
+  let d = K.factory();
+  d.base = 'CAD'; d.fx.usd = { USD: 1, CAD: 1.35 };
+  d.cards = [{ id: 'us', name: 'US card', cur: 'USD', bal: 0 }, { id: 'wise', name: 'No-fee card', cur: 'USD', bal: 0, fxFee: 0 }];
+  assert.equal(K.fxFeeOf(d, 'card:us'), 2.5);
+  assert.equal(K.fxFeeOf(d, 'card:wise'), 0);
+  [[103.4, 100], [51.7, 50]].forEach(([amt, market]) => { d = K.addTxn(d, { type: 'expense', merchant: 'Shop', cat: 'shopping', amt: market * 1.35, cur: 'CAD', from: 'card:us', charged: { amt, cur: 'USD', market, exact: true } }); });
+  assert.equal(K.fxFeeOf(d, 'card:us'), 3.4); // learned from two real charges
+  assert.equal(K.chargeEstimate(d, 135, 'CAD', 'card:us').amt, 103.4);
+});
+
+test('three views: only yours, only the Household, or everything', () => {
+  let d = K.setHouseholdMode(K.factory(), 'mixed', { partner: 'Kari' });
+  d.accounts = [Object.assign(account('mine', 'CAD', 1000), { shared: false }), Object.assign(account('joint', 'CAD', 3000), { shared: true })];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 100, cur: 'CAD', from: 'acct:mine' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 300, cur: 'CAD', from: 'acct:joint', shared: true });
+  const view = (scope) => K.derive(d, { scope, currency: 'Combined' });
+  assert.equal(view('mine').plan.cashNow, 900); assert.equal(view('mine').month.spending, 100);
+  assert.equal(view('household').plan.cashNow, 2700); assert.equal(view('household').month.spending, 300);
+  assert.equal(view('personal').plan.cashNow, 3600); assert.equal(view('personal').month.spending, 400);
+});
+
+test('personal stays in your own file, shared goes to the Household file', () => {
+  const p = Object.assign(K.factory(), { onboarded: true, profile: { name: 'Jose', email: '' }, hhKeys: { h1: 'secret phrase 123' } });
+  p.accounts = [account('mine', 'CAD', 1000), Object.assign(account('old', 'CAD', 50), { shared: true })];
+  const h = Object.assign(K.factory(), { onboarded: true });
+  h.accounts = [Object.assign(account('joint', 'CAD', 3000), { shared: true })];
+  let d = K.combineSpaces(p, h, { id: 'h1', name: 'Jose & Kari' });
+  assert.deepStrictEqual(d.accounts.map((a) => a.id).sort(), ['joint', 'mine', 'old']);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 100, cur: 'CAD', from: 'acct:mine' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 80, cur: 'CAD', from: 'acct:mine', shared: true }); // household groceries on a personal account
+  const [mine, ours] = K.splitSpaces(d, h);
+  assert.deepStrictEqual(mine.accounts.map((a) => a.id), ['mine']);
+  assert.deepStrictEqual(ours.accounts.map((a) => a.id).sort(), ['joint', 'old']); // shared before: moves to the Household
+  assert.deepStrictEqual(mine.txns.map((t) => t.merchant), ['Shoes']);
+  assert.deepStrictEqual(ours.txns.map((t) => t.merchant), ['Groceries']);
+  assert.equal(mine.accounts[0].bal, 820); // your balance lives with you
+  assert.equal(ours.hhKeys, undefined); // never shared
+  assert.equal(JSON.stringify(ours).includes('Shoes'), false);
+  // Kari opens the Household: she sees the joint account and the groceries, never Jose's account or shoes
+  const kari = K.combineSpaces(Object.assign(K.factory(), { onboarded: true }), ours, { id: 'h1', name: 'Jose & Kari' });
+  assert.deepStrictEqual(kari.accounts.map((a) => a.id).sort(), ['joint', 'old']);
+  assert.deepStrictEqual(kari.txns.map((t) => t.merchant), ['Groceries']);
+});
+
+test('movements on a shared account are shared, so both people see them', () => {
+  let d = K.factory();
+  d.accounts = [Object.assign(account('joint', 'CAD', 3000), { shared: true }), account('mine', 'CAD', 500)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Wong', cat: 'groceries', amt: 80, cur: 'CAD', from: 'acct:joint' });
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'To joint', amt: 100, cur: 'CAD', from: 'acct:mine', to: 'acct:joint' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 60, cur: 'CAD', from: 'acct:mine' });
+  assert.deepStrictEqual(d.txns.map((t) => t.shared), [true, true, false]);
+});
+
+test('ask Kipu: reaching month end and whether something fits', () => {
+  let d = K.factory();
+  const T = K.today();
+  d.accounts = [account('chq', 'CAD', 1000), Object.assign(account('sav', 'CAD', 8000), { kind: 'Savings' })];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 2000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 40)), to: 'acct:chq' }];
+  d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 28, cat: 'housing', pay: 'acct:chq' }];
+  let D = K.derive(d, ctx);
+  const m = K.askMonthEnd(d, D);
+  if (T.getDate() < 28) { assert.ok(m.short > 0); assert.ok(m.perDayCut > 0); } // rent is more than the cash left
+  assert.equal(K.askAfford(d, D, 50).verdict, D.plan.safe >= 50 ? 'yes' : K.askAfford(d, D, 50).verdict);
+  const big = K.askAfford(d, D, 4000);
+  assert.ok(['savings', 'installments', 'save', 'no'].includes(big.verdict));
+  assert.equal(big.afterSavings, 4000);
+  assert.deepStrictEqual(K.parseQuestion('quiero comprar un celular de 2,500 en 12 cuotas'), { kind: 'afford', amount: 2500, installments: 12 });
+  assert.equal(K.parseQuestion('¿llego a fin de mes?').kind, 'month');
 });
 
 test('e-transfers and transfers are transfers either way, never spending or income', () => {

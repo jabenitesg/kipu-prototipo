@@ -1,5 +1,5 @@
 const { test } = require('node:test');
-const assert = require('node:assert/strict');
+const assert = require('./assert.js');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const { webcrypto } = require('node:crypto');

@@ -69,9 +69,118 @@
   };
 
   // ---------------------------------------------------------------- Home
+  // Mine / shared in one tap. With a joint cloud Household it switches spaces; on this device it filters shared items.
+  const SpaceSwitch = () => {
+    const { data, ctx, setCtx, cloud, cloudSelectHousehold, cloudSelectPersonal, toast } = useApp();
+    const joint = cloud.status === 'ready' && cloud.user && (cloud.households || []).length > 0 && !cloud.combined;
+    const mode = K.hhMode(data);
+    const run = (fn) => { try { fn(); } catch (e) { toast(e.message); } };
+    // Two separate cloud spaces (one open at a time): switch between them
+    if (joint) {
+      const hh = cloud.households;
+      return html`<div class="space-switch" role="tablist" aria-label="Space"><button role="tab" aria-selected=${cloud.target !== 'household'} class=${cloud.target !== 'household' ? 'on' : ''} onClick=${() => cloud.target === 'household' && run(cloudSelectPersonal)}><${Icon} n="lock" s=${13} />Personal</button>${hh.map((h) => { const on = cloud.target === 'household' && cloud.household && cloud.household.id === h.id; return html`<button key=${h.id} role="tab" aria-selected=${on} class=${on ? 'on' : ''} onClick=${() => !on && run(() => cloudSelectHousehold(h))}><${Icon} n="people" s=${14} />${h.name}</button>`; })}</div>`;
+    }
+    if (mode !== 'mixed' && !cloud.combined) return null;
+    const opts = [['mine', 'lock', 'Personal'], ['household', 'people', K.householdName(data, cloud)], ['personal', 'layers', 'All']];
+    return html`<div class="space-switch" role="tablist" aria-label="View">${opts.map(([k, ic, l]) => html`<button key=${k} role="tab" aria-selected=${ctx.scope === k} class=${ctx.scope === k ? 'on' : ''} onClick=${() => setCtx({ scope: k })}><${Icon} n=${ic} s=${13} />${l}</button>`)}</div>`;
+  };
+  K.SpaceSwitch = SpaceSwitch;
+  // Who owes whom, for couples who split some costs
+  const SplitCard = () => {
+    const { data, fmt, openSheet } = useApp();
+    if (K.hhMode(data) !== 'mixed') return null;
+    const who = K.partnerName(data) || 'Partner';
+    const { owed, items } = K.splitBalance(data);
+    const text = !items.length ? 'Mark an expense as shared and Kipu keeps track of who owes whom.' : Math.abs(owed) < 0.01 ? 'You’re even.' : owed > 0 ? who + ' owes you ' + fmt(owed, { dec: 2 }) : 'You owe ' + who + ' ' + fmt(-owed, { dec: 2 });
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="split" tone=${owed > 0.009 ? 'g' : owed < -0.009 ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Shared with ' + who}</span><span class="small muted">${text}</span></span></div>
+      <div class="row" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => openSheet({ k: 'expense', preset: { shared: true } })}>Shared expense</button>${Math.abs(owed) >= 0.01 && html`<button class="btn pri sm" onClick=${() => openSheet({ k: 'settle' })}>Settle up</button>`}</div></div>`;
+  };
+  // Questions people ask about money, one tap away
+  const AskRow = () => {
+    const { openSheet, D } = useApp();
+    if (!D.plan.hasAccounts) return null;
+    return html`<div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}><button class="chip" onClick=${() => openSheet({ k: 'ask', kind: 'month' })}><${Icon} n="spark" s=${14} />Will I make it to month end?</button><button class="chip" onClick=${() => openSheet({ k: 'ask', kind: 'afford' })}><${Icon} n="spark" s=${14} />Can I afford it?</button></div>`;
+  };
+
+  // This device remembers your account: ask for Face ID or a PIN so only you can open it
+  const ProtectDevice = () => {
+    const { cloud, go } = useApp();
+    const [hidden, setHidden] = useState(() => { try { return !!localStorage.getItem('kipu-protect-hidden'); } catch (e) { return false; } });
+    if (hidden || !cloud.user || cloud.status !== 'ready' || K.lockCfg().enabled) return null;
+    const hide = () => { try { localStorage.setItem('kipu-protect-hidden', '1'); } catch (e) {} setHidden(true); };
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="lock" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>This device remembers you</span><span class="small muted" style=${{ lineHeight: 1.45 }}>Next time Kipu opens without your passphrase. Add Face ID, fingerprint or a PIN so only you can open it.</span></span></div><div class="row" style=${{ gap: '8px' }}><button class="btn pri sm" onClick=${() => go({ r: 'settings', s: 'security' })}>Add Face ID or PIN</button><button class="btn sec sm" onClick=${hide}>Not now</button></div></div>`;
+  };
+
+  // Signed in with a Household that isn't open yet
+  const HouseholdClosed = () => {
+    const { cloud, openSheet } = useApp();
+    if (cloud.status !== 'ready' || cloud.target !== 'personal' || cloud.combined || !(cloud.households || []).length) return null;
+    const h = cloud.households[0];
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="people" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Open ' + h.name}</span><span class="small muted" style=${{ lineHeight: 1.45 }}>See shared money next to yours. Your personal things stay private.</span></span></div><button class="btn pri sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => openSheet({ k: 'openHousehold', id: h.id })}>Open</button></div>`;
+  };
+
+  // Couples who share everything: get the other person in
+  const InviteCard = () => {
+    const { data, cloud, go, commit } = useApp();
+    if (K.hhMode(data) !== 'together' || cloud.target === 'household' || data.household.inviteHidden) return null;
+    const who = K.partnerName(data) || 'your partner';
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="people" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Bring ' + who + ' in'}</span><span class="small muted" style=${{ lineHeight: 1.45 }}>${'A joint Household shows both of you the same accounts, bills and spending, on each phone.'}</span></span></div>
+      <div class="row" style=${{ gap: '8px' }}><button class="btn pri sm" onClick=${() => go({ r: 'settings', s: 'cloud' })}>${'Invite ' + who}</button><button class="btn sec sm" onClick=${() => commit(Object.assign({}, data, { household: Object.assign({}, data.household, { inviteHidden: true }) }))}>Not now</button></div></div>`;
+  };
+
+  // Type an expense in one line: "45 Wong", "S/ 12 taxi ayer"
+  const QuickEntry = ({ compact, onDone }) => {
+    const { data, commit, toast, fmt, openSheet } = useApp();
+    const [text, setText] = useState('');
+    const [last, setLast] = useState(null);
+    const inputRef = React.useRef(null);
+    const q = K.parseQuick(text, data);
+    const from = K.lastPaidFrom(data);
+    // Your most frequent places lately: tap one, type the amount, done
+    const recent = React.useMemo(() => {
+      const since = K.iso(K.addDays(K.today(), -60)), n = {};
+      data.txns.forEach((t) => { if (t.type === 'expense' && !t.recurring && t.merchant && t.date >= since && t.merchant.length <= 18) n[t.merchant] = (n[t.merchant] || 0) + 1; });
+      return Object.keys(n).sort((a, b) => n[b] - n[a]).slice(0, 4);
+    }, [data.txns]);
+    if (!from) return null;
+    const save = (e) => {
+      e.preventDefault();
+      if (!q) { openSheet({ k: 'expense', preset: { merchant: text.trim() } }); setText(''); return; }
+      const cur = q.cur && K.hasRateFor(data, q.cur) ? q.cur : data.base;
+      const t = { type: 'expense', merchant: q.merchant || 'Expense', cat: K.guessCat(data, q.merchant) || 'other', amt: q.amt, cur, from, date: q.date, source: 'manual', shared: K.isShared(data) };
+      const est = K.chargeEstimate(data, t.amt, t.cur, from);
+      if (est) t.charged = { amt: est.amt, cur: est.cur, market: est.market, exact: false };
+      if (K.canPost(data, t)) { openSheet({ k: 'expense', preset: t }); setText(''); return; }
+      const next = K.addTxn(data, t);
+      commit(next); setLast(next.txns[next.txns.length - 1]); setText('');
+      toast('Expense added');
+      if (onDone) onDone();
+    };
+    const hint = q ? fmt.native(q.amt, q.cur || data.base, { dec: 2 }) + (q.merchant ? ' · ' + q.merchant : '') + ' · ' + K.CATS[K.guessCat(data, q.merchant) || 'other'].name + ' · ' + K.whereName(data, from) : 'Amount and where, e.g. 45 Wong or 12 taxi yesterday';
+    const pick = (m) => { setText(m + ' '); if (inputRef.current) inputRef.current.focus(); };
+    return html`<form class=${compact ? 'stack-s' : 'card stack-s'} style=${{ gap: '8px', padding: compact ? '4px 12px 8px' : '12px 14px' }} onSubmit=${save}>
+      <div class="row" style=${{ gap: '8px' }}><input ref=${inputRef} class="input grow quick-in" aria-label="Quick expense" enterkeyhint="done" autocomplete="off" autocorrect="off" spellcheck="false" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="45 Wong" /><button class="btn pri sm" disabled=${!text.trim()} aria-label="Add">${html`<${Icon} n="check" s=${18} w=${2.6} />`}</button></div>
+      ${recent.length > 0 && !text && html`<div class="chips" style=${{ gap: '6px' }}>${recent.map((m) => html`<button key=${m} type="button" class="chip" onClick=${() => pick(m)}>${m}</button>`)}</div>`}
+      <span class="tiny muted">${hint}</span>
+      ${last && !text && html`<span class="tiny"><button type="button" class="link" onClick=${() => { const d = K.removeTxn(data, last.id); commit(d); setLast(null); toast('Removed'); }}>Undo</button> · <button type="button" class="link" onClick=${() => { openSheet({ k: 'expense', item: data.txns.find((x) => x.id === last.id) }); setLast(null); }}>Edit</button></span>`}</form>`;
+  };
+  K.QuickEntry = QuickEntry;
+
+
+  // What's due in the next three days, before it's late
+  const DueSoon = () => {
+    const { D, fmt, go } = useApp();
+    if (!D.dueSoon || !D.dueSoon.length) return null;
+    const today = K.iso(D.T), tomorrow = K.iso(K.addDays(D.T, 1));
+    return html`<div class="card tight list">${D.dueSoon.slice(0, 3).map((u, i) => html`<button key=${i} class="lrow" onClick=${() => go(u.route)}><${Tile} icon="bell" tone=${u.date === today ? 'r' : 'a'} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${u.name}</span><span class="t2">${u.date === today ? 'Due today' : u.date === tomorrow ? 'Due tomorrow' : 'Due ' + K.fmtDate(u.date)}</span></span><span class="amt">${fmt(u.amt, { dec: 2 })}</span></button>`)}</div>`;
+  };
+
   K.Home = function Home() {
     const { D, fmt, go, data, displayName, cloud, ctx, setCtx, wide, insights, openSheet } = useApp();
     const m = D.month, prev = D.series[10];
+    const first = displayName ? displayName.split(' ')[0] : '';
+    const pal = K.hhMode(data) === 'together' && cloud.target !== 'household' ? K.partnerName(data) : '';
+    const hello = first ? ', ' + first + (pal ? ' & ' + pal : '') : '';
     const top = insights[0];
     const trip = D.activeTrip;
     const month = html`<button class="kpis m" onClick=${() => go({ r: 'stats', tab: 'overview' })} aria-label="This month in Statistics">
@@ -93,8 +202,8 @@
     const goal = D.goals.filter((g) => g.pct < 100).sort((a, b) => b.pct - a.pct)[0] || D.goals[0];
     const goalCard = goal && html`<div class="stack-s"><${SectionHeader} title="Featured goal" action="Goals" onAction=${() => go({ r: 'plan', tab: 'goals' })} /><${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`;
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
-    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
-    const ctxChip = !wide && (data.household.enabled || cloud.target === 'household' || (D.countries && D.countries.length > 1)) && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${hello}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
+    const ctxChip = !wide && (D.countries && D.countries.length > 1) && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     if (wide) {
       const badge = (a, b, goodUp) => { if (!prev.count || !b) return null; const d = ((a - b) / Math.abs(b)) * 100; if (Math.abs(d) < 0.5) return null; return html`<span class=${'b ' + ((d > 0) === goodUp ? 'pos' : 'warn')}>${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(0)}%</span>`; };
       const kpis = html`<div class="kpis">
@@ -131,16 +240,16 @@
       const areasMd = ['"hero hero"', r2 ? '"' + r2 + '"' : null, '"up nw"', '"flow flow"', '"cat bud"', '"rec rec"', '"ins gls"'].filter(Boolean).join(' ');
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
-        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} />
+        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1></div>${kpis}</header>
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
-          <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
+          <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${AskRow} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
           ${upcomingW}${nwW}${flowW}${spendW}${budgetW}${recentW}${insW}
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} /><${CountrySafe} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}<${QuickEntry} />${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${AskRow} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
@@ -339,7 +448,7 @@
       <div class="card stack-s"><div class="between"><span class="small muted">Utilization</span><span class="amt">${util.toFixed(1)}%</span></div><${K.Segs} pct=${util} color=${util > data.prefs.utilRef ? 'var(--warn2)' : 'var(--acc)'} mark=${data.prefs.utilRef} /><span class="tiny muted">The line is your ${data.prefs.utilRef}% reference. It’s a visual guide, not a credit score rule.</span></div>
       ${c.cur2 && html`<div class="grid g2" style=${{ gap: '8px' }}><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur || data.base}</span><b class="num">${fmt.native(c.bal, c.cur || data.base, { dec: 2 })}</b></div><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur2}</span><b class="num">${fmt.native(c.bal2 || 0, c.cur2, { dec: 2 })}</b></div></div>`}
       ${cycleCard}
-      <${Facts} rows=${[c.country && ['Country', K.countryName(c.country)], !cyc && ['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 }) + (c.cur2 ? ' + ' + fmt.native(c.stmtBal2 || 0, c.cur2, { dec: 2 }) : '')], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%']]} />
+      <${Facts} rows=${[c.country && ['Country', K.countryName(c.country)], !cyc && ['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 }) + (c.cur2 ? ' + ' + fmt.native(c.stmtBal2 || 0, c.cur2, { dec: 2 }) : '')], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%'], (() => { const x = K.fxCost(data, 'card:' + c.id); return x && ['Real cost in other currencies', x.pct.toFixed(1) + '% over the market rate · ' + x.count + (x.count === 1 ? ' purchase' : ' purchases')]; })()]} />
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: cyc ? cyc.owed || c.bal : c.stmtBal || c.bal })}>${c.cur2 ? 'Pay ' + (c.cur || data.base) : 'Pay card'}</button>${c.cur2 && html`<button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur2, amount: c.stmtBal2 || c.bal2 })}>Pay ${c.cur2}</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
       <${K.PurchaseNote} card=${'card:' + c.id} />
       <${ImportedNote} where=${'card:' + c.id} />
@@ -388,7 +497,7 @@
     ${open && html`<div class="txo-body">${children}</div>`}</div>`;
 
   K.TxnDetail = function TxnDetail({ route }) {
-    const { data, commit, fmt, go, toast, back, openSheet } = useApp();
+    const { data, commit, fmt, go, toast, back, openSheet, cloud } = useApp();
     const [open, setOpen] = useState(null);
     const t = data.txns.find((x) => x.id === route.id);
     const imp = t && t.imp && (data.imports || []).find((i) => i.id === t.imp);
@@ -410,7 +519,9 @@
     const c = K.CATS[t.cat];
     const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);
     const toggle = (k) => setOpen(open === k ? null : k);
-    const editable = ['expense', 'income', 'transfer'].includes(t.type);
+    // Recorded by your partner from an account or card only they can see: changing it here would leave their balance wrong
+    const other = !!(cloud.combined && t.shared && (t.from || t.to) && !known);
+    const editable = !other && ['expense', 'income', 'transfer'].includes(t.type);
     const where = K.whereName(data, t.from || t.to);
     const setType = (type) => { if (type === t.type) return; commit(K.changeType(data, t.id, type, known ? null : place)); toast({ expense: 'Now an expense', income: 'Now income', transfer: 'Now a transfer' }[type]); };
     const setBill = (id) => { commit(K.editTxn(data, t.id, { recurring: id || null, billMatch: id ? 'manual' : 'off' })); toast(id ? 'Linked to bill' : 'Unlinked'); setOpen(null); };
@@ -438,8 +549,8 @@
       </div>`}
 
       <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], K.txnName(data, t) !== t.merchant && t.merchant && ['Bank text', t.merchant], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
-      <div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
-      <${DangerButton} label="Delete transaction" ask="Delete this transaction?" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />
+      ${other ? html`<div class="card flat small" style=${{ lineHeight: 1.5 }}>Recorded by your partner from their own account or card. Only they can change it.</div>` : html`<div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
+      <${DangerButton} label="Delete transaction" ask="Delete this transaction?" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />`}
     </div>`;
   };
 })();

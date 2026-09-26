@@ -66,7 +66,54 @@
     [/\b(daycare|childcare|guarderia|toys ?r ?us|babies)\b/i, 'family'],
     [/\b(rent|alquiler|mortgage|hipoteca|condo fees?|strata|property ?tax)\b/i, 'housing'],
     [/\b(amazon|amzn|canadian ?tire|winners|marshalls|homesense|dollarama|dollar ?tree|staples|indigo|chapters|sport ?chek|lululemon|apple ?store|best ?buy|home ?depot|lowe'?s|rona|ikea|structube|wayfair|shein|temu|aliexpress|ebay|etsy|uniqlo|zara|h ?& ?m|old ?navy|gap|simons|hudson'?s bay|the bay|ripley|saga ?falabella|falabella|oechsle|promart|sodimac|real ?plaza|mall|shop|store|tienda)\b/i, 'shopping'],
+    // More Peru and Latin America
+    [/\b(vivanda|makro|mass|tambo|oxxo|mayorsa|minimarket|bodega|mercado central)\b/i, 'groceries'],
+    [/\b(luz del sur|enel|sedapal|c[aá]lidda|entel|bitel|win internet)\b/i, 'bills'],
+    [/\b(saga falabella|falabella|ripley|oechsle|sodimac|promart|real plaza|jockey plaza|megaplaza|mercado ?libre|linio)\b/i, 'shopping'],
+    [/\b(smart ?fit|bodytech|dgo|claro video)\b/i, 'subs'],
+    [/\b(upc|pucp|ulima|instituto|academia|platzi|matr[ií]cula|pensi[oó]n escolar)\b/i, 'education'],
+    [/\b(bembos|norky'?s|pardos|chifa|poller[ií]a|cevicher[ií]a|juan valdez|la lucha|tanta|pasteler[ií]a|panader[ií]a)\b/i, 'dining'],
+    [/\b(indrive|peaje|metropolitano|l[ií]nea 1|estacionamiento|combustible|petroper[uú])\b/i, 'transport'],
+    [/\b(cl[ií]nica|sanna|oncosalud|laboratorio|oftalmo\w*)\b/i, 'health'],
+    [/\b(cruz del sur|oltursa|civa|despegar|hostal)\b/i, 'travel'],
   ];
+  // Bank lines for Yape and Plin transfers read as "Yape · Name", without phone numbers and reference codes
+  const nameCase = (x) => x.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  K.tidyDesc = (desc) => {
+    const raw = String(desc || '').trim();
+    const m = /\b(yape|plin)\b[\s\-:*./#]*(?:(?:enviado a|recibido de|a|de|to|from|para)\s+)?(.*)$/i.exec(raw);
+    if (!m) return raw;
+    const app = m[1].toLowerCase() === 'yape' ? 'Yape' : 'Plin';
+    const name = (m[2] || '').replace(/\+?\d[\d\s-]{5,}/g, ' ').replace(/\b(ref|op|nro|n°|no)\b\.?\s*\S*/gi, ' ').replace(/[*#/]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return name && /[a-z]/i.test(name) ? app + ' · ' + nameCase(name) : app;
+  };
+  // "45 Wong", "wong 45.50", "S/ 12 taxi ayer", "usd 20 amazon": amount, currency, merchant and day from one line
+  const CUR_SIGNS = [[/^s\/\.?$/i, 'PEN'], [/^us\$$/i, 'USD'], [/^ca\$$/i, 'CAD'], [/^€$/, 'EUR'], [/^£$/, 'GBP'], [/^mx\$$/i, 'MXN']];
+  K.parseQuick = (text, data) => {
+    let words = String(text || '').trim().replace(/(s\/\.?|us\$|ca\$|mx\$|€|£|\$)(?=\d)/gi, '$1 ').split(/\s+/).filter(Boolean);
+    let amt = null, cur = null, back = 0;
+    const codes = new Set(Object.keys((data && data.fx && data.fx.usd) || {}).concat(['PEN', 'USD', 'CAD', 'EUR', 'GBP', 'MXN']));
+    const rest = [];
+    words.forEach((w) => {
+      const low = w.toLowerCase();
+      const sign = CUR_SIGNS.find(([re]) => re.test(w));
+      if (sign) { cur = sign[1]; return; }
+      if (w === '$') return;
+      if (/^[a-z]{3}$/i.test(w) && codes.has(w.toUpperCase()) && !cur && w === w.toUpperCase()) { cur = w.toUpperCase(); return; }
+      if (/^(usd|pen|cad|eur|gbp|mxn|soles?|d[oó]lares?)$/i.test(w) && !cur) { cur = /^sol/i.test(w) ? 'PEN' : /^d[oó]lar/i.test(w) ? 'USD' : w.toUpperCase(); return; }
+      if (['ayer', 'yesterday'].includes(low)) { back = 1; return; }
+      if (['anteayer', 'antier'].includes(low)) { back = 2; return; }
+      if (['hoy', 'today'].includes(low)) return;
+      const n = /^(\d{1,7})(?:[.,](\d{1,2}))?$/.exec(/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(w) ? w.replace(/,/g, '') : w);
+      if (n && amt == null) { amt = Number(n[1] + (n[2] ? '.' + n[2] : '')); return; }
+      rest.push(w);
+    });
+    if (!amt) return null;
+    const merchant = rest.join(' ').replace(/^(en|at|in|de)\s+/i, '');
+    return { amt, cur, merchant: merchant ? merchant.charAt(0).toUpperCase() + merchant.slice(1) : '', date: iso(addDays(today(), -back)) };
+  };
+  // Where a quick expense is paid from: the account or card you used last, else your first everyday account
+  K.lastPaidFrom = (data) => { const t = data.txns.slice().reverse().find((x) => x.type === 'expense' && x.from && x.source === 'manual'); const ok = (w) => w && K.whereItem(data, w); return (t && ok(t.from) && t.from) || ((K.whereOptions(data)[0] || [])[0] || ''); };
   // Rules and what you chose before are matched by shop, without store numbers or bank prefixes
   const sameShop = (a, b) => !!a && !!b && (a === b || a.startsWith(b + ' ') || b.startsWith(a + ' '));
   K.guessCat = (data, merchant) => {
@@ -187,7 +234,7 @@
     base: 'CAD', active: ['CAD'],
     fx: { usd: Object.assign({}, USD_RATES), updated: null, source: 'Built-in reference rates' },
     accounts: [], cards: [], loans: [], txns: [], bills: [], income: [], budget: {}, goals: [], trips: [], rules: [], imports: [],
-    household: { enabled: false, name: '' },
+    household: { enabled: false, name: '', mode: 'solo', partner: '', split: 50 },
     fxPairs: { fav: [], use: {} },
     customCats: [],
     snapshots: {},
@@ -199,6 +246,78 @@
   };
   K.save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } };
   K.wipe = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+
+  // ---------------------------------------------------------------- household: solo, together (everything shared) or mixed (some shared)
+  K.HH_MODES = [
+    ['solo', 'user', 'Just me', 'My own accounts and spending. Nothing to share.'],
+    ['together', 'people', 'Together, we share everything', 'One shared picture of all our money, for both of us.'],
+    ['mixed', 'split', 'Some mine, some shared', 'My own money, plus shared expenses split between us.'],
+  ];
+  K.hhMode = (d) => { const h = (d && d.household) || {}; return h.joint ? 'together' : h.mode || (h.enabled ? 'mixed' : 'solo'); };
+  // Sharing is offered once there is someone to share with: a Household on this device or a joint one in the cloud
+  K.canShare = (d, cloud) => K.hhMode(d) !== 'solo' || !!(cloud && (cloud.households || []).length);
+  K.householdName = (d, cloud) => (cloud && cloud.household && cloud.household.name) || (cloud && (cloud.households || [])[0] && cloud.households[0].name) || (d.household && d.household.name) || 'Household';
+  // New things are shared when everything is (together) or when you're looking at the Household
+  K.isShared = (d, v) => (v != null ? !!v : K.hhMode(d) === 'together' || K.scopeNow === 'household');
+  K.partnerName = (d) => ((d && d.household && d.household.partner) || '').trim();
+  K.setHouseholdMode = (d, mode, opts) => {
+    const o = opts || {};
+    const h = Object.assign({ name: '', partner: '', split: 50 }, d.household, { mode, enabled: mode !== 'solo' });
+    if (o.partner != null) h.partner = String(o.partner).trim();
+    if (o.name != null) h.name = String(o.name).trim();
+    if (o.split != null) h.split = Math.max(0, Math.min(100, Math.round(Number(o.split) || 0)));
+    if (mode !== 'solo' && !h.name) h.name = h.partner ? (d.profile.name ? d.profile.name.trim() + ' & ' + h.partner : 'Home with ' + h.partner) : 'Household';
+    return Object.assign({}, d, { household: h });
+  };
+  // Your part of an expense (1 = all yours). A split expense keeps the full amount and who paid it.
+  K.myShare = (t) => (t && t.split && t.type === 'expense' ? Math.max(0, Math.min(100, t.split.mine != null ? t.split.mine : 50)) / 100 : 1);
+  // Who owes whom from split expenses and settle-ups. Positive: your partner owes you.
+  K.splitBalance = (d) => {
+    let owed = 0; const items = [];
+    (d.txns || []).forEach((t) => {
+      const b = t.base; if (b == null) return;
+      if (t.type === 'expense' && t.split) {
+        const mine = K.myShare(t);
+        const x = t.split.by === 'partner' ? -b * mine : b * (1 - mine);
+        if (x) { owed += x; items.push({ t, amount: r2(x) }); }
+      }
+      if (t.type === 'transfer' && t.cat === 'settle') { const x = t.to ? -b : b; owed += x; items.push({ t, amount: r2(x) }); }
+    });
+    return { owed: r2(owed), items: items.sort((a, b) => (a.t.date < b.t.date ? 1 : -1)) };
+  };
+  // Money that evens things out: your partner paid you (in) or you paid them (out)
+  K.settleUp = (d, o) => {
+    const who = K.partnerName(d) || 'Partner';
+    const t = o.dir === 'in' ? { type: 'transfer', cat: 'settle', merchant: who + ' paid you', amt: o.amt, cur: o.cur || d.base, from: '', to: o.where || '', date: o.date } : { type: 'transfer', cat: 'settle', merchant: 'You paid ' + who, amt: o.amt, cur: o.cur || d.base, from: o.where || '', to: '', date: o.date };
+    if (!t.date) delete t.date;
+    return K.addTxn(d, Object.assign(t, { shared: true }));
+  };
+
+  // ---------------------------------------------------------------- personal and Household spaces, opened together
+  // Personal things live only in your own encrypted file; shared things live in the Household file both of you open.
+  // On screen they're one list; on save each item goes back to its own file.
+  const SPACE_COLLS = ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips'];
+  const byId = (list) => { const seen = new Set(); return list.filter((x) => (x && !seen.has(x.id) ? seen.add(x.id) : false)); };
+  K.combineSpaces = (p, h, hh) => {
+    const out = Object.assign({}, p);
+    SPACE_COLLS.forEach((k) => {
+      const shared = (h[k] || []).map((x) => (x.shared ? x : Object.assign({}, x, { shared: true })));
+      // Things marked shared in your own file (from before the Household existed) move to the Household on the next save
+      out[k] = byId((p[k] || []).filter((x) => !x.shared).concat(shared, (p[k] || []).filter((x) => x.shared)));
+    });
+    out.customCats = byId((p.customCats || []).concat(h.customCats || []));
+    out.active = [...new Set((p.active || []).concat(h.active || []))];
+    out.household = Object.assign({ partner: '', split: 50 }, p.household, { enabled: true, mode: 'mixed', name: hh.name, cloudId: hh.id });
+    return out;
+  };
+  K.splitSpaces = (d, hPrev) => {
+    const p = Object.assign({}, d), h = Object.assign(K.factory(), hPrev || {}, { onboarded: true });
+    SPACE_COLLS.forEach((k) => { p[k] = (d[k] || []).filter((x) => !x.shared); h[k] = (d[k] || []).filter((x) => x.shared); });
+    h.customCats = d.customCats || [];
+    if (!hPrev) { h.base = d.base; h.active = d.active; }
+    delete h.hhKeys; // your key to the Household never goes into the Household file
+    return [p, h];
+  };
 
   // ---------------------------------------------------------------- currency
   // Every stored transaction keeps its original amount and currency plus the base-currency amount at the rate used then.
@@ -293,6 +412,24 @@
     for (let k = 1; k < p.n; k++) d = step(d, loan.freq, 1);
     return Object.assign(p, { date: d, label: K.fmtMonth(d) });
   };
+  // Paying off several loans: minimums on all, and every extra (plus each finished loan's payment) goes to one target.
+  // avalanche = highest interest first (least interest); snowball = smallest balance first (quick wins).
+  K.debtPlan = (data, loans, extra, order) => {
+    const L = loans.filter((l) => l.bal > 0 && l.pay > 0).map((l) => ({ id: l.id, name: l.name, rate: (l.rate || 0) / 100 / 12, bal: K.toBase(data, l.bal, l.cur || data.base) || 0, pay: (K.toBase(data, l.pay, l.cur || data.base) || 0) * K.perYear(l.freq) / 12, done: null }));
+    if (!L.length) return null;
+    const pick = () => L.filter((l) => l.bal > 0.005).sort((a, b) => (order === 'snowball' ? a.bal - b.bal : b.rate - a.rate || a.bal - b.bal))[0];
+    let month = 0, interest = 0;
+    while (L.some((l) => l.bal > 0.005) && month < 600) {
+      month++;
+      let pool = extra || 0;
+      L.forEach((l) => { if (l.bal <= 0.005) { pool += l.pay; return; } const int = l.bal * l.rate; interest += int; l.bal += int; const p = Math.min(l.bal, l.pay); l.bal -= p; pool += l.pay - p; });
+      for (let t = pick(); t && pool > 0.005; t = pick()) { const p = Math.min(t.bal, pool); t.bal -= p; pool -= p; if (t.bal <= 0.005) t.bal = 0; else break; }
+      L.forEach((l) => { if (l.bal <= 0.005 && !l.done) { l.bal = 0; l.done = month; } });
+    }
+    const T = today();
+    const at = (n) => new Date(T.getFullYear(), T.getMonth() + n, 1);
+    return { months: month, date: at(month), interest: r2(interest), stuck: month >= 600, loans: L.slice().sort((a, b) => a.done - b.done).map((l) => ({ id: l.id, name: l.name, months: l.done, date: at(l.done || month) })) };
+  };
   K.loanSplit = (loan) => { const i = (loan.rate || 0) / 100 / K.perYear(loan.freq); const interest = r2(loan.bal * i); const principal = r2(Math.min(loan.bal, Math.max(0, (loan.pay || 0) - interest))); return { interest, principal }; };
 
   // ---------------------------------------------------------------- mutations (pure: return new data)
@@ -323,13 +460,58 @@
       if (!where || !(where.startsWith('acct:') || where.startsWith('card:'))) return;
       // A two-currency card keeps charges in its second currency on their own balance
       const card = where.startsWith('card:') ? d.cards.find((c) => 'card:' + c.id === where) : null;
-      if (card && card.cur2 && t.cur === card.cur2 && t.amt != null) out.push({ where, amount: r2(sign * t.amt), slot: 2 });
+      // Bought in one currency, charged in another: the amount the bank charged moves the balance
+      const ch = t.charged && t.charged.amt != null && where === t.from && (t.type === 'expense' || t.type === 'income') ? t.charged : null;
+      const item = ch ? K.whereItem(d, where) : null;
+      if (ch && card && card.cur2 && ch.cur === card.cur2) out.push({ where, amount: r2(sign * ch.amt), slot: 2 });
+      else if (ch && item && (item.cur || d.base) === ch.cur) out.push({ where, amount: r2(sign * ch.amt) });
+      else if (card && card.cur2 && t.cur === card.cur2 && t.amt != null) out.push({ where, amount: r2(sign * t.amt), slot: 2 });
       else out.push({ where, amount: postingAmount(d, t, where, sign) });
     };
     if (t.type === 'expense') post(t.from, -1);
     if (t.type === 'income') post(t.from, 1);
     if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -1); post(t.to, 1); }
     return out;
+  };
+  // ---------------------------------------------------------------- paying in another currency
+  // Card and account fees for purchases in another currency (cards usually charge about 2.5%)
+  // The fee you set wins; otherwise what this card really charged on past purchases (two or more); otherwise a typical fee
+  K.fxFeeOf = (d, where) => {
+    const it = K.whereItem(d, where); if (!it) return 0;
+    if (it.fxFee != null && it.fxFee !== '') return Number(it.fxFee);
+    const seen = K.fxCost(d, where);
+    if (seen && seen.count >= 2) return Math.max(0, seen.pct);
+    return String(where).startsWith('card:') ? 2.5 : 0;
+  };
+  K.payCurrencies = (d, where) => { const it = K.whereItem(d, where); return it ? [it.cur || d.base].concat(it.cur2 ? [it.cur2] : []) : []; };
+  // What the bank will likely charge for a purchase in another currency: today's rate plus the card's fee.
+  // A two-currency card bills foreign purchases in dollars when it has them, as most banks do.
+  K.chargeEstimate = (d, amt, cur, where, into) => {
+    const curs = K.payCurrencies(d, where);
+    if (!curs.length || !amt || curs.includes(cur)) return null;
+    const to = into && curs.includes(into) ? into : curs.length > 1 && curs.includes('USD') ? 'USD' : curs[0];
+    const k = K.rate(d, cur, to); if (k == null) return null;
+    const market = r2(amt * k), fee = K.fxFeeOf(d, where);
+    return { cur: to, amt: r2(market * (1 + fee / 100)), market, fee };
+  };
+  // What each card or account really charged over the market rate, from amounts you confirmed or statements
+  K.fxCost = (d, where) => {
+    const list = d.txns.filter((t) => t.from === where && t.charged && t.charged.exact && t.charged.market > 0);
+    if (!list.length) return null;
+    const paid = sum(list, (t) => t.charged.amt), market = sum(list, (t) => t.charged.market);
+    const extra = sum(list, (t) => K.toBase(d, t.charged.amt - t.charged.market, t.charged.cur) || 0);
+    return { count: list.length, pct: r2((paid / market - 1) * 100), extra: r2(extra) };
+  };
+  // Statement lines that show the original purchase: "AMAZON.CA CAD 45.00 T/C 0.7412", "USD 20.00 @ 3.75"
+  const FX_CODES = /\b(USD|CAD|EUR|GBP|MXN|PEN|COP|CLP|ARS|BRL|JPY|AUD|CHF|CNY|BOB|UYU)\s*\$?\s*([\d]{1,3}(?:[,.]\d{3})*(?:[.,]\d{1,2})|\d+(?:[.,]\d{1,2})?)\b/;
+  K.parseFxInfo = (desc, statementCur) => {
+    const s = String(desc || '');
+    const m = FX_CODES.exec(s);
+    if (!m || m[1] === statementCur) return null;
+    let raw = m[2]; if (/^\d{1,3}([,.]\d{3})+([.,]\d{1,2})?$/.test(raw) && /[.,]\d{1,2}$/.test(raw)) raw = raw.slice(0, -3).replace(/[.,]/g, '') + '.' + raw.slice(-2); else if (/^\d{1,3}([,.]\d{3})+$/.test(raw)) raw = raw.replace(/[.,]/g, ''); else raw = raw.replace(',', '.');
+    const amt = Number(raw); if (!(amt > 0)) return null;
+    const r = /(?:T\/?C|TC|tipo de cambio|exch(?:ange)?\.? rate|rate|@)\s*:?\s*([\d]+[.,]\d+)/i.exec(s);
+    return { cur: m[1], amt, rate: r ? Number(r[1].replace(',', '.')) : null, desc: s.replace(m[0], ' ').replace(r ? r[0] : '', ' ').replace(/\s+/g, ' ').trim() };
   };
   // What a transaction would move in each account's own currency, before saving it
   K.previewPostings = (d, t) => { try { return postingsFor(d, Object.assign({ cur: d.base }, t, { base: K.toBase(d, t.amt, t.cur || d.base) })); } catch (e) { return null; } };
@@ -371,8 +553,12 @@
   };
   K.addTxn = (d, t) => {
     const cur = t.cur || d.base;
-    const base = t.base != null ? t.base : K.toBase(d, t.amt, cur);
+    // What it cost you: with a charged amount (bank rate and fee included), that's the real cost
+    const chargedBase = t.charged && t.charged.amt != null ? K.toBase(d, t.charged.amt, t.charged.cur) : null;
+    const base = t.base != null ? t.base : chargedBase != null ? chargedBase : K.toBase(d, t.amt, cur);
     t = Object.assign({ id: uid('t'), date: iso(today()), cur, base, rate: K.rate(d, cur, d.base), source: 'manual', shared: false }, t, { base });
+    // Money moving on a shared account or card is the Household's business: both of you see it
+    if (!t.shared && [t.from, t.to].some((w) => w && (K.whereItem(d, w) || {}).shared)) t.shared = true;
     t.postings = postingsFor(d, t);
     if (t.type === 'expense' && !t.recurring && t.billMatch !== 'off') { const b = K.matchBill(d, t); if (b) { t.recurring = b.id; t.billMatch = 'auto'; } }
     if (t.type === 'expense' && !t.trip) { const trip = K.activeTrip(d, parse(t.date)); if (trip && t.autoTrip !== false && cur !== d.base) t.trip = trip.id; }
@@ -384,11 +570,11 @@
   K.removeTxn = (d, id) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; d = effects(d, t, -1); return K.snapshot(Object.assign({}, d, { txns: d.txns.filter((x) => x.id !== id) })); };
   K.editTxn = (d, id, patch) => {
     const t = d.txns.find((x) => x.id === id); if (!t) return d;
-    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
+    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled', 'charged'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
     if (!financial) { const next = Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) }); return patch.recurring ? K.applyBillPrice(next, patch.recurring) : next; }
     const next = Object.assign({}, t, patch);
     delete next.postings;
-    if (patch.amt != null || patch.cur != null) { next.base = K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
+    if (patch.amt != null || patch.cur != null || Object.prototype.hasOwnProperty.call(patch, 'charged')) { next.base = next.charged && next.charged.amt != null && K.toBase(d, next.charged.amt, next.charged.cur) != null ? K.toBase(d, next.charged.amt, next.charged.cur) : K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
     else if (patch.base != null) next.rate = next.amt ? next.base / next.amt : 1;
     d = K.removeTxn(d, id);
     return K.addTxn(d, next);
@@ -420,16 +606,19 @@
   K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
   K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
   // A card-payment line on a bank statement ("PAGO TARJETA VISA", "CIBC VISA PAYMENT"): which card it pays, or null
-  const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono)\b/;
-  const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|credit|credito|cr)\b/;
+  const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono|autopay|epayment|epay|preauth|pay)\b/;
+  const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|crd|credit|credito|cr)\b/;
   // Card companies whose name alone on a bank line is a payment to their card ("AMERICAN EXPRESS", "CAPITAL ONE")
-  const ISSUER = /\b(american express|amex|capital one|mbna|rogers bank|brim|neo financial|home trust|diners club|discover)\b/;
+  const ISSUER = /\b(american express|amex|capital one|mbna|rogers bank|brim|neo financial|home trust|diners club|discover|ctfs|triangle|pc financial|synchrony|barclaycard|citi ?cards?|chase card|chase credit)\b/;
+  // Paying with a phone wallet is a purchase, not a card payment
+  const WALLET = /\b(apple|google|samsung) pay\b/g;
   K.cardPaymentFor = (d, desc) => {
-    const m = norm(desc);
+    const m = norm(desc).replace(WALLET, ' ').replace(/\s+/g, ' ').trim();
     if (!m) return null;
     if (!PAY.test(m)) {
       if (!ISSUER.test(m)) return null;
       const byName = (d.cards || []).filter((c) => [c.network, c.name, c.issuer].some((x) => x && ISSUER.test(norm(x)) && m.match(ISSUER)[0] === norm(x).match(ISSUER)[0]) || (c.network && /amex|american express/.test(norm(c.network)) && /amex|american express/.test(m)));
+      // A card that isn't in Kipu stays as spending: its payment is the only record of what was bought on it
       return byName.length === 1 ? { card: byName[0] } : null;
     }
     const named = (d.cards || []).filter((c) => (c.last4 && m.includes(c.last4)) || norm(c.name).split(' ').filter((w) => w.length >= 4 && !['card', 'visa', 'credit'].includes(w)).some((w) => m.split(' ').includes(w)));
@@ -438,11 +627,33 @@
     const byNet = (d.cards || []).filter((c) => c.network && m.includes(norm(c.network)));
     return { card: byNet.length === 1 ? byNet[0] : (d.cards || []).length === 1 ? d.cards[0] : null };
   };
-  // Card payments imported from a bank before Kipu recognized them: they count as spending twice
-  K.misfiledCardPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && (t.from || '').startsWith('acct:') && K.cardPaymentFor(d, t.merchant));
+  // The same card payment seen twice: leaving the bank account, and arriving on the card statement ("PAYMENT - THANK YOU").
+  // Same amount (a few percent apart across currencies) within a week.
+  K.cardPaymentPairs = (d) => {
+    const cardSide = d.txns.filter((t) => t.type === 'transfer' && !t.from && (t.to || '').startsWith('card:') && !t.pair && K.looksLikePayment(t.merchant));
+    const bankSide = d.txns.filter((t) => (t.from || '').startsWith('acct:') && !t.pair && (t.type === 'expense' || (t.type === 'transfer' && (!t.to || t.to.startsWith('card:')))));
+    const used = new Set(), pairs = [];
+    cardSide.forEach((c) => {
+      const near = bankSide.filter((b) => !used.has(b.id) && b.base != null && c.base != null && Math.abs(K.days(parse(b.date), parse(c.date))) <= 7 && (b.to ? b.to === c.to : true)
+        && (b.cur === c.cur ? Math.abs(b.amt - c.amt) <= 0.01 : Math.abs(b.base - c.base) <= Math.max(1, Math.abs(c.base) * 0.03)));
+      // Lines that say they pay a card come first, then the closest date
+      const score = (b) => (b.type === 'transfer' ? 0 : K.cardPaymentFor(d, b.merchant) ? 1 : 2) * 100 + Math.abs(K.days(parse(b.date), parse(c.date)));
+      const best = near.sort((x, y) => score(x) - score(y))[0];
+      if (best) { used.add(best.id); pairs.push([best, c]); }
+    });
+    return pairs;
+  };
+  // One payment, one effect: the bank line stops being spending and stops crediting the card, since the card's own line already does
+  // One payment, one movement (same rule as the exact twins below): the bank line stays as the payment into the card, the card's copy goes
+  K.mergeCardPayments = (d) => K.cardPaymentPairs(d).reduce((acc, [b, c]) => {
+    acc = K.editTxn(acc, b.id, { type: 'transfer', cat: 'transfer', to: c.to, recurring: null });
+    acc = K.removeTxn(acc, c.id);
+    return !!c.settled !== !!b.settled ? K.editTxn(acc, b.id, { settled: c.settled || undefined }) : acc;
+  }, d);
+  K.misfiledCardPayments = (d) => { const paired = new Set(K.cardPaymentPairs(d).map(([b]) => b.id)); return d.txns.filter((t) => t.type === 'expense' && (t.from || '').startsWith('acct:') && ((t.source === 'statement' && K.cardPaymentFor(d, t.merchant)) || paired.has(t.id))); };
   // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
-  const fixOne = (acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); };
-  K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => K.mergeCardPaymentTwin(fixOne(acc, t), t.id), d);
+  const fixOne = (acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant) || {}; return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); };
+  K.fixCardPayments = (d) => K.mergeCardPayments(K.misfiledCardPayments(d).reduce((acc, t) => K.mergeCardPaymentTwin(fixOne(acc, t), t.id), d));
   // A card payment out of the bank and the same payment read from the card's statement (into the card from nowhere):
   // one movement counted twice. The bank one stays (it says where the money came from); the card's copy goes.
   K.cardPaymentTwin = (d, t) => t && t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:') ? d.txns.filter((x) => x.id !== t.id && x.type === 'transfer' && x.to === t.to && !x.from && Math.abs(Math.abs(x.amt) - Math.abs(t.amt)) < 0.01 && Math.abs(K.days(parse(x.date), parse(t.date))) <= 7).sort((a, b) => Math.abs(K.days(parse(a.date), parse(t.date))) - Math.abs(K.days(parse(b.date), parse(t.date))))[0] || null : null;
@@ -788,7 +999,8 @@
   K.cardNumbers = (c) => [c && c.last4].concat((c && c.oldLast4) || []).filter(Boolean);
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
-    const inS = (x) => (scope === 'household' ? !!x.shared : true);
+    const all = K.hhMode(d) === 'together';
+    const inS = (x) => (scope === 'household' ? all || !!x.shared : scope === 'mine' ? !all && !x.shared : true);
     const accts = d.accounts.filter((a) => !a.archived && inS(a)).map((a) => Object.assign({}, a, { baseBal: r2(a.bal * K.rate(d, a.cur, d.base)) }));
     const cash = r2(sum(accts.filter((a) => ['Everyday', 'Savings', 'Cash'].includes(a.kind)), (a) => a.baseBal));
     const invest = r2(sum(accts.filter((a) => a.kind === 'Investments'), (a) => a.baseBal));
@@ -814,7 +1026,11 @@
   K.derive = (data, ctx) => {
     const T = today();
     const scope = ctx.scope;
-    const inS = (x) => (scope === 'household' ? !!x.shared : true);
+    const together = K.hhMode(data) === 'together';
+    // household: what you share · mine: only what's yours alone · personal (default): everything you can see
+    const inS = (x) => (scope === 'household' ? together || !!x.shared : scope === 'mine' ? !together && !x.shared : true);
+    // Your own view counts your part of a split expense; the Household view counts the whole thing
+    const share = (t) => (scope === 'household' ? 1 : K.myShare(t));
     const monthStart = new Date(T.getFullYear(), T.getMonth(), 1), monthEnd = new Date(T.getFullYear(), T.getMonth() + 1, 0);
     const txAll = data.txns.filter(inS).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     const cur = ctx.currency;
@@ -822,11 +1038,12 @@
     const val = (t) => (cur === 'Combined' ? t.base : t.amt);
     const inMonth = (t, y, m) => { const d = parse(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const agg = (list, y, m, useVal) => {
-      const f = useVal ? val : (t) => t.base;
+      const f0 = useVal ? val : (t) => t.base;
+      const f = (t) => (t.type === 'expense' ? f0(t) * share(t) : f0(t));
       const mt = list.filter((t) => inMonth(t, y, m));
       const cats = {}; K.CAT_ORDER.forEach((c) => (cats[c] = 0));
       mt.filter((t) => t.type === 'expense').forEach((t) => (cats[t.cat] = r2((cats[t.cat] || 0) + f(t))));
-      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => t.interest || 0)), count: mt.length, cats };
+      const o = { income: r2(sum(mt.filter((t) => t.type === 'income'), f)), spending: r2(sum(mt.filter((t) => t.type === 'expense'), f)), flex: r2(sum(mt.filter((t) => t.type === 'expense' && !t.recurring), f)), saved: r2(sum(mt.filter((t) => t.type === 'saving'), f)), debtPaid: r2(sum(mt.filter((t) => t.type === 'debt'), f)), interest: r2(sum(mt.filter((t) => t.type === 'debt'), (t) => t.interest || 0)), count: mt.length, cats };
       o.net = r2(o.income - o.spending - o.saved - o.debtPaid); o.rate = o.income ? r2((o.saved / o.income) * 100) : 0;
       return o;
     };
@@ -845,7 +1062,7 @@
     const incomeExpected = r2(sum(incomeSrc, (s) => occurrences(s.next || iso(T), s.freq, monthStart, monthEnd).length * K.toBase(data, s.amt, s.cur || data.base)));
     const monthAll = agg(txAll, T.getFullYear(), T.getMonth(), false);
     const expectedIncome = r2(Math.max(incomeExpected, monthAll.income));
-    const flexSpent = r2(sum(txAll.filter((t) => t.type === 'expense' && !t.recurring && inMonth(t, T.getFullYear(), T.getMonth())), (t) => t.base));
+    const flexSpent = r2(sum(txAll.filter((t) => t.type === 'expense' && !t.recurring && inMonth(t, T.getFullYear(), T.getMonth())), (t) => t.base * share(t)));
     const available = r2(expectedIncome - commitments - debtPlanned - savingsPlanned);
     const budgetRows = Object.keys(data.budget).filter((c) => data.budget[c] > 0).map((c) => ({ cat: c, plan: data.budget[c], actual: monthAll.cats[c] || 0 }));
 
@@ -855,10 +1072,21 @@
     const nextPay = nextPays.length ? nextPays.reduce((a, b) => (b < a ? b : a)) : null;
     const until = nextPay ? addDays(nextPay, -1) : monthEnd;
     const inWin = (d) => d >= T && d <= until;
-    const paidThisMonth0 = (id) => txAll.filter((t) => t.recurring === id && inMonth(t, T.getFullYear(), T.getMonth())).length;
+    // A payment covers the due date it sits closest to: within half a cycle before it, so
+    // last month's rent never counts for the rent due on the 1st of next month
+    const unpaidDates = (b, dates) => {
+      const pays = txAll.filter((t) => t.recurring === b.id).map((t) => parse(t.date)).sort((x, y) => x - y);
+      const used = new Set();
+      return dates.filter((d) => !b.end || monthKey(d) <= b.end).filter((d) => {
+        const half = (d - step(d, billFreq(b), -1)) / 2;
+        const k = pays.findIndex((p, i) => !used.has(i) && p > d - half && p - d <= half);
+        if (k < 0) return true;
+        used.add(k); return false;
+      });
+    };
     const spendable = B.accts.filter((a) => a.kind === 'Everyday' || a.kind === 'Cash');
     const cashNow = r2(sum(spendable, (a) => a.baseBal));
-    const billsDue = bills.map((b) => ({ b, n: Math.max(0, occurrences(iso(billAnchor(b)), billFreq(b), T, until).length - paidThisMonth0(b.id)) })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
+    const billsDue = bills.map((b) => ({ b, n: unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, until)).length })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
       // With a closing day: the statement Kipu works out, reserved for the day it's usually paid (or due)
@@ -922,11 +1150,16 @@
     B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const cyc = !c.cur2 && K.cardCycle(data, c, T); if (cyc && cyc.reserveOn) { if (cyc.owed > 0 && parse(cyc.reserveOn) <= horizon) upcoming.push({ date: cyc.reserveOn, name: c.name + ' payment', amt: K.toBase(data, cyc.owed, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); return; } const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
+    // Due in the next three days and not paid yet: what reminders talk about. Card-charged bills pay themselves.
+    const soon = addDays(T, 3);
+    const dueSoon = bills.filter((b) => !(b.pay || '').startsWith('card:')).reduce((a, b) => a.concat(unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, soon)).map((d) => ({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' } }))), [])
+      .concat(upcoming.filter((u) => (u.kind === 'Loan payment' || u.kind === 'Card due') && parse(u.date) <= soon))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
     // Bills due this month and not paid yet
     const paidThisMonth = new Set(txAll.filter((t) => t.recurring && inMonth(t, T.getFullYear(), T.getMonth())).map((t) => t.recurring));
     const unpaid = bills.filter((b) => billDates(b).some((d) => d <= T && (!b.since || iso(d) >= b.since)) && !paidThisMonth.has(b.id));
 
-    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), noRate: K.missingRates(data), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
+    return Object.assign({ ctx, cur, sym: cur === 'Combined' ? K.sym(data.base) : K.sym(cur), noRate: K.missingRates(data), T, month, plan, series, activeSeries, firstTx, goals, trips, activeTrip: trips.find((t) => t.status === 'active'), tx, txAll, upcoming, dueSoon, unpaid, bills, incomeSrc, agg, empty: data.txns.length === 0 && data.accounts.length === 0 }, B);
   };
 
   // ---------------------------------------------------------------- forecast (plain arithmetic)
@@ -935,7 +1168,11 @@
     const T = today();
     const closed = D.series.filter((s) => !s.current && s.count > 0).slice(-3);
     const recurringBase = sum(D.bills.filter((b) => b.kind !== 'Annual'), (b) => K.toBase(data, b.amt, b.cur || data.base));
-    let flexible = closed.length ? sum(closed, (s) => s.spending - sum(D.bills.filter((b) => b.kind !== 'Annual'), (b) => K.toBase(data, b.amt, b.cur || data.base))) / closed.length : D.plan.flexibleSpent;
+    // Everyday spending = expenses that aren't bill payments (bills are counted on their own).
+    // A month that started partway (your first month in Kipu) is scaled to a full month.
+    const fullMonth = (x, spent, from) => { const dim = new Date(x.y, x.mi + 1, 0).getDate(); const f = parse(from); const started = f && f.getFullYear() === x.y && f.getMonth() === x.mi ? f.getDate() : 1; const upto = x.current ? T.getDate() : dim; return spent * dim / Math.max(7, upto - started + 1); };
+    const current = D.series.find((s) => s.current);
+    let flexible = closed.length ? sum(closed, (s) => fullMonth(s, s.flex, D.firstTx)) / closed.length : current ? fullMonth(current, current.flex, D.firstTx) : 0;
     if (opts.assumption === 'Budget based' && D.plan.budgetPlan) flexible = Math.max(0, D.plan.budgetPlan - recurringBase);
     if (opts.assumption === 'Conservative') flexible *= 1.1;
     flexible = Math.max(0, flexible);
@@ -971,13 +1208,76 @@
     return { base, scen, h, flexible: r2(flexible), savingsBase, summary: { net: [tot(base, 'net'), tot(scen, 'net')], savings: [tot(base, 'savings'), tot(scen, 'savings')], interest: [tot(base, 'interest'), tot(scen, 'interest')], nw: [base.months[h - 1].nw, scen.months[h - 1].nw], loan: [base.months[h - 1].loanBal, scen.months[h - 1].loanBal] } };
   };
 
+  // ---------------------------------------------------------------- ask Kipu (plain arithmetic, worked out on this device)
+  // Will the money last to the end of the month? Cash now, plus pay still to come, minus what's due and the everyday spending you usually do.
+  K.askMonthEnd = (data, D) => {
+    const T = D.T, end = new Date(T.getFullYear(), T.getMonth() + 1, 0);
+    const daysLeft = Math.max(1, days(T, end) + 1);
+    const inWin = (u) => parse(u.date) <= end;
+    const cardBill = (u) => { const b = u.billId && data.bills.find((x) => x.id === u.billId); return b && (b.pay || '').startsWith('card:'); };
+    const incomeLeft = r2(sum(D.upcoming.filter((u) => u.income && inWin(u) && parse(u.date) > T), (u) => u.amt || 0));
+    const today = iso(T);
+    const dueList = D.upcoming.filter((u) => !u.income && inWin(u) && !cardBill(u)).concat((D.dueSoon || []).filter((u) => u.date === today && !(u.kind === 'Loan payment' || u.kind === 'Card due')));
+    const due = r2(sum(dueList, (u) => u.amt || 0));
+    const flexMonth = K.forecast(data, D, { assumption: data.prefs.assumption || 'Recent average' }).flexible;
+    const flexSpentMonth = D.plan.flexibleSpent || 0;
+    const everyday = r2(Math.max(0, flexMonth - flexSpentMonth, flexMonth * (daysLeft / new Date(T.getFullYear(), T.getMonth() + 1, 0).getDate()) * 0.5));
+    const savings = D.plan.savingsLeft || 0;
+    const endCash = r2(D.plan.cashNow + incomeLeft - due - everyday - savings);
+    // The low point: before your next payday (Safe to Spend already counts all that's due until then) or at month end
+    const low = r2(D.plan.hasIncome ? Math.min(endCash, D.plan.safe) : endCash);
+    return { end, daysLeft, cash: D.plan.cashNow, incomeLeft, due, dueList, everyday, savings, endCash, low, beforePay: D.plan.safe, nextPay: D.plan.nextPay, short: low < 0 ? r2(-low) : 0, perDayCut: low < 0 ? r2(-low / daysLeft) : 0, hasData: D.plan.hasAccounts };
+  };
+  // Can I buy this? Today's Safe to Spend, payday, savings as a cushion, or installments
+  K.askAfford = (data, D, amount, opts) => {
+    const o = opts || {};
+    const amt = Math.max(0, Number(amount) || 0);
+    const p = D.plan;
+    const month = K.askMonthEnd(data, D);
+    const savingsCash = r2(sum(D.accts.filter((a) => a.kind === 'Savings'), (a) => a.baseBal));
+    const monthlyCost = r2((p.commitments || 0) + (p.debtPlanned || 0) + K.forecast(data, D, { assumption: 'Recent average' }).flexible);
+    const margin = r2((p.expectedIncome || 0) - monthlyCost - (p.savingsPlanned || 0));
+    const n = Math.max(1, Math.round(o.installments || 1));
+    const perMonth = r2(amt / n);
+    const cushionMonths = monthlyCost > 0 ? r2((savingsCash - amt) / monthlyCost) : null;
+    // What one paycheck leaves after its share of the month's costs
+    const main = (D.incomeSrc || [])[0];
+    const perCheck = main ? r2(margin / Math.max(1, K.perYear(main.freq) / 12)) : 0;
+    let verdict;
+    if (!p.hasAccounts) verdict = 'nodata';
+    else if (p.safe - amt >= 0) verdict = 'yes';
+    else if (p.nextPay && perCheck > 0 && amt <= Math.max(0, p.safe) + perCheck) verdict = 'wait';
+    else if (margin > 0 && perMonth <= margin && n > 1) verdict = 'installments';
+    else if (savingsCash > 0 && savingsCash - amt >= monthlyCost) verdict = 'savings';
+    else if (margin > 0) verdict = 'save';
+    else verdict = 'no';
+    const monthsToSave = margin > 0 ? Math.ceil(amt / margin) : null;
+    // Installments that fit: the fewest that keep each payment inside your monthly margin
+    const fitN = margin > 0 ? Math.max(2, Math.ceil(amt / margin)) : null;
+    return { amt, verdict, perCheck, safe: p.safe, afterSafe: r2(p.safe - amt), nextPay: p.nextPay, until: p.until, endAfter: r2(month.endCash - amt), savingsCash, afterSavings: r2(savingsCash - amt), cushionMonths, monthlyCost, margin, n, perMonth, monthsToSave, fitN };
+  };
+  // "¿Puedo comprar una laptop de 3000?", "can I afford 250", "¿llego a fin de mes?"
+  K.parseQuestion = (text) => {
+    const s = String(text || '').toLowerCase();
+    const num = /(\d{1,3}(?:[,.]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/.exec(s);
+    const inst = /(\d{1,2})\s*(cuotas|installments|meses sin|payments|pagos)/.exec(s);
+    if (/fin de mes|end of (the )?month|llego|make it|alcanza el mes|me quedo sin|run out/.test(s) && !(num && !inst && /compr|buy|afford|gast|pag/.test(s))) return { kind: 'month' };
+    if (num) {
+      let raw = num[1]; raw = /^\d{1,3}([,.]\d{3})+/.test(raw) && !/[.,]\d{1,2}$/.test(raw.replace(/^\d{1,3}([,.]\d{3})+/, '')) ? raw.replace(/[.,](?=\d{3}\b)/g, '') : raw.replace(',', '.');
+      if (inst && inst[1] === num[1]) return { kind: 'afford', amount: null };
+      return { kind: 'afford', amount: Number(raw.replace(/,/g, '')), installments: inst ? Number(inst[1]) : 1 };
+    }
+    return { kind: /compr|buy|afford|gast/.test(s) ? 'afford' : 'unknown', amount: null };
+  };
+
   // ---------------------------------------------------------------- insights (rule-based, only with enough data)
   K.insights = (data, D) => {
     const out = [];
     const f = (n) => K.sym(data.base) + Math.round(n).toLocaleString('en-US');
     const over = D.plan.budgetRows.filter((b) => b.actual > b.plan + 0.5);
     over.forEach((b) => out.push({ id: 'over-' + b.cat, kind: 'Priority', icon: 'alert', title: K.CATS[b.cat].name + ' is past its plan with ' + D.plan.daysLeft + ' days of the month left.', why: 'You planned ' + f(b.plan) + ' and have spent ' + f(b.actual) + '.', cta: 'Open budget', route: { r: 'plan', tab: 'budget' } }));
-    if (D.plan.hasAccounts && D.plan.safe < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'What’s due before ' + K.fmtDate(D.plan.until) + ' is ' + f(-D.plan.safe) + ' more than your everyday cash.', why: 'Bills, card and loan payments and planned savings are all counted.', cta: 'See the calculation', route: { r: 'plan', tab: 'overview' } });
+    if (D.plan.hasAccounts && D.plan.cashNow < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'Your everyday accounts are ' + f(-D.plan.cashNow) + ' below zero.', why: 'If that isn’t right, update the account balance so Safe to Spend starts from what your bank shows.', cta: 'Open accounts', route: { r: 'money', tab: 'accounts' } });
+    else if (D.plan.hasAccounts && D.plan.safe < 0) out.push({ id: 'neg', kind: 'Priority', icon: 'alert', title: 'What’s due before ' + K.fmtDate(D.plan.until) + ' is ' + f(-D.plan.safe) + ' more than your everyday cash.', why: 'Bills, card and loan payments and planned savings are all counted.', cta: 'See the calculation', route: { r: 'plan', tab: 'overview' } });
     if (D.util > data.prefs.utilRef) out.push({ id: 'util', kind: 'Credit', icon: 'card', title: 'Card utilization is ' + D.util.toFixed(0) + '%, above your ' + data.prefs.utilRef + '% reference.', why: 'Paying down ' + f(D.cardBal - (data.prefs.utilRef / 100) * D.cardLimit) + ' brings it back under.', cta: 'Open cards', route: { r: 'money', tab: 'cards' } });
     const loans = D.loans.filter((l) => l.bal > 0 && l.rate);
     if (loans.length > 1) { const hi = loans.slice().sort((a, b) => b.rate - a.rate)[0]; out.push({ id: 'debt', kind: 'Debt', icon: 'loan', title: 'Extra payments go furthest on ' + hi.name + ' at ' + hi.rate + '%.', why: 'It has the highest rate of your loans.', cta: 'Try it in Forecast', route: { r: 'stats', tab: 'forecast', scen: { loan: 100 } } }); }
@@ -1049,19 +1349,19 @@
     d.accounts = [
       { id: 'chq', name: 'Everyday Chequing', inst: 'CIBC', kind: 'Everyday', cur: 'CAD', bal: 5200 },
       { id: 'sav', name: 'Emergency Savings', inst: 'EQ Bank', kind: 'Savings', cur: 'CAD', bal: 4800, shared: true },
-      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', country: 'CA', bal: 1200 },
+      { id: 'usd', name: 'USD Account', inst: 'Wise', kind: 'Everyday', cur: 'USD', country: 'CA', bal: 400 },
       { id: 'rrsp', name: 'RRSP', inst: 'Wealthsimple', kind: 'Investments', cur: 'CAD', bal: 38000 },
     ];
     d.cards = [{ id: 'visa', name: 'Visa Infinite', network: 'Visa', last4: '1187', limit: 10000, bal: 0, stmtBal: 0, closeDay: 8, dueDay: 3, minPay: 10, expiry: iso(addMonths(today(), 1)).slice(0, 7) }, { id: 'mc', name: 'Costco Mastercard', network: 'Mastercard', last4: '4821', limit: 6000, bal: 0, stmtBal: 0, closeDay: 18, dueDay: 12, minPay: 10, expiry: (today().getFullYear() + 3) + '-04' }];
     d.loans = [{ id: 'car', name: 'Car loan', kind: 'Vehicle', lender: 'CIBC', orig: 32000, bal: 18420, rate: 9, pay: 253.73, freq: 'Bi-weekly', next: iso(addDays(T, 3)) }];
-    d.income = [{ id: 'sal', name: 'Salary', amt: 3200, cur: 'CAD', freq: 'Bi-weekly', next: iso(addDays(T, 6)), to: 'acct:chq' }];
+    d.income = [{ id: 'sal', name: 'Salary', amt: 2650, cur: 'CAD', freq: 'Bi-weekly', next: iso(addDays(T, 6)), to: 'acct:chq' }];
     d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1650, day: 1, cat: 'housing', pay: 'acct:chq' }, { id: 'net', name: 'Internet', kind: 'Bill', amt: 75, day: 18, cat: 'bills', pay: 'card:visa' }, { id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20.99, day: 5, cat: 'subs', pay: 'card:visa' }, { id: 'sp', name: 'Spotify', kind: 'Subscription', amt: 11.99, day: 9, cat: 'subs', pay: 'card:mc' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 49, day: 2, cat: 'subs', pay: 'acct:chq' }];
     d.goals = [{ id: 'ef', name: 'Emergency Fund', target: 10000, monthly: 500, targetDate: iso(addMonths(T, 14)).slice(0, 7), linked: 'sav', shared: true }, { id: 'cam', name: 'New camera', target: 2500, saved: 400, monthly: 150 }];
     d.budget = { housing: 1650, bills: 100, groceries: 600, dining: 300, transport: 250, shopping: 200, subs: 90, entertainment: 100 };
     const add = (t) => (d = K.addTxn(d, t));
-    const spend = [['Costco', 'groceries', 186.4, 'card:mc', 2], ['Loblaws', 'groceries', 92.35, 'card:mc', 5], ['Pai Northern Thai', 'dining', 48.6, 'card:visa', 3], ['Shell', 'transport', 72.4, 'card:visa', 7], ['Uber', 'transport', 23.5, 'card:visa', 1], ['Amazon', 'shopping', 64.99, 'card:mc', 4], ['Tim Hortons', 'dining', 12.4, 'card:visa', 0], ['Cineplex', 'entertainment', 34.5, 'card:visa', 6]];
-    const from = addDays(T, -85);
-    occurrences(d.income[0].next, 'Bi-weekly', from, T).forEach((x) => add({ type: 'income', cat: 'income', merchant: 'Salary', amt: 3200, from: 'acct:chq', date: iso(x) }));
+    const spend = [['Costco', 'groceries', 186.4, 'card:mc', 2], ['Loblaws', 'groceries', 92.35, 'card:mc', 5], ['Pai Northern Thai', 'dining', 48.6, 'card:visa', 3], ['Shell', 'transport', 72.4, 'card:visa', 7], ['Uber', 'transport', 23.5, 'card:visa', 1], ['Amazon', 'shopping', 64.99, 'card:mc', 4], ['Tim Hortons', 'dining', 12.4, 'card:visa', 0], ['Cineplex', 'entertainment', 34.5, 'card:visa', 6], ['Farm Boy', 'groceries', 138.2, 'card:mc', 9], ['Shoppers Drug Mart', 'health', 41.75, 'card:visa', 12], ['Presto', 'transport', 156, 'card:visa', 14], ['Sephora', 'shopping', 86.3, 'card:mc', 16], ['Freshii', 'dining', 17.85, 'card:visa', 18], ['Canadian Tire', 'shopping', 54.9, 'card:mc', 20], ['Metro', 'groceries', 118.6, 'card:mc', 22], ['DoorDash', 'dining', 38.4, 'card:visa', 24]];
+    const from = new Date(T.getFullYear(), T.getMonth() - 2, 1); // three full months of history
+    occurrences(d.income[0].next, 'Bi-weekly', from, T).forEach((x) => add({ type: 'income', cat: 'income', merchant: 'Salary', amt: 2650, from: 'acct:chq', date: iso(x) }));
     d.bills.forEach((b) => occurrences(iso(billAnchor(b)), 'Monthly', from, T).forEach((x) => add({ type: 'expense', cat: b.cat, merchant: b.name, amt: b.amt, from: b.pay, recurring: b.id, date: iso(x) })));
     for (let mback = 2; mback >= 0; mback--) {
       const shift = mback * 30;
@@ -1069,7 +1369,11 @@
       add({ type: 'saving', cat: 'saving', merchant: 'Emergency Fund', amt: 500, from: 'acct:chq', to: 'acct:sav', goal: 'ef', date: ago(shift + 11) });
     }
     occurrences(iso(addDays(T, 3)), 'Bi-weekly', from, addDays(T, -1)).forEach((x) => { const l = d.loans[0]; const s = K.loanSplit(l); add({ type: 'debt', cat: 'debt', merchant: 'Car loan payment', amt: l.pay, from: 'acct:chq', loan: 'car', principal: s.principal, interest: s.interest, date: iso(x) }); });
+    // Cards are paid in full from chequing each month, like most people do
+    for (let mback = 2; mback >= 1; mback--) d.cards.forEach((c) => add({ type: 'transfer', cat: 'transfer', merchant: c.name + ' payment', amt: r2(c.bal * 0.5), from: 'acct:chq', to: 'card:' + c.id, date: ago(mback * 30 - c.dueDay) }));
     d.cards = d.cards.map((c) => Object.assign({}, c, { stmtBal: r2(c.bal * 0.8) }));
+    // Today's chequing balance, as a bank app would show it: history above is already inside it
+    d.accounts = d.accounts.map((a) => (a.id === 'chq' ? Object.assign({}, a, { bal: 2150, balDate: iso(T) }) : a));
     return K.snapshot(d);
   };
 })();

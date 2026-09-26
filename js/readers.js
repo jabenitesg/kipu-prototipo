@@ -366,6 +366,7 @@
       rows = K.parseStatementRows(pr, opts);
       if (!rows.length) rows = K.parseStatementLines(await K.readPDFText(file), opts);
     } else { text = await file.text(); rows = K.parseCSV(text, opts); }
+    if (K.tidyDesc) rows = rows.map((r) => Object.assign({}, r, { desc: K.tidyDesc(r.desc) }));
     rows.kind = K.statementKind(text);
     return rows;
   };

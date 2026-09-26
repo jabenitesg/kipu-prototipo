@@ -30,7 +30,7 @@
     income: 'M12 19V5M5 12l7-7 7 7', transfer: 'M4 8h13l-3-3M20 16H7l3 3', scan: 'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10',
     doc: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5', download: 'M12 4v12M7 11l5 5 5-5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3', upload: 'M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
     expense: 'M12 5v14M5 12l7 7 7-7', people: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a6.5 6.5 0 0 1 3.5 6',
-    user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', lock: 'M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11', eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5M2 17.5l10 5 10-5', split: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M12 12h9', handshake: 'M3 12l4-4 4 3 3-3 4 1 3 3M3 12l6 6 3-2 3 2 6-6M9 18l-2-2', lock: 'M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11', eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
     eyeoff: 'M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.9-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2',
     globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9S9.5 5.5 12 3z',
     fx: 'M4 8h13l-3-3M20 16H7l3 3', tag: 'M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9zM7.5 7.5h.01', bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0',
@@ -127,10 +127,12 @@
     const isIn = t.type === 'income';
     const icon = t.type === 'income' ? 'income' : t.type === 'saving' ? 'target' : t.type === 'debt' ? 'loan' : t.type === 'transfer' ? 'transfer' : cat ? cat.icon : 'dots';
     const tone = t.type === 'income' ? 'g' : t.type === 'saving' ? 'p' : t.type === 'debt' ? 'b' : t.type === 'transfer' ? 'n' : cat ? cat.tone : 'n';
-    const src = K.whereName(data, t.from);
-    const label = t.type === 'saving' ? 'Saved to goal' : t.type === 'debt' ? 'Loan payment' : t.type === 'transfer' ? 'Transfer' : isIn ? 'Income' : cat ? cat.name : '';
+    const who = K.partnerName(data) || 'Partner';
+    const src = t.split && t.split.by === 'partner' ? 'Paid by ' + who : K.whereName(data, t.from || t.to);
+    const label = t.cat === 'settle' ? 'Settle up' : t.type === 'saving' ? 'Saved to goal' : t.type === 'debt' ? 'Loan payment' : t.type === 'transfer' ? 'Transfer' : isIn ? 'Income' : cat ? cat.name : '';
+    const part = t.split && t.type === 'expense' ? ' · your part ' + fmt(t.base * K.myShare(t), { dec: 2 }) : '';
     const main = (isIn ? '+' : '') + (t.cur === fmt.base ? fmt(t.base) : fmt.native(t.amt, t.cur));
-    return html`<${Row} icon=${icon} tone=${tone} title=${K.txnName(data, t)} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
+    return html`<${Row} icon=${icon} tone=${tone} title=${K.txnName(data, t)} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + part + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
   };
   K.TxnRow = TxnRow;
 
@@ -299,12 +301,34 @@
       ${children}
     </div></div>`;
   K.Sheet = Sheet;
+  // Payment reminders: one notification per payment and due date, shown when Kipu is open
+  const RKEY = 'kipu-reminded';
+  K.remindNow = async (D, fmt, force) => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !D || !D.dueSoon) return;
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem(RKEY) || '{}'); } catch (e) {}
+    const today = K.iso(K.today());
+    Object.keys(seen).forEach((k) => { if (seen[k] < today) delete seen[k]; });
+    const fresh = D.dueSoon.filter((u) => force || !seen[u.name + '|' + u.date]);
+    if (!fresh.length) return;
+    let reg = null;
+    // Phones need a service worker to show notifications; desktop browsers can show them directly
+    try { reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.register('sw.js') : null; if (reg) reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 3000))]); } catch (e) { reg = null; }
+    fresh.forEach((u) => {
+      const when = u.date === today ? K.t('due today') : u.date === K.iso(K.addDays(K.today(), 1)) ? K.t('due tomorrow') : K.t('due') + ' ' + K.t(K.fmtDate(u.date));
+      const title = K.t(u.name) + ' · ' + when, body = fmt(u.amt, { dec: 2 }) + ' · ' + K.t('Kipu reminder');
+      const opts = { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: u.name + '|' + u.date };
+      try { if (reg && reg.showNotification) reg.showNotification(title, opts); else new Notification(title, opts); } catch (e) {}
+      seen[u.name + '|' + u.date] = u.date;
+    });
+    try { localStorage.setItem(RKEY, JSON.stringify(seen)); } catch (e) {}
+  };
+
 
   // One context control: scope · currency · period
   const ContextFilter = ({ show }) => {
     const { ctx, data, openSheet, D, cloud } = useApp();
     const parts = [];
-    if (cloud.target === 'household' || (data.household.enabled && show.includes('scope'))) parts.push(cloud.target === 'household' || ctx.scope === 'household' ? 'Household' : 'Personal');
+    if (cloud.target === 'household') parts.push(cloud.target === 'household' || ctx.scope === 'household' ? 'Household' : ctx.scope === 'mine' ? 'Personal' : 'All');
     const cc = ctx.country && ctx.country !== 'All' ? ctx.country : null;
     if (cc) parts.push(K.countryName(cc));
     else if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);

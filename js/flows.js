@@ -35,7 +35,7 @@
     const { ctx, setCtx, data, D, cloud } = useApp();
     const curs = ['Combined'].concat(curOptions(data));
     return html`<${Sheet} title="View" sub="Country, scope, currency and period apply across Kipu." onClose=${onClose}>
-      ${data.household.enabled && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
+      ${(K.hhMode(data) === 'mixed' || cloud.combined) && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['mine', 'household', 'personal']} labels=${['Personal', 'Household', 'All']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only what you share.' : ctx.scope === 'mine' ? 'Only what is yours alone.' : 'Everything you can see.'}</span></div>`}
       ${D.countries && D.countries.length > 1 && html`<div class="stack-s"><span class="eyebrow">Country</span><${Chips} options=${['All'].concat(D.countries)} value=${ctx.country || 'All'} onChange=${(v) => setCtx({ country: v })} labels=${['All'].concat(D.countries).map((c) => (c === 'All' ? html`<${Icon} n="globe" s=${16} />Global · ${K.sym(data.base)}` : html`<${K.CountryFlag} cc=${c} s=${18} />${K.countryName(c)} · ${K.sym(K.countryCur(data, c))}`))} /><span class="tiny muted">${(ctx.country || 'All') === 'All' ? 'Everything, converted to ' + data.base + ' at today’s rates.' : 'Only ' + K.countryName(ctx.country) + ', in its own currency.'}</span></div>`}
       ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
       ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${K.statIdx(D, ctx) == null ? 'ytd' : K.statIdx(D, ctx)} onChange=${(v) => setCtx({ period: v, periodSet: true })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
@@ -44,7 +44,7 @@
 
   // ---------------------------------------------------------------- expense (new, edit, or from a receipt)
   const ExpenseSheet = ({ onClose, preset, item }) => {
-    const { data, commit, ctx, fmt, toast, D } = useApp();
+    const { data, commit, ctx, fmt, toast, D, openSheet } = useApp();
     preset = preset || {};
     const src = item || preset;
     const places = K.whereOptions(data);
@@ -61,16 +61,27 @@
     const [note, setNote] = useState(src.note || '');
     const [trip, setTrip] = useState(src.trip || (K.activeTrip(data, K.parse(date)) || {}).id || '');
     const [shared, setShared] = useState(src.shared != null ? src.shared : ctx.scope === 'household');
+    const mode = K.hhMode(data), who = K.partnerName(data) || 'Partner', hhSplit = data.household.split != null ? data.household.split : 50;
+    const [paidBy, setPaidBy] = useState((src.split && src.split.by) || 'me');
+    const [mine, setMine] = useState(src.split && src.split.mine != null ? src.split.mine : hhSplit);
+    const [chargedIn, setChargedIn] = useState(src.charged && src.charged.exact ? String(src.charged.amt) : '');
+    const [into, setInto] = useState((src.charged && src.charged.cur) || null);
+    const splitting = mode === 'mixed' && shared;
+    const byPartner = splitting && paidBy === 'partner';
     const guessed = !cat && merchant ? K.guessCat(data, merchant) : null;
     const category = cat || guessed || 'other';
     const v = numv(amt);
     const curs = curOptions(data).concat(src.cur && !data.active.includes(src.cur) ? [src.cur] : []);
-    const blocked = v && from ? K.canPost(data, { type: 'expense', amt: v, cur, from }) : null;
+    // Paying in another currency: what the bank charges, estimated until you type the real amount
+    const est = v && from && !byPartner ? K.chargeEstimate(data, v, cur, from, into) : null;
+    const cardPay = merchant.trim().length > 3 ? K.cardPaymentFor(data, merchant) : null;
+    const charged = est ? { amt: numv(chargedIn) || est.amt, cur: est.cur, market: est.market, exact: !!numv(chargedIn) } : null;
+    const blocked = v && from && !byPartner ? K.canPost(data, { type: 'expense', amt: v, cur, from, charged }) : null;
     const noRate = !K.hasRateFor(data, cur);
     const save = () => {
-      const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from, date, note, trip: trip || null, autoTrip: false, shared, source: preset.source || (item && item.source) || 'manual' };
+      const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from: byPartner ? '' : from, date, note, trip: trip || null, autoTrip: false, charged, shared: mode === 'together' || shared, split: splitting ? { by: paidBy, mine } : null, source: preset.source || (item && item.source) || 'manual' };
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
-      if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared });
+      if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared, split: t.split });
       // A new name for the shop goes to its other movements and to the next statements
       const renaming = item && item.merchant !== t.merchant && t.merchant !== 'Expense';
       const renamed = renaming ? K.sameShopTxns(data, item, scope).length : 0;
@@ -91,11 +102,20 @@
         <span class="tiny muted" style=${{ lineHeight: 1.5 }}>${scope === 'one' ? 'Only this movement changes.' : scope === 'amt' && others.amt > 0 && others.amt < others.all ? 'Movements of ' + fmt.native(item.amt, item.cur) + ' from ' + (item.raw || item.merchant) + ' change, and the next ones for that amount. Useful when one line bills several subscriptions.' : 'Every movement from ' + (item.raw || item.merchant) + ' changes, and the next statements use this name.'}</span></div>`}
       <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].custom && html`<${Icon} n=${K.CATS[c].icon} s=${13} />`}${K.CATS[c].name}</button>`)}${!newCat && html`<button type="button" class="chip" style=${{ color: 'var(--acc)', background: 'var(--accbg)' }} onClick=${() => setNewCat(true)}><${Icon} n="plus" s=${13} w=${2.4} />New category</button>`}</div>
         ${newCat && html`<${K.CategoryForm} onCancel=${() => setNewCat(false)} onSave=${(c) => { const [d, id] = K.addCategory(data, c); K.syncCats(d); commit(d); setCat(id); setNewCat(false); toast(c.name + ' added'); }} />`}</div>
-      ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      ${mode === 'mixed' && html`<div class="card tight stack-s" style=${{ gap: '10px' }}><${ToggleRow} title=${'Shared with ' + who} sub=${shared ? null : 'Only yours'} on=${shared} onChange=${setShared} icon="people" tone="p" />
+        ${shared && html`<div class="stack-s" style=${{ gap: '8px', padding: '0 4px 6px' }}><span class="small muted" style=${{ fontWeight: 600 }}>Who paid?</span><${Seg} options=${['me', 'partner']} labels=${['Me', who]} value=${paidBy} onChange=${setPaidBy} />
+          <span class="small muted" style=${{ fontWeight: 600 }}>How it splits</span><${Seg} options=${[50].concat(hhSplit !== 50 && hhSplit !== 0 ? [hhSplit] : []).concat(paidBy === 'me' ? [0] : [100])} labels=${['Half each'].concat(hhSplit !== 50 && hhSplit !== 0 ? ['You ' + hhSplit + '%'] : []).concat(paidBy === 'me' ? ['All ' + who + '’s'] : ['All yours'])} value=${mine} onChange=${setMine} />
+          ${v > 0 && html`<span class="small muted">${paidBy === 'me' ? who + ' owes you ' + fmt(K.toBase(data, v, cur) * (1 - mine / 100), { dec: 2 }) : 'You owe ' + who + ' ' + fmt(K.toBase(data, v, cur) * mine / 100, { dec: 2 })}</span>`}</div>`}</div>`}
+      ${byPartner ? null : places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      ${!item && cardPay && html`<div class="card flat stack-s" style=${{ gap: '8px', padding: '12px 14px', background: 'var(--warnbg)' }}><span class="small" style=${{ lineHeight: 1.45 }}>${'This looks like a card payment. Paying a card isn’t spending: the purchases on the card already are.'}</span><button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => openSheet({ k: 'transfer', preset: { amt: v || undefined, cur, from: from.startsWith('acct:') ? from : undefined, toWhere: cardPay.card ? 'card:' + cardPay.card.id : undefined } })}>Record as card payment</button></div>`}
+      ${est && html`<div class="card flat stack-s" style=${{ gap: '8px', padding: '12px 14px' }}><span class="small" style=${{ fontWeight: 600 }}>${'Charged to ' + K.whereName(data, from)}</span>
+        ${K.payCurrencies(data, from).filter((c) => c !== cur).length > 1 && html`<${Seg} options=${K.payCurrencies(data, from).filter((c) => c !== cur)} value=${est.cur} onChange=${(c) => { setInto(c); setChargedIn(''); }} />`}
+        <div class="row" style=${{ gap: '8px', alignItems: 'center' }}><span class="small muted" style=${{ minWidth: '3.2em' }}>${est.cur}</span><input id="e-charged" class="input grow num" inputmode="decimal" aria-label=${'Amount charged in ' + est.cur} placeholder=${String(est.amt.toFixed(2))} value=${chargedIn} onInput=${(e) => setChargedIn(e.target.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''))} /></div>
+        <span class="tiny muted" style=${{ lineHeight: 1.45 }}>${numv(chargedIn) ? '1 ' + cur + ' = ' + (numv(chargedIn) / v).toFixed(4) + ' ' + est.cur + ' · ' + ((numv(chargedIn) / est.market - 1) * 100).toFixed(1) + '% over today’s rate' : 'Estimate: today’s rate plus a ' + est.fee + '% card fee. Type the exact amount from your bank when you have it.'}</span></div>`}
       <${K.DateInput} label="Date" value=${date} onChange=${setDate} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" />
-      ${(D.trips.length > 0 || data.household.enabled) && html`<div class="card tight list">${D.trips.length > 0 && html`<div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div>`}${data.household.enabled && html`<${ToggleRow} title="Share with Household" on=${shared} onChange=${setShared} icon="people" tone="p" />`}</div>`}
+      ${D.trips.length > 0 && html`<div class="card tight list"><div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div></div>`}
       ${(blocked || (noRate && v > 0)) && html`<${K.RateNote} cur=${blocked || cur} blocked=${!!blocked} />`}
-      <button class="btn pri block" disabled=${!v || !from || !!blocked} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
+      <button class="btn pri block" disabled=${!v || (!from && !byPartner) || !!blocked} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
   };
 
   const IncomeSheet = ({ onClose, item }) => {
@@ -199,7 +219,10 @@
     const [sign, setSign] = useState('auto');
     const [cur, setCur] = useState(data.base);
     const [paidMode, setPaidMode] = useState('auto');
+    const [mineOrOurs, setMineOrOurs] = useState(null);
     const isCard = where.startsWith('card:');
+    // Movements follow the account unless you say otherwise: a personal card can still carry household groceries
+    const impShared = mineOrOurs != null ? mineOrOurs : !!(K.whereItem(data, where) || {}).shared || K.hhMode(data) === 'together';
     const run = async (file) => {
       if (!file) return;
       setSt({ step: 'reading', name: file.name });
@@ -265,7 +288,13 @@
       let d = data;
       const imp = K.uid('i');
       const linked = new Set();
-      chosen.forEach((r) => { if (r.type === 'transfer' && r.from === where && (r.to || '').startsWith('card:')) { const t = K.findCardPaymentIn(d, r, linked); if (t) { linked.add(t.id); d = K.editTxn(d, t.id, { from: where }); return; } } const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
+      chosen.forEach((r) => { if (r.type === 'transfer' && r.from === where && (r.to || '').startsWith('card:')) { const t = K.findCardPaymentIn(d, r, linked); if (t) { linked.add(t.id); d = K.editTxn(d, t.id, { from: where }); return; } } const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } // A line that shows the original purchase ("CAD 45.00 T/C 0.7412") keeps it, with the amount charged here
+        const fx = r.type === 'expense' ? K.parseFxInfo(r.desc, cur) : null;
+        const k = fx && K.rate(d, fx.cur, cur);
+        const orig = fx ? { merchant: fx.desc || r.name || r.desc, amt: fx.amt, cur: fx.cur, charged: { amt: r.amt, cur, market: k ? K.r2(fx.amt * k) : null, rate: fx.rate, exact: true } } : {};
+        d = K.addTxn(d, Object.assign({ imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined, shared: impShared }, orig)); });
+      // A card payment seen on both statements (bank and card) counts once, even without payment wording or across currencies
+      d = K.mergeCardPayments(d);
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));
@@ -302,6 +331,7 @@
           <div class="list">${recurring.map((r) => { const on = !skipBills.includes(r.key); return html`<button key=${r.key} class="lrow" style=${{ gap: '10px', opacity: on ? 1 : 0.5 }} onClick=${() => setSkipBills(on ? skipBills.concat([r.key]) : skipBills.filter((k) => k !== r.key))}><span class=${'ic ' + (on ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${on ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${K.ord(r.day) + ' of the month'} · ${r.count + ' times'}</span></span><span class="amt">${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`; })}</div></div>`}
         <div class="card stack-s" style=${{ gap: '10px' }}><span style=${{ fontWeight: 600 }}>Already paid?</span><${Seg} options=${['auto', 'all', 'none']} labels=${['Automatic', 'All', 'None']} value=${paidMode} onChange=${setPaidMode} />
           <span class="small muted" style=${{ lineHeight: 1.5 }}>${paidMode === 'auto' ? (balDate ? 'Up to ' + K.fmtDate(balDate, true) + ', when you typed this balance, movements are already inside it.' : oldFile ? 'This statement is more than 40 days old, so it’s taken as already paid.' : 'This looks like a current statement.') + ' ' : ''}${paidCount ? paidCount + ' only for statistics' : ''}${paidCount && paidCount < chosen.length ? ' · ' : ''}${paidCount < chosen.length ? (chosen.length - paidCount) + (isCard ? ' change what you owe' : ' change the balance') : ''}.</span></div>
+        <${Owner} value=${impShared} onChange=${setMineOrOurs} />
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
   };
 
@@ -337,19 +367,29 @@
   // ---------------------------------------------------------------- create and edit
   const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<${K.DangerButton} label="Delete" ask=${'Delete ' + (title || '').replace(/^Edit /, '') + '?'} onConfirm=${onDelete} />`}</${Sheet}>`;
 
+  // Whose is it: only you, or everyone in your Household (they see it and its movements)
+  const Owner = ({ value, onChange }) => {
+    const { data, cloud } = useApp();
+    if (cloud.target === 'household' || !K.canShare(data, cloud)) return null;
+    const name = K.householdName(data, cloud);
+    return html`<div class="stack-s" style=${{ gap: '8px' }}><span class="small muted" style=${{ fontWeight: 600 }}>Whose is it?</span><${Seg} options=${['personal', 'household']} labels=${[html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${Icon} n="lock" s=${13} />Personal</span>`, html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${Icon} n="people" s=${14} />${name}</span>`]} value=${value ? 'household' : 'personal'} onChange=${(v) => onChange(v === 'household')} /><span class="tiny muted" style=${{ lineHeight: 1.45 }}>${value ? 'Everyone in ' + name + ' can see it and its movements.' : 'Only you can see it, not even your Household.'}</span></div>`;
+  };
+  K.Owner = Owner;
+
   const AddAccount = ({ onClose, item }) => {
     const { data, commit, toast, openSheet } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal) }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
+    const [f, on] = useForm(item ? Object.assign({}, item, { bal: String(item.bal), fxFee: item.fxFee != null ? String(item.fxFee) : '' }) : { name: '', kind: 'Everyday', cur: data.base, bal: '', inst: '', shared: false });
     const country = f.country || K.countryOfCur(f.cur) || null;
-    const save = () => { const a = Object.assign({}, item || {}, { name: f.name || f.kind + ' account', inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), shared: !!f.shared }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
-    return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save}>
+    const save = () => { const a = Object.assign({}, item || {}, { name: f.name.trim() || K.t(f.kind + ' account'), inst: f.inst, kind: f.kind, cur: f.cur, country, bal: numv(f.bal), fxFee: f.fxFee !== '' && f.fxFee != null ? numv(f.fxFee) : null, shared: K.isShared(data, f.shared) }); commit(K.upsert(K.useCurrency(data, a.cur), 'accounts', a)); toast(item ? 'Account updated' : 'Account added'); onClose(); };
+    return html`<${Form} title=${item ? 'Edit account' : 'Add account'} onClose=${onClose} cta=${item ? 'Save' : 'Add account'} onSave=${save} disabled=${!item && !f.name.trim() && String(f.bal).trim() === ''}>
       <${Chips} options=${item ? ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'] : ['Everyday', 'Savings', 'Cash', 'Credit card', 'Loan', 'Investments', 'Property']} value=${f.kind} onChange=${(k) => (k === 'Credit card' ? openSheet({ k: 'addCard' }) : k === 'Loan' ? openSheet({ k: 'addLoan' }) : on('kind')(k))} />
       <${In} id="aa-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Everyday Chequing" />
       <${In} id="aa-inst" label="Institution" value=${f.inst} onInput=${on('inst')} ph="Optional" />
       <${K.CurrencySelect} label="Currency" value=${f.cur} onChange=${on('cur')} />
       <${K.CountrySelect} label="Country" value=${country} onChange=${on('country')} hint="Kipu groups your money by country, each in its own currency." />
       <${In} id="aa-bal" label=${item ? 'Balance' : 'Current balance'} value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0.00" hint=${item ? 'Changing it here doesn’t create a transaction.' : 'Today’s balance. Later transactions move it automatically.'} />
-      ${data.household.enabled && html`<div class="card tight"><${ToggleRow} title="Share with Household" on=${!!f.shared} onChange=${on('shared')} /></div>`}</${Form}>`;
+      ${['Everyday', 'Cash'].includes(f.kind) && html`<${In} id="aa-fxfee" label="Fee when the debit card pays in other currencies (%)" value=${f.fxFee || ''} onInput=${on('fxFee')} mode="decimal" ph="0" hint="Leave empty if your bank doesn’t charge one." />`}
+      <${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const AdjustSheet = ({ onClose, id }) => {
@@ -362,13 +402,13 @@
 
   const AddCard = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, cur2: item.cur2 || '', bal2: String(item.bal2 || ''), stmtBal2: String(item.stmtBal2 || ''), limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), payDay: String(item.payDay || ''), oldLast4: (item.oldLast4 || []).join(', '), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
+    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, cur2: item.cur2 || '', bal2: String(item.bal2 || ''), stmtBal2: String(item.stmtBal2 || ''), fxFee: item.fxFee != null ? String(item.fxFee) : '', limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), payDay: String(item.payDay || ''), oldLast4: (item.oldLast4 || []).join(', '), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
     const country = f.country || K.countryOfCur(f.cur) || null;
     const two = !!f.cur2;
     // A new card starts at zero and fills from expenses and imported statements; balances are only a later correction
     const [showBal, setShowBal] = useState(false);
     const preview = { name: f.name || f.network + ' card', network: f.network, cur: f.cur, cur2: f.cur2 || null, bal2: numv(f.bal2), last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
-    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { name: f.name || f.network + ' card', network: f.network, cur: f.cur, country, cur2: two ? f.cur2 : null, bal2: two ? numv(f.bal2) : 0, stmtBal2: two ? numv(f.stmtBal2) : 0, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), oldLast4: String(f.oldLast4 || '').split(/[\s,]+/).map((x) => x.replace(/\D/g, '').slice(-4)).filter((x) => x.length === 4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, payDay: parseInt(f.payDay) || null, stmtDate: item && numv(f.stmtBal) !== (item.stmtBal || 0) ? K.iso(K.today()) : (item && item.stmtDate) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: !!f.shared }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
+    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { fxFee: f.fxFee !== '' && f.fxFee != null ? numv(f.fxFee) : null, name: f.name || f.network + ' card', network: f.network, cur: f.cur, country, cur2: two ? f.cur2 : null, bal2: two ? numv(f.bal2) : 0, stmtBal2: two ? numv(f.stmtBal2) : 0, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), oldLast4: String(f.oldLast4 || '').split(/[\s,]+/).map((x) => x.replace(/\D/g, '').slice(-4)).filter((x) => x.length === 4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, payDay: parseInt(f.payDay) || null, stmtDate: item && numv(f.stmtBal) !== (item.stmtBal || 0) ? K.iso(K.today()) : (item && item.stmtDate) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: K.isShared(data, f.shared) }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit card' : 'Add credit card'} sub="Only the last four digits are stored." onClose=${onClose} cta=${item ? 'Save' : 'Add card'} onSave=${save}>
       <div style=${{ maxWidth: '300px', width: '100%', alignSelf: 'center' }}><${K.CardPreview} c=${preview} /></div>
       <${Chips} options=${['Visa', 'Mastercard', 'Amex', 'Other']} value=${f.network} onChange=${on('network')} />
@@ -379,6 +419,7 @@
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" ph="1234" /></div>
       ${item && html`<${In} id="ac-old4" label="Previous numbers" value=${f.oldLast4 || ''} onInput=${(e) => on('oldLast4')(e.target.value.replace(/[^\d, ]/g, ''))} mode="numeric" ph="e.g. 4011" hint="If the bank replaced the card (lost, stolen, hacked): its old last four, so old statements still land here." />`}
       <${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" />
+      <${In} id="ac-fxfee" label="Fee on purchases in other currencies (%)" value=${f.fxFee || ''} onInput=${on('fxFee')} mode="decimal" ph="2.5" hint="Most cards charge 2.5–3%. Kipu adds it to its estimate when you pay in another currency." />
       ${item && !showBal && html`<button type="button" class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => setShowBal(true)}>Balances (optional)</button>`}
       ${item && showBal && html`<div class="stack-s" style=${{ gap: '10px' }}>
         <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-bal" label=${two ? 'Balance in ' + f.cur : 'Current balance'} value=${f.bal} onInput=${on('bal')} mode="decimal" ph="0" /><${In} id="ac-stmt" label=${two ? 'Statement in ' + f.cur : 'Statement balance'} value=${f.stmtBal} onInput=${on('stmtBal')} mode="decimal" ph="0" /></div>
@@ -389,7 +430,7 @@
       <${K.DayInput} label="You usually pay on" value=${f.payDay} onChange=${on('payDay')} optional=${true} hint="If you pay before the due date. Safe to Spend sets the statement aside for that day." />
       <${K.MonthInput} label="Expiry date" value=${f.expiry} onChange=${on('expiry')} optional=${true} placeholder="MM / YY" fromYear=${K.today().getFullYear() - 1} hint="Kipu reminds you two months before it expires." />
       <${K.LookPicker} label="Card color" value=${f.look} onChange=${on('look')} fallback=${['var(--grad)', 'var(--solid)', 'linear-gradient(140deg, #1C1C1E 0%, #48484C 100%)'][(item ? item.style || 0 : data.cards.length) % 3]} />
-      ${data.household.enabled && html`<div class="card tight"><${ToggleRow} title="Share with Household" on=${!!f.shared} onChange=${on('shared')} /></div>`}</${Form}>`;
+      <${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const AddLoan = ({ onClose, item, preset }) => {
@@ -398,7 +439,7 @@
     const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, orig: String(item.orig || ''), bal: String(item.bal), rate: String(item.rate || ''), pay: String(item.pay || ''), from: item.from || '' }) : { name: from ? from.name : '', kind: from ? 'Other' : 'Vehicle', lender: '', orig: '', bal: '', rate: '', pay: from ? String(from.amt) : '', freq: 'Monthly', next: from ? K.iso(K.nextDate(from.last, 'Monthly', K.addDays(K.today(), 1))) : K.iso(K.addDays(K.today(), 7)), from: from ? from.where : '' });
     const loan = { bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next };
     const p = loan.bal && loan.pay ? K.payoffDate(loan) : null;
-    const save = () => { let d = K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, cur: f.cur || data.base, country: f.country || K.countryOfCur(f.cur || data.base) || null, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, from: f.from || null, match: (item && item.match) || (from && from.key) || undefined, shared: !!f.shared })); if (from) { d = K.dismissRecurring(d, [from]); d = K.fixLoanPayments(d); } commit(d); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
+    const save = () => { let d = K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, cur: f.cur || data.base, country: f.country || K.countryOfCur(f.cur || data.base) || null, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, from: f.from || null, match: (item && item.match) || (from && from.key) || undefined, shared: K.isShared(data, f.shared) })); if (from) { d = K.dismissRecurring(d, [from]); d = K.fixLoanPayments(d); } commit(d); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit loan' : 'Add loan'} sub="Track what you owe and when it’s paid off." onClose=${onClose} cta=${item ? 'Save' : 'Add loan'} onSave=${save} disabled=${!numv(f.bal)}>
       <${Chips} options=${['Vehicle', 'Personal', 'Student', 'Mortgage', 'Line of credit', 'Other']} value=${f.kind} onChange=${on('kind')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Car loan" /><${In} id="al-lender" label="Lender" value=${f.lender} onInput=${on('lender')} ph="Optional" /></div>
@@ -409,7 +450,7 @@
       <${Chips} options=${['Weekly', 'Bi-weekly', 'Twice monthly', 'Monthly', 'Quarterly']} value=${f.freq} onChange=${on('freq')} />
       <${K.DateInput} label="Next payment" value=${f.next} onChange=${on('next')} />
       <${Field} label="Paid from" hint="If it’s taken automatically, imported statements recognize the payment by the loan’s name or lender."><${Select} id="al-from" value=${f.from || ''} onChange=${on('from')} options=${K.whereOptions(data)} placeholder="Not set" /></${Field}>
-      <div class="card flat small">${p ? 'Paid off ' + p.label + (isFinite(p.interest) ? ' · about ' + fmt(p.interest) + ' interest left' : '') + ' · estimate' : 'Add the balance, rate and payment to see when it’s paid off.'}</div></${Form}>`;
+      <div class="card flat small">${p ? 'Paid off ' + p.label + (isFinite(p.interest) ? ' · about ' + fmt(p.interest) + ' interest left' : '') + ' · estimate' : 'Add the balance, rate and payment to see when it’s paid off.'}</div><${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const PayLoan = ({ onClose, id }) => {
@@ -433,7 +474,7 @@
     const [f, on] = useForm(item ? Object.assign({}, item, { target: String(item.target), monthly: String(item.monthly || ''), saved: String(item.saved || ''), targetDate: item.targetDate || '', linked: item.linked || '' }) : { name: '', target: '', monthly: '', saved: '', targetDate: '', linked: '' });
     const left = numv(f.target) - numv(f.saved), m = numv(f.monthly);
     const eta = m > 0 && left > 0 ? K.addMonths(K.today(), Math.ceil(left / m)) : null;
-    const save = () => { commit(K.upsert(data, 'goals', Object.assign({}, item || {}, { name: f.name || 'Goal', target: numv(f.target), monthly: m, saved: numv(f.saved), targetDate: f.targetDate || null, linked: f.linked || null, shared: !!f.shared, look: f.look || null }))); toast(item ? 'Goal updated' : 'Goal added · its monthly amount counts in Safe to Spend'); onClose(); };
+    const save = () => { commit(K.upsert(data, 'goals', Object.assign({}, item || {}, { name: f.name || 'Goal', target: numv(f.target), monthly: m, saved: numv(f.saved), targetDate: f.targetDate || null, linked: f.linked || null, shared: K.isShared(data, f.shared), look: f.look || null }))); toast(item ? 'Goal updated' : 'Goal added · its monthly amount counts in Safe to Spend'); onClose(); };
     return html`<${Form} title=${item ? 'Edit goal' : 'Add goal'} onClose=${onClose} cta=${item ? 'Save' : 'Add goal'} onSave=${save} disabled=${!numv(f.target)}>
       <${In} id="ag-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Emergency fund" />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ag-target" label="Target" value=${f.target} onInput=${on('target')} mode="decimal" /><${In} id="ag-monthly" label="Monthly amount" value=${f.monthly} onInput=${on('monthly')} mode="decimal" /></div>
@@ -441,13 +482,13 @@
       ${!f.linked && html`<${In} id="ag-saved" label="Already saved" value=${f.saved} onInput=${on('saved')} mode="decimal" ph="0" />`}
       <${K.MonthInput} label="Target month" value=${f.targetDate} onChange=${on('targetDate')} optional=${true} placeholder="No target month" fromYear=${K.today().getFullYear()} />
       ${eta && html`<div class="card flat between small"><span class="muted">At ${fmt(m)} a month</span><b>Done by ${K.fmtMonth(eta)}</b></div>`}
-      <${K.LookPicker} label="Goal card" value=${f.look} onChange=${on('look')} fallback="var(--grad2)" /></${Form}>`;
+      <${K.LookPicker} label="Goal card" value=${f.look} onChange=${on('look')} fallback="var(--grad2)" /><${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const AddBill = ({ onClose, item }) => {
     const { data, commit, toast, fmt, ctx } = useApp();
     const [f, on] = useForm(item ? Object.assign({}, item, { amt: String(item.amt), day: String(item.day || 1), month: String(item.month || 1) }) : { name: '', kind: 'Bill', amt: '', cur: data.base, day: '1', month: String(K.today().getMonth() + 1), cat: 'bills', pay: (K.whereOptions(data)[0] || [])[0] || '' });
-    const save = () => { const next = K.upsert(data, 'bills', Object.assign({ since: K.iso(K.today()) }, item || {}, { name: f.name || 'Bill', kind: f.kind, amt: numv(f.amt), cur: f.cur || data.base, day: Math.min(28, Math.max(1, parseInt(f.day) || 1)), month: f.kind === 'Annual' ? parseInt(f.month) || 1 : undefined, cat: f.kind === 'Subscription' ? 'subs' : f.cat, pay: f.pay, end: f.end || null, shared: !!f.shared })); commit(next); const p = K.derive(next, ctx).plan; toast((item ? 'Updated' : 'Added') + (p.hasIncome ? ' · Safe to Spend ' + fmt(p.safe) : '')); onClose(); };
+    const save = () => { const next = K.upsert(data, 'bills', Object.assign({ since: K.iso(K.today()) }, item || {}, { name: f.name || 'Bill', kind: f.kind, amt: numv(f.amt), cur: f.cur || data.base, day: Math.min(28, Math.max(1, parseInt(f.day) || 1)), month: f.kind === 'Annual' ? parseInt(f.month) || 1 : undefined, cat: f.kind === 'Subscription' ? 'subs' : f.cat, pay: f.pay, end: f.end || null, shared: K.isShared(data, f.shared) })); commit(next); const p = K.derive(next, ctx).plan; toast((item ? 'Updated' : 'Added') + (p.hasIncome ? ' · Safe to Spend ' + fmt(p.safe) : '')); onClose(); };
     return html`<${Form} title=${item ? 'Edit ' + item.name : 'Add bill or subscription'} sub="It counts in Safe to Spend and shows up before it’s due." onClose=${onClose} cta=${item ? 'Save' : 'Add'} onSave=${save} disabled=${!numv(f.amt)} onDelete=${item && (() => { commit(K.removeBill(data, item.id)); toast('Deleted'); onClose(); })}>
       <${Seg} options=${['Bill', 'Subscription', 'Annual']} value=${f.kind} onChange=${on('kind')} />
       <${In} id="ab-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Rent, Netflix" />
@@ -455,19 +496,19 @@
       ${f.kind === 'Annual' && html`<${Field} label="Month"><${Select} id="ab-month" value=${f.month} onChange=${on('month')} options=${K.MONTH_LONG.map((m, i) => [String(i + 1), m])} /></${Field}>`}
       ${f.kind !== 'Subscription' && html`<${Field} label="Category"><${Select} id="ab-cat" value=${f.cat} onChange=${on('cat')} options=${K.CAT_ORDER.map((c) => [c, K.CATS[c].name])} /></${Field}>`}
       <${Field} label="Paid with"><${Select} id="ab-pay" value=${f.pay} onChange=${on('pay')} options=${K.whereOptions(data)} placeholder="Not set" /></${Field}>
-      <${K.MonthInput} label="Ends in" value=${f.end || ''} onChange=${on('end')} optional=${true} placeholder="No end" fromYear=${K.today().getFullYear()} hint="For a contract or plan with a last payment. After that month it stops counting." /></${Form}>`;
+      <${K.MonthInput} label="Ends in" value=${f.end || ''} onChange=${on('end')} optional=${true} placeholder="No end" fromYear=${K.today().getFullYear()} hint="For a contract or plan with a last payment. After that month it stops counting." /><${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const AddIncomeSource = ({ onClose, item }) => {
     const { data, commit, toast, fmt, ctx } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { amt: String(item.amt) }) : { name: 'Salary', amt: '', cur: data.base, freq: 'Bi-weekly', next: K.iso(K.addDays(K.today(), 7)), to: (K.whereOptions(data, { cashOnly: true, noCards: true })[0] || [])[0] || '' });
-    const save = () => { const next = K.upsert(data, 'income', Object.assign({}, item || {}, { name: f.name || 'Income', amt: numv(f.amt), cur: f.cur, freq: f.freq, next: f.next, to: f.to, shared: !!f.shared })); commit(next); const p = K.derive(next, ctx).plan; toast('Income saved · Safe to Spend ' + fmt(p.safe)); onClose(); };
+    const [f, on] = useForm(item ? Object.assign({}, item, { amt: String(item.amt) }) : { name: K.t('Salary'), amt: '', cur: data.base, freq: 'Bi-weekly', next: K.iso(K.addDays(K.today(), 7)), to: (K.whereOptions(data, { cashOnly: true, noCards: true })[0] || [])[0] || '' });
+    const save = () => { const next = K.upsert(data, 'income', Object.assign({}, item || {}, { name: f.name || 'Income', amt: numv(f.amt), cur: f.cur, freq: f.freq, next: f.next, to: f.to, shared: K.isShared(data, f.shared) })); commit(next); const p = K.derive(next, ctx).plan; toast('Income saved · Safe to Spend ' + fmt(p.safe)); onClose(); };
     return html`<${Form} title=${item ? 'Edit income' : 'Add income source'} sub="Regular pay Kipu expects. It isn’t recorded until you add the actual payment." onClose=${onClose} cta="Save" onSave=${save} disabled=${!numv(f.amt)} onDelete=${item && (() => { commit(K.remove(data, 'income', item.id)); toast('Deleted'); onClose(); })}>
       <${In} id="is-name" label="Name" value=${f.name} onInput=${on('name')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="is-amt" label="Amount after tax" value=${f.amt} onInput=${on('amt')} mode="decimal" /><${Field} label="Currency"><${Select} id="is-cur" value=${f.cur} onChange=${on('cur')} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
       <${Chips} options=${['Weekly', 'Bi-weekly', 'Twice monthly', 'Monthly']} value=${f.freq} onChange=${on('freq')} />
       <${K.DateInput} label="Next payday" value=${f.next} onChange=${on('next')} />
-      ${K.whereOptions(data, { cashOnly: true, noCards: true }).length > 0 && html`<${Field} label="Paid into"><${Select} id="is-to" value=${f.to} onChange=${on('to')} options=${K.whereOptions(data, { cashOnly: true, noCards: true })} /></${Field}>`}</${Form}>`;
+      ${K.whereOptions(data, { cashOnly: true, noCards: true }).length > 0 && html`<${Field} label="Paid into"><${Select} id="is-to" value=${f.to} onChange=${on('to')} options=${K.whereOptions(data, { cashOnly: true, noCards: true })} /></${Field}>`}<${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
   };
 
   const AddTrip = ({ onClose, item }) => {
@@ -482,12 +523,113 @@
       <span class="tiny muted">Expenses in the trip currency during these dates are tagged to it automatically.</span></${Form}>`;
   };
 
-  const CreateHousehold = ({ onClose }) => {
-    const { data, commit, toast } = useApp();
-    const [name, setName] = useState(data.household.name || '');
-    return html`<${Form} title="Household" sub="Mark accounts, bills and goals as shared, then switch the scope to see only shared money on this device. Sign in to set up a joint space for two accounts." onClose=${onClose} cta="Turn on Household" onSave=${() => { commit(Object.assign({}, data, { household: { enabled: true, name: name || 'Home' } })); toast('Household on · use the scope switch to view shared items'); onClose(); }}>
-      <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
+  // How you handle money: just you, together (everything shared) or mixed (some shared, split)
+  const HouseholdMode = ({ onClose, preset }) => {
+    const { data, commit, toast, setCtx } = useApp();
+    const h = data.household;
+    const [mode, setMode] = useState((preset && preset.mode) || (K.hhMode(data) === 'solo' ? 'together' : K.hhMode(data)));
+    const [partner, setPartner] = useState(h.partner || '');
+    const [split, setSplit] = useState(String(h.split != null ? h.split : 50));
+    const [name, setName] = useState(h.name || '');
+    const [shareAll, setShareAll] = useState(true);
+    const save = () => {
+      let d = K.setHouseholdMode(data, mode, { partner, split: mode === 'mixed' ? split : h.split, name });
+      // Moving to "together": what you already have becomes shared too, unless you say otherwise
+      if (mode === 'together' && shareAll) ['accounts', 'cards', 'loans', 'bills', 'income', 'goals', 'trips'].forEach((k) => { d = Object.assign({}, d, { [k]: d[k].map((x) => (x.shared ? x : Object.assign({}, x, { shared: true }))) }); });
+      commit(d);
+      setCtx({ scope: mode === 'solo' ? 'personal' : mode === 'together' ? 'household' : 'personal' });
+      toast(mode === 'solo' ? 'Just you · Household off' : mode === 'together' ? 'Shared with ' + (K.partnerName(d) || 'your partner') : 'Split expenses on');
+      onClose();
+    };
+    const who = partner.trim() || 'your partner';
+    return html`<${Form} title="How you handle money" sub="Change it whenever your situation changes. Nothing is deleted." onClose=${onClose} cta="Save" onSave=${save} disabled=${mode !== 'solo' && !partner.trim()}>
+      <div class="stack-s" role="radiogroup" aria-label="How you handle money">${K.HH_MODES.map(([k, ic, t, sub]) => html`<button key=${k} role="radio" aria-checked=${mode === k} class=${'card how' + (mode === k ? ' on' : '')} onClick=${() => setMode(k)}><${Tile} icon=${ic} tone=${mode === k ? 'p' : 'n'} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span style=${{ fontWeight: 700 }}>${t}</span><span class="small muted" style=${{ lineHeight: 1.4 }}>${sub}</span></span><span class=${'radio' + (mode === k ? ' on' : '')}></span></button>`)}</div>
+      ${mode !== 'solo' && html`<${In} id="hh-partner" label="Partner’s name" value=${partner} onInput=${(e) => setPartner(e.target.value)} ph="e.g. Kari" />
+        <${In} id="hh-name" label="Household name" value=${name} onInput=${(e) => setName(e.target.value)} ph=${data.profile.name && partner.trim() ? data.profile.name.split(' ')[0] + ' & ' + partner.trim() : 'e.g. Home'} />`}
+      ${mode === 'mixed' && html`<${In} id="hh-split" label="Your usual share of shared costs (%)" value=${split} onInput=${(e) => setSplit(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} mode="numeric" ph="50" hint=${'Half each is 50. If you earn more and pay 60%, write 60. You can change it on each expense.'} />`}
+      ${mode === 'together' && K.hhMode(data) !== 'together' && html`<div class="card tight"><${ToggleRow} title="Share what I already have" sub=${'Accounts, cards, loans, bills and goals become shared with ' + who} on=${shareAll} onChange=${setShareAll} icon="people" tone="p" /></div>`}
+      ${mode === 'together' && html`<span class="small muted" style=${{ lineHeight: 1.5 }}>${'To see the same numbers on both phones, sign in and create a joint Household in Settings › Account & sync, then invite ' + who + '.'}</span>`}</${Form}>`;
   };
 
-  K.SHEETS = { reviewCats: ReviewCats, settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
+  // Even things out after split expenses
+  const Settle = ({ onClose }) => {
+    const { data, commit, toast, fmt } = useApp();
+    const who = K.partnerName(data) || 'Partner';
+    const bal = K.splitBalance(data).owed;
+    const places = K.whereOptions(data, { cashOnly: true, noCards: true });
+    const [amt, setAmt] = useState(bal ? String(Math.abs(bal)) : '');
+    const [where, setWhere] = useState((places[0] || [])[0] || '');
+    const [dir, setDir] = useState(bal < 0 ? 'out' : 'in');
+    const v = numv(amt);
+    const save = () => { commit(K.settleUp(data, { amt: v, where, dir, date: K.iso(K.today()) })); toast(dir === 'in' ? who + ' paid you ' + fmt(v, { dec: 2 }) : 'You paid ' + who + ' ' + fmt(v, { dec: 2 })); onClose(); };
+    return html`<${Form} title="Settle up" sub=${bal > 0 ? who + ' owes you ' + fmt(bal, { dec: 2 }) : bal < 0 ? 'You owe ' + who + ' ' + fmt(-bal, { dec: 2 }) : 'You’re even'} onClose=${onClose} cta=${dir === 'in' ? 'Record payment from ' + who : 'Record payment to ' + who} onSave=${save} disabled=${!v || !where}>
+      <${Seg} options=${['in', 'out']} labels=${[who + ' paid me', 'I paid ' + who]} value=${dir} onChange=${setDir} />
+      <${Amount} value=${amt} onChange=${setAmt} cur=${data.base} />
+      ${places.length ? html`<${Field} label=${dir === 'in' ? 'Into' : 'From'}><${Select} id="st-where" value=${where} onChange=${setWhere} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      <span class="small muted" style=${{ lineHeight: 1.5 }}>A settle-up moves your account balance but isn’t income or spending.</span></${Form}>`;
+  };
+
+  // Open the Household next to your personal space
+  const OpenHousehold = ({ onClose, preset }) => {
+    const { cloud, cloudOpenHousehold, toast } = useApp();
+    const h = (cloud.households || []).find((x) => x.id === (preset && preset.id)) || (cloud.households || [])[0];
+    const [pass, setPass] = useState('');
+    const [remember, setRemember] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState('');
+    if (!h) return null;
+    const go = async (e) => { e.preventDefault(); setBusy(true); setErr(''); try { await cloudOpenHousehold(h, pass, remember); toast(h.name + ' is open'); onClose(); } catch (x) { setErr(/decrypt|operation/i.test(x.message) ? 'That passphrase doesn’t open ' + h.name + '.' : x.message); } finally { setBusy(false); } };
+    return html`<${Sheet} title=${'Open ' + h.name} sub="Shared money appears next to yours. What you mark Personal stays only in your own file; your partner never receives it." onClose=${onClose}>
+      <form class="stack-s" style=${{ gap: '12px' }} onSubmit=${go}><${Field} label="Household passphrase"><input class="input" type="password" required minlength="12" autocomplete="off" value=${pass} onInput=${(e) => setPass(e.target.value)} /></${Field}>
+        <div class="card tight"><${ToggleRow} title="Remember it on my account" sub="Kept inside your own encrypted file, so unlocking your personal space opens both." on=${remember} onChange=${setRemember} icon="lock" tone="p" /></div>
+        ${err && html`<span class="small" style=${{ color: 'var(--crit)' }}>${err}</span>`}
+        <button class="btn pri block" disabled=${busy || pass.length < 12}>${busy ? 'Opening…' : 'Open'}</button></form></${Sheet}>`;
+  };
+
+  // Ask Kipu: will the money last, and can I buy this? Plain arithmetic with your numbers, on this device.
+  const AskKipu = ({ onClose, preset }) => {
+    const { data, D, fmt, go } = useApp();
+    const [q, setQ] = useState((preset && preset.q) || '');
+    const [kind, setKind] = useState((preset && preset.kind) || null);
+    const [amt, setAmt] = useState('');
+    const [n, setN] = useState(1);
+    const ask = (text) => { const r = K.parseQuestion(text); setKind(r.kind === 'unknown' ? 'unknown' : r.kind); if (r.amount) setAmt(String(r.amount)); if (r.installments) setN(r.installments); };
+    const v = numv(amt);
+    const row = (l, x, strong) => html`<div class="between small" style=${{ padding: '6px 0', fontWeight: strong ? 700 : 400 }}><span class=${strong ? '' : 'muted'}>${l}</span><span class="num">${x}</span></div>`;
+    const date = (d) => (d ? K.fmtDate(K.iso(d)) : '');
+    let answer = null;
+    if (kind === 'month') {
+      const m = K.askMonthEnd(data, D);
+      answer = !m.hasData ? html`<span class="small">Add an everyday account first, so Kipu knows what you have.</span>` : html`<div class="stack-s" style=${{ gap: '10px' }}>
+        <strong style=${{ fontSize: '17px', lineHeight: 1.35, color: m.short ? 'var(--crit)' : 'var(--pos)' }}>${m.short ? 'You’d be short about ' + fmt(m.short) + '.' : 'Yes. You’d reach ' + date(m.end) + ' with about ' + fmt(m.low) + ' to spare.'}</strong>
+        <div class="list">${row('Cash now', fmt(m.cash))}${row('Pay still coming this month', '+' + fmt(m.incomeLeft))}${row('Bills, loans and cards due', '−' + fmt(m.due))}${row('Your usual everyday spending', '−' + fmt(m.everyday))}${m.savings > 0 && row('Planned savings left', '−' + fmt(m.savings))}${row('End of month', fmt(m.endCash), true)}${m.nextPay && m.beforePay !== m.endCash && row('Before your next payday (' + date(m.nextPay) + ')', fmt(m.beforePay), true)}</div>
+        ${m.short > 0 && html`<div class="card flat small stack-s" style=${{ lineHeight: 1.5, gap: '6px' }}><span>${'To make it: bring in ' + fmt(m.short) + ' more, or spend ' + fmt(m.perDayCut, { dec: 0 }) + ' less a day for ' + m.daysLeft + ' days.'}</span>${m.savings > 0 && html`<span>${'Pausing this month’s planned savings frees ' + fmt(m.savings) + '.'}</span>`}</div>`}
+        <span class="tiny muted">Everyday spending comes from your recent months. Card-paid bills are left to the card payment.</span></div>`;
+    }
+    if (kind === 'afford' && v > 0) {
+      const a = K.askAfford(data, D, v, { installments: n });
+      const H = {
+        nodata: 'Add an everyday account first, so Kipu knows what you have.',
+        yes: 'Yes. After it you’d still have ' + fmt(a.afterSafe) + ' to spend until payday.',
+        wait: 'Better after payday (' + date(a.nextPay) + '). Today it leaves you ' + fmt(-a.afterSafe) + ' short; your next pay leaves about ' + fmt(a.perCheck) + ' free.',
+        savings: 'Only from savings. You’d keep ' + fmt(a.afterSavings) + ', about ' + (a.cushionMonths != null ? a.cushionMonths.toFixed(1) : '?') + ' months of expenses.',
+        installments: 'In ' + a.n + ' payments of ' + fmt(a.perMonth) + ' it fits: about ' + fmt(a.margin) + ' is free each month.',
+        save: 'Not yet. Saving the ' + fmt(a.margin) + ' free each month, you’d have it in ' + a.monthsToSave + (a.monthsToSave === 1 ? ' month.' : ' months.'),
+        no: 'Not now. What comes in each month already goes to your regular costs.',
+      };
+      const good = ['yes', 'installments'].includes(a.verdict), meh = ['wait', 'savings', 'save'].includes(a.verdict);
+      answer = html`<div class="stack-s" style=${{ gap: '10px' }}><strong style=${{ fontSize: '17px', lineHeight: 1.35, color: good ? 'var(--pos)' : meh ? 'var(--warn)' : 'var(--crit)' }}>${H[a.verdict]}</strong>
+        ${a.verdict !== 'nodata' && html`<div class="list">${row('Safe to Spend now', fmt(a.safe))}${row('After buying it', fmt(a.afterSafe), true)}${a.savingsCash > 0 && row('In savings', fmt(a.savingsCash))}${row('Free each month (income − costs − savings)', fmt(a.margin))}${a.n > 1 && row(a.n + ' payments of', fmt(a.perMonth))}</div>`}
+        ${a.verdict === 'save' && a.fitN && html`<span class="small muted">${'In ' + a.fitN + ' payments it would fit your monthly margin, if they come without interest.'}</span>`}
+        ${a.n > 1 && html`<span class="tiny muted">Installments often carry interest. Check the rate before choosing them.</span>`}</div>`;
+    }
+    return html`<${Sheet} title="Ask Kipu" sub="Worked out with your own numbers, on this device." onClose=${onClose}>
+      <form class="row" style=${{ gap: '8px' }} onSubmit=${(e) => { e.preventDefault(); ask(q); }}><input class="input grow" aria-label="Your question" value=${q} onInput=${(e) => setQ(e.target.value)} placeholder="e.g. Can I buy a 3,000 laptop?" enterkeyhint="send" /><button class="btn pri sm" disabled=${!q.trim()}>Ask</button></form>
+      <div class="chips"><button class=${'chip' + (kind === 'month' ? ' on' : '')} onClick=${() => setKind('month')}>Will I make it to month end?</button><button class=${'chip' + (kind === 'afford' ? ' on' : '')} onClick=${() => setKind('afford')}>Can I afford something?</button></div>
+      ${kind === 'unknown' && html`<span class="small muted">Kipu can answer two things for now: whether your money lasts to month end, and whether you can afford a purchase. Try one of the buttons.</span>`}
+      ${kind === 'afford' && html`<div class="stack-s" style=${{ gap: '10px' }}><${Amount} value=${amt} onChange=${setAmt} cur=${data.base} id="ask-amt" /><${Seg} options=${[1, 3, 6, 12]} labels=${['Pay once', '3 payments', '6 payments', '12 payments']} value=${n} onChange=${setN} /></div>`}
+      ${answer && html`<div class="card stack-s">${answer}</div>`}</${Sheet}>`;
+  };
+
+  K.SHEETS = { reviewCats: ReviewCats, settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold, ask: AskKipu };
 })();

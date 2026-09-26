@@ -9,33 +9,40 @@
     const { data, commit, setSettings, cloudLogin, cloud } = useApp();
     const [step, setStep] = useState(0);
     const [name, setName] = useState('');
-    const [base, setBase] = useState('CAD');
+    const [base, setBase] = useState(() => K.guessBase());
     const [extra, setExtra] = useState([]);
     const [more, setMore] = useState(false);
     const [lang, setLang] = useState(K.lang());
+    const [how, setHow] = useState('solo');
+    const [partner, setPartner] = useState('');
     const finish = (sample) => {
       if (sample) { commit(K.sampleData()); return; }
-      commit(K.snapshot(Object.assign({}, data, { onboarded: true, profile: { name: name.trim(), email: '' }, base, active: [base].concat(extra.filter((c) => c !== base)) })));
+      const d = Object.assign({}, data, { onboarded: true, profile: { name: name.trim(), email: '' }, base, active: [base].concat(extra.filter((c) => c !== base)) });
+      commit(K.snapshot(K.setHouseholdMode(d, how, { partner })));
     };
     const Dot = ({ i }) => html`<span style=${{ width: i === step ? '22px' : '8px', height: '8px', borderRadius: '999px', background: i <= step ? 'var(--acc)' : 'var(--neutral)', transition: 'width 0.2s' }}></span>`;
     return html`<div class="onb"><div class="onb-card stack" style=${{ gap: '22px' }}>
-      <div class="row" style=${{ gap: '10px' }}><span style=${{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '22px', fontWeight: 800 }}>Kipu</span><span class="grow"></span><div class="row" style=${{ gap: '6px' }}>${[0, 1, 2].map((i) => html`<${Dot} key=${i} i=${i} />`)}</div></div>
+      <div class="row" style=${{ gap: '10px' }}><span style=${{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--grad)' }}></span><span class="disp" style=${{ fontSize: '22px', fontWeight: 800 }}>Kipu</span><span class="grow"></span><div class="row" style=${{ gap: '6px' }}>${[0, 1, 2, 3].map((i) => html`<${Dot} key=${i} i=${i} />`)}</div></div>
       ${step === 0 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '32px', lineHeight: '38px', fontWeight: 800 }}>Money, calmly.</h1><p class="muted" style=${{ fontSize: '16px', lineHeight: 1.5 }}>Kipu keeps your accounts, bills, goals and trips in one place and tells you what’s safe to spend. Everything stays on this device.</p>
         <button class="btn pri block" onClick=${() => setStep(1)}>Get started</button>${cloud.status === 'guest' && html`<button class="btn sec block" onClick=${cloudLogin}>Sign in to sync</button><button class="link" onClick=${() => finish(true)}>Explore with sample data</button>`}
         <div class="row" data-raw role="group" aria-label="Idioma / Language" style=${{ gap: '6px', justifyContent: 'center', paddingTop: '4px' }}><${Icon} n="globe" s=${15} c="var(--muted)" />${K.LANGS.map(([k, l]) => html`<button key=${k} class="link" aria-pressed=${lang === k} style=${{ color: lang === k ? 'var(--ink)' : 'var(--muted)', fontWeight: lang === k ? 700 : 500 }} onClick=${() => { K.setLang(k); setLang(k); }}>${l}</button>`)}</div></div>`}
       ${step === 1 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>What should we call you?</h1><${Field} label="First name"><input id="onb-name" class="input" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="Your name" autofocus /></${Field}><button class="btn pri block" onClick=${() => setStep(2)}>Continue</button></div>`}
-      ${step === 2 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>Your main currency</h1><p class="muted">Totals, Safe to Spend and net worth use it. You can still record anything in other currencies.</p>
+      ${step === 2 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>How do you handle money?</h1><p class="muted">Kipu adapts to you. You can change it any time in Settings › Household.</p>
+        <div class="stack-s" role="radiogroup" aria-label="How do you handle money?">${K.HH_MODES.map(([k, ic, t, sub]) => html`<button key=${k} role="radio" aria-checked=${how === k} class=${'card how' + (how === k ? ' on' : '')} onClick=${() => setHow(k)}><${Tile} icon=${ic} tone=${how === k ? 'p' : 'n'} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span style=${{ fontWeight: 700 }}>${t}</span><span class="small muted" style=${{ lineHeight: 1.4 }}>${sub}</span></span><span class=${'radio' + (how === k ? ' on' : '')}></span></button>`)}</div>
+        ${how !== 'solo' && html`<${Field} label="Your partner’s name"><input id="onb-partner" class="input" value=${partner} onInput=${(e) => setPartner(e.target.value)} placeholder="e.g. Kari" /></${Field}>`}
+        <button class="btn pri block" onClick=${() => setStep(3)}>Continue</button><button class="link" onClick=${() => setStep(1)}>Back</button></div>`}
+      ${step === 3 && html`<div class="stack" style=${{ gap: '14px' }}><h1 style=${{ fontSize: '26px', fontWeight: 800 }}>Your main currency</h1><p class="muted">Totals, Safe to Spend and net worth use it. You can still record anything in other currencies.</p>
         <${K.CurrencySelect} label="Main currency" value=${base} onChange=${setBase} />
         <span class="eyebrow">Other currencies you use</span><div class="chips">${[...new Set(['USD', 'EUR', 'CAD', 'PEN', 'MXN', 'GBP'].concat(extra))].filter((c) => c !== base).map((c) => html`<button key=${c} class=${'chip' + (extra.includes(c) ? ' on' : '')} onClick=${() => setExtra(extra.includes(c) ? extra.filter((x) => x !== c) : extra.concat([c]))}><${K.Flag} cur=${c} s=${18} />${c}</button>`)}<button class="chip" aria-expanded=${more} onClick=${() => setMore(!more)}><${Icon} n=${more ? 'x' : 'search'} s=${14} />${more ? 'Close' : 'Any other'}</button></div>
         ${more && html`<${K.CurrencyList} exclude=${[base].concat(extra)} autoFocus=${true} onPick=${(c) => { setExtra(extra.concat([c])); setMore(false); }} />`}
-        <button class="btn pri block" onClick=${() => finish(false)}>Start with a clean slate</button><button class="link" onClick=${() => setStep(1)}>Back</button></div>`}
+        <button class="btn pri block" onClick=${() => finish(false)}>Start with a clean slate</button><button class="link" onClick=${() => setStep(2)}>Back</button></div>`}
     </div></div>`;
   };
 
   // ---------------------------------------------------------------- Settings
   // Tiles for the things people change most; everything else in short lists
   const SECTIONS = [
-    ['General', [['language', 'globe', 'Language']]],
+    ['General', [['language', 'globe', 'Language'], ['reminders', 'bell', 'Payment reminders']]],
     ['Money', [['categories', 'tag', 'Categories & rules'], ['finance', 'sliders', 'Financial preferences'], ['household', 'people', 'Household']]],
     ['Security & data', [['cloud', 'cloud', 'Account & sync'], ['security', 'lock', 'App lock'], ['data', 'upload', 'Data, backup & reset']]],
   ];
@@ -53,7 +60,7 @@
     const theme = K.themeName(settings.theme), mode = settings.mode || 'System';
     const pal = K.palette(theme, settings.effectiveDark);
     const open = (k) => go({ r: 'settings', s: k }, wide);
-    const val = { household: cloud.target === 'household' ? cloud.household.name : data.household.enabled ? data.household.name || 'On' : 'Off', currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off', language: (K.LANGS.find((l) => l[0] === K.lang()) || [])[1] };
+    const val = { reminders: settings.remind ? 'On' : 'Off', household: cloud.target === 'household' ? cloud.household.name : { solo: 'Just me', together: 'Together', mixed: 'Some shared' }[K.hhMode(data)], currencies: data.base + ' · ' + data.active.length, appearance: theme, ai: settings.ai.insights ? 'On' : 'Off', privacy: settings.hide ? 'Hidden' : 'Shown', categories: String(K.CAT_ORDER.length), finance: data.prefs.utilRef + '%', profile: '', security: K.lockCfg().enabled ? 'On' : 'Off', cloud: cloud.status === 'ready' ? 'On' : 'Off', language: (K.LANGS.find((l) => l[0] === K.lang()) || [])[1] };
     const on = (k) => active === k;
     const Tile2 = ({ k, children, label, sub }) => html`<button class=${'card set-tile' + (on(k) ? ' on' : '')} onClick=${() => open(k)}>${children}<span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></button>`;
     const ToggleTile = ({ label, sub, icon, value, onChange }) => html`<div class="card set-tile"><span class="between"><span class="set-ic"><${Icon} n=${icon} s=${17} /></span><${Switch} on=${value} onChange=${onChange} label=${label} /></span><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700, fontSize: '14px' }}>${label}</span><span class="tiny muted">${sub}</span></span></div>`;
@@ -137,11 +144,11 @@
     const [message, setMessage] = useState('');
     const signOut = async () => { try { await cloudSignOut(); } catch (e) { setMessage(e.message); } };
     return html`<${SubHead} title="Account & sync" sub="Use your Kipu data on another device with Google or email and a vault passphrase." />
-      <div class="card stack-s">${cloud.status === 'ready' ? html`<span style=${{ fontWeight: 700 }}>${cloud.user.email}</span><span class="small muted">Space: ${cloud.target === 'household' ? cloud.household.name + ' · shared' : 'Private'}</span><span class="small muted">Sync: ${cloud.sync || 'synced'}</span>${cloud.error && html`<span class="small" style=${{ color: 'var(--crit)' }}>${cloud.error}</span>`}${cloud.sync === 'error' && html`<button class="btn sec" onClick=${cloudRetry}>Retry sync</button>`}<button class="btn sec" onClick=${signOut}>Sign out</button>` : html`<span class="small muted">Your data currently stays in this browser.</span><button class="btn pri" onClick=${cloudLogin}>Sign in or create account</button>`}${message && html`<span class="small" role="alert">${message}</span>`}</div>
+      <div class="card stack-s">${cloud.status === 'ready' ? html`<span style=${{ fontWeight: 700 }}>${cloud.user.email}</span><span class="small muted">Space: ${cloud.target === 'household' ? cloud.household.name + ' · shared' : cloud.combined ? 'Private + ' + cloud.household.name : 'Private'}</span><span class="small muted">Sync: ${cloud.sync || 'synced'}</span>${cloud.error && html`<span class="small" style=${{ color: 'var(--crit)' }}>${cloud.error}</span>`}${cloud.sync === 'error' && html`<button class="btn sec" onClick=${cloudRetry}>Retry sync</button>`}<span class="small muted" style=${{ lineHeight: 1.45 }}>This device remembers your key, so Kipu opens without the passphrase. Face ID or a PIN in App lock keeps it yours.</span><button class="btn sec" onClick=${async () => { await K.deviceKey.forget(); setMessage('This device will ask for the passphrase next time.'); }}>Forget this device</button><button class="btn sec" onClick=${signOut}>Sign out</button>` : html`<span class="small muted">Your data currently stays in this browser.</span><button class="btn pri" onClick=${cloudLogin}>Sign in or create account</button>`}${message && html`<span class="small" role="alert">${message}</span>`}</div>
       <p class="tiny muted">Cloud data is encrypted before upload. Your email and login details are managed by Supabase. Browser backups exported as JSON are readable files; store them safely. If you forget a space’s passphrase, Kipu cannot decrypt its data.</p>`;
   }
   function Section({ s }) {
-    const C = { cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, language: Language, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
+    const C = { reminders: Reminders, cloud: CloudSettings, security: Security, profile: Profile, household: Household, currencies: Currencies, categories: Categories, appearance: Appearance, language: Language, ai: AI, privacy: Privacy, data: DataSec, finance: Finance }[s] || Appearance;
     return html`<div class="stack"><${C} /></div>`;
   }
 
@@ -205,17 +212,21 @@
   }
 
   function Household() {
-    const { data, commit, toast, openSheet, setCtx, cloud, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold } = useApp();
+    const { data, commit, toast, openSheet, setCtx, cloud, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudCloseHousehold, go, wide } = useApp();
+    const open = (k) => go({ r: 'settings', s: k });
     if (cloud.status === 'ready' && cloud.target === 'household') return html`<${SubHead} title=${cloud.household.name} sub="A joint encrypted space for you and your partner." /><div class="card stack-s"><strong>Everything in this space is shared</strong><span class="small muted">Both accounts can view and edit its accounts, cards, movements and plans. Your partner signs in with ${cloud.household.invite_email} and unlocks with the Household passphrase you chose.</span><button class="btn sec" onClick=${cloudSelectPersonal}>Open my personal space</button></div>`;
-    if (cloud.status === 'ready' && cloud.user) return html`<${SubHead} title="Household" sub="Your personal data stays private. A joint Household has its own empty encrypted space." /><div class="stack-s">${(cloud.households || []).map((h) => html`<button key=${h.id} class="card between" onClick=${() => cloudSelectHousehold(h)}><span>${h.name}</span><span class="link">Open</span></button>`)}${!(cloud.households || []).some((h) => h.owner_id === cloud.user.id) && html`<button class="btn pri" onClick=${cloudStartHousehold}>Set up a joint Household</button>`}</div>`;
-    const hh = data.household;
-    if (!hh.enabled) return html`<${SubHead} title="Household" sub="Optional. Kipu works fully without one." /><div class="card"><${EmptyState} icon="people" title="Manage shared money?" text="Mark the accounts, cards, loans, bills and goals you share, then switch to Household to see just those on this device. Sign in to invite someone." action="Turn on Household" onAction=${() => openSheet({ k: 'createHousehold' })} /></div>`;
+    if (cloud.status === 'ready' && cloud.user && cloud.combined) return html`<${SubHead} title=${cloud.household.name} sub="Open next to your personal space." /><div class="card stack-s"><strong>Personal is only yours · shared is for both</strong><span class="small muted" style=${{ lineHeight: 1.5 }}>${'Accounts, cards, loans, bills, goals and movements marked Personal are saved only in your own encrypted file; ' + (cloud.household.invite_email || 'your partner') + ' never receives them. Anything marked for the Household is saved in its shared file, which both of you open.'}</span></div><button class="btn sec" onClick=${() => { try { cloudCloseHousehold(); toast('Household closed on this device'); } catch (e) { toast(e.message); } }}>Close the Household on this device</button><button class="btn sec" onClick=${() => openSheet({ k: 'householdMode' })}>How you handle money</button>`;
+    if (cloud.status === 'ready' && cloud.user) return html`<${SubHead} title="Household" sub="Your personal data stays private. A Household is a shared encrypted file both of you open." /><div class="stack-s">${(cloud.households || []).map((h) => html`<div key=${h.id} class="card stack-s"><strong>${h.name}</strong><div class="row" style=${{ gap: '8px', flexWrap: 'wrap' }}><button class="btn pri sm" onClick=${() => openSheet({ k: 'openHousehold', id: h.id })}>Open next to my money</button><button class="btn sec sm" onClick=${() => { try { cloudSelectHousehold(h); } catch (e) { toast(e.message); } }}>Only the Household</button></div></div>`)}${!(cloud.households || []).some((h) => h.owner_id === cloud.user.id) && html`<button class="btn pri" onClick=${cloudStartHousehold}>Set up a joint Household</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'householdMode' })}>How you handle money</button></div>`;
+    const hh = data.household, mode = K.hhMode(data), who = K.partnerName(data) || 'your partner';
+    const current = K.HH_MODES.find((x) => x[0] === mode);
+    const modeCard = html`<button class="card how on" onClick=${() => openSheet({ k: 'householdMode' })}><${Tile} icon=${current[1]} tone="p" /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span style=${{ fontWeight: 700 }}>${current[2]}</span><span class="small muted">${mode === 'solo' ? current[3] : mode === 'together' ? 'Everything is shared with ' + who : 'Shared costs split with ' + who + ' · you pay ' + (hh.split != null ? hh.split : 50) + '%'}</span></span><span class="link">Change</span></button>`;
+    const intro = cloud.user ? null : html`<div class="card flat stack-s"><span class="small" style=${{ lineHeight: 1.5 }}>${mode === 'solo' ? 'Kipu works fully on your own. If you start sharing costs later, change it here.' : 'Right now this lives on this device. To see the same numbers on both phones, sign in and create a joint Household.'}</span>${mode !== 'solo' && html`<button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => open('cloud')}>Sign in and invite</button>`}</div>`;
+    if (mode === 'solo') return html`<${SubHead} title="Household" sub="Optional. Kipu works fully without one." />${modeCard}${intro}`;
     const toggle = (coll, id) => commit(K.upsert(data, coll, Object.assign({}, data[coll].find((x) => x.id === id), { shared: !data[coll].find((x) => x.id === id).shared })));
     const groups = [['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['bills', 'Bills'], ['goals', 'Goals'], ['income', 'Income']];
-    return html`<${SubHead} title=${hh.name || 'Household'} sub="This is a view of items marked shared on this device. Sign in to create a joint space that another person can open." />
-      <button class="btn sec" onClick=${() => { setCtx({ scope: 'household' }); toast('Viewing Household'); }}>View as Household</button>
-      ${groups.map(([c, l]) => data[c].length > 0 && html`<div key=${c} class="stack-s"><span class="eyebrow">${l}</span><div class="card tight list">${data[c].map((x) => html`<${ToggleRow} key=${x.id} title=${x.name} sub=${x.shared ? 'Shared' : 'Private'} on=${!!x.shared} onChange=${() => toggle(c, x.id)} />`)}</div></div>`)}
-      <button class="btn sec block" style=${{ color: 'var(--crit)' }} onClick=${() => { commit(Object.assign({}, data, { household: { enabled: false, name: hh.name } })); setCtx({ scope: 'personal' }); toast('Household off'); }}>Turn off Household</button>`;
+    return html`<${SubHead} title=${hh.name || 'Household'} sub=${mode === 'together' ? 'One picture of all your money, for both of you.' : 'Your own money, plus the costs you share.'} />${modeCard}${intro}
+      ${mode === 'mixed' && html`<button class="btn sec" onClick=${() => { setCtx({ scope: 'household' }); toast('Viewing what you share'); }}>View only what we share</button>`}
+      ${mode === 'mixed' && groups.map(([c, l]) => data[c].length > 0 && html`<div key=${c} class="stack-s"><span class="eyebrow">${l}</span><div class="card tight list">${data[c].map((x) => html`<${ToggleRow} key=${x.id} title=${x.name} sub=${x.shared ? 'Shared' : 'Private'} on=${!!x.shared} onChange=${() => toggle(c, x.id)} />`)}</div></div>`)}`;
   }
 
   function Currencies() {
@@ -305,6 +316,24 @@
     return html`<${SubHead} title="Language" sub="Choose the language for Kipu. Names you typed stay as you wrote them." /><div class="card tight list">${K.LANGS.map(([k, label]) => html`<button key=${k} class=${'lrow set-row' + (lang === k ? ' on' : '')} aria-pressed=${lang === k} onClick=${() => pick(k)}><span class="grow t1" data-raw style=${{ textAlign: 'left' }}>${label}</span>${lang === k && html`<${Icon} n="check" s=${18} c="var(--acc)" w=${2.4} />`}</button>`)}</div>`;
   }
 
+  function Reminders() {
+    const { settings, setSettings, D, fmt } = useApp();
+    const can = typeof Notification !== 'undefined';
+    const [perm, setPerm] = useState(can ? Notification.permission : 'unsupported');
+    const on = !!settings.remind && perm === 'granted';
+    const toggle = async (v) => {
+      if (!v) { setSettings({ remind: false }); return; }
+      if (!can) return;
+      const p = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      setPerm(p);
+      setSettings({ remind: p === 'granted' });
+      if (p === 'granted') K.remindNow(D, fmt, true);
+    };
+    return html`<${SubHead} title="Payment reminders" sub="A heads-up before rent, bills, loan and card payments are due." />
+      <div class="card tight"><${ToggleRow} title="Remind me before payments" sub=${perm === 'denied' ? 'Notifications are blocked for Kipu in this browser’s settings.' : !can ? 'This browser can’t show notifications. Due payments still show on Home.' : 'Up to three days before, when you open Kipu'} on=${on} onChange=${toggle} icon="bell" tone="p" /></div>
+      <span class="small muted" style=${{ lineHeight: 1.5 }}>On iPhone, add Kipu to your home screen first (Share › Add to Home Screen). Bills paid by card aren’t included, since the card pays them. Home always shows what’s due in the next three days.</span>`;
+  }
+
   function AI() {
     const { settings, setSettings } = useApp();
     return html`<${SubHead} title="Insights" sub="Rule-based notes about your money, worked out on this device." /><div class="card tight"><${ToggleRow} title="Show insights" sub="Budget warnings, unpaid bills, utilization and more" on=${settings.ai.insights} onChange=${(v) => setSettings({ ai: Object.assign({}, settings.ai, { insights: v }) })} /></div>`;
@@ -344,7 +373,7 @@
     return html`<${SubHead} title="Data, backup & reset" sub=${cloud.status === 'ready' ? 'Your encrypted data syncs with your account.' : 'Your data is stored in this browser on this device.'} />
       <${Facts} rows=${[['Transactions', String(data.txns.length)], ['Accounts, cards and loans', String(data.accounts.length + data.cards.length + data.loans.length)], ['Bills and goals', String(data.bills.length + data.goals.length)], ['Imports', String(data.imports.length)]]} />
       ${data.imports.length > 0 && html`<div class="stack-s"><span class="eyebrow">Statement imports</span><div class="card tight list">${data.imports.map((imp) => html`<${ImportRow} key=${imp.id} imp=${imp} />`)}</div><span class="tiny muted">Undo removes what that file added, so you can import it again.</span></div>`}
-      <div class="stack-s"><span class="eyebrow">Export</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => K.download('kipu-backup-' + stamp + '.json', JSON.stringify(data, null, 1), 'application/json')}><${Icon} n="download" s=${16} />Backup (JSON)</button><button class="btn sec" disabled=${!data.txns.length} onClick=${() => K.download('kipu-transactions-' + stamp + '.csv', K.toCSV(data), 'text/csv')}><${Icon} n="download" s=${16} />Transactions (CSV)</button></div><span class="tiny muted">Keep a backup before clearing your browser or changing phones.</span></div>
+      <div class="stack-s"><span class="eyebrow">Export</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec" onClick=${() => K.download('kipu-backup-' + stamp + '.json', JSON.stringify(Object.assign({}, data, { hhKeys: undefined }), null, 1), 'application/json')}><${Icon} n="download" s=${16} />Backup (JSON)</button><button class="btn sec" disabled=${!data.txns.length} onClick=${() => K.download('kipu-transactions-' + stamp + '.csv', K.toCSV(data), 'text/csv')}><${Icon} n="download" s=${16} />Transactions (CSV)</button></div><span class="tiny muted">Keep a backup before clearing your browser or changing phones.</span></div>
       <div class="stack-s"><span class="eyebrow">Restore</span><button class="btn sec" onClick=${() => fileRef.current && fileRef.current.click()}><${Icon} n="upload" s=${16} />Restore a backup</button><input ref=${fileRef} id="restore-file" type="file" accept="application/json,.json" style=${{ display: 'none' }} onChange=${(e) => e.target.files[0] && restore(e.target.files[0])} /></div>
       <div class="stack-s"><span class="eyebrow">Start over</span><${DangerButton} label="Erase everything and reset" onConfirm=${resetAll} /><span class="tiny muted">${cloud.status === 'ready' ? 'Replaces your cloud data with an empty Kipu vault on every device.' : 'Returns Kipu to factory state and shows the welcome again.'} Export a backup first if you might need it.</span></div>`;
   }
