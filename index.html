@@ -190,6 +190,29 @@ p { margin: 0; }
 .activity-day strong { display: grid; place-items: center; width: min(100%, 46px); aspect-ratio: 1; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 16px; font-weight: 600; }
 .activity-day.on { color: var(--ink); }
 .activity-day.on strong { background: var(--grad); border-color: transparent; color: var(--hero-ink); box-shadow: var(--glow); }
+/* Transactions calendar: a colored header with the chosen day, then the week or the whole month */
+.kcal { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.kcal-head { background: var(--grad); color: var(--hero-ink); padding: 16px 18px 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.kcal-wd { font-size: 13px; opacity: 0.85; }
+.kcal-date { font-family: var(--display); font-size: 26px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
+.kcal-sum { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+.kcal-add { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 14px; border: 0; background: rgba(255,255,255,0.18); color: inherit; display: grid; place-items: center; }
+.kcal-body { padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 10px; }
+.kcal-month { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--surface2); color: var(--ink); font-weight: 700; font-size: 14px; }
+.kcal-nav { width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--surface2); color: var(--ink2); display: grid; place-items: center; }
+.kcal-nav:disabled { opacity: 0.4; }
+.kcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px 2px; }
+.kcal-wk { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 2px 0 4px; }
+.kcal-day { position: relative; height: 42px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+.kcal-day.out { color: var(--muted); opacity: 0.55; }
+.kcal-day.today { background: var(--surface2); }
+.kcal-day.on { background: var(--grad); color: var(--hero-ink); font-weight: 700; box-shadow: var(--glow); }
+.kcal-day i { position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; }
+.kcal-day i.has-tx { background: var(--acc); }
+.kcal-day.on i.has-tx { background: var(--hero-ink); }
+.act-wide { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.act-side { position: sticky; top: 150px; }
+.app:not(.wide) .kcal-date { font-size: 23px; }
 .activity-day i { width: 4px; height: 4px; border-radius: 50%; }
 .activity-day i.has-tx { background: var(--acc); }
 .activity-day.on i.has-tx { background: var(--acc); }

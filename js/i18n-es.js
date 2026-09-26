@@ -9,6 +9,10 @@
 
   const words = {
     // added with the solo and household pass
+    "Pick a day in the calendar, or see them all": "Elige un día en el calendario o míralos todos",
+    "All dates": "Todas las fechas",
+    "Earlier month": "Mes anterior",
+    "Later month": "Mes siguiente",
     "Suggest a budget": "Sugerir un presupuesto",
     "From your usual spending, with savings first": "Según lo que sueles gastar, con el ahorro primero",
     "Where can I cut back?": "¿Dónde puedo recortar?",
@@ -304,6 +308,10 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Spent (.+)$/, (m) => 'Gastaste ' + m[1]],
+    [/^Income (.+)$/, (m) => 'Ingresos ' + m[1]],
+    [/^(\d+) transactions?$/, (m) => m[1] + (m[1] === '1' ? ' movimiento' : ' movimientos')],
+    [/^(\d+) movements?$/, (m) => m[1] + (m[1] === '1' ? ' movimiento' : ' movimientos')],
     [/^From your last (\d+) months of spending\.$/, (m) => 'De tus últimos ' + m[1] + ' meses de gastos.'],
     [/^Kipu sets (.+) a month aside before the wants\.$/, (m) => 'Kipu separa ' + m[1] + ' al mes antes de los gustos.'],
     [/^Change group of (.+)$/, (m, t) => 'Cambiar el grupo de ' + t(m[1])],
