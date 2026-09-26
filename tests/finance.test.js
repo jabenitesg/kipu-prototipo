@@ -465,3 +465,24 @@ test('a bill follows its latest payment; a big jump waits; a bill with an end st
   assert.equal(K.billActive(d.bills[1]), false);
   assert.ok(K.derive(d, ctx2).plan.commitments < before);
 });
+
+test('e-transfers and transfers are transfers either way, never spending or income', () => {
+  assert.equal(K.isTransferText('E-TRANSFER SENT JOHN'), true);
+  assert.equal(K.isTransferText('INTERAC E-TRANSFER FROM ANA'), true);
+  assert.equal(K.isTransferText('TRANSFER TO SAVINGS 4411'), true);
+  assert.equal(K.isTransferText('Transferencia interbancaria'), true);
+  assert.equal(K.isTransferText('PAYROLL DEPOSIT ACME'), false);
+  assert.equal(K.isTransferText('METRO'), false);
+  // Imported before as spending and income: fixed, balances unchanged
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 1000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'E-TRANSFER SENT JOHN', amt: 200, cur: 'CAD', from: 'acct:chq', date: '2026-09-10', source: 'statement', cat: 'other' });
+  d = K.addTxn(d, { type: 'income', merchant: 'E-TRANSFER FROM ANA', amt: 50, cur: 'CAD', from: 'acct:chq', date: '2026-09-11', source: 'statement', cat: 'income' });
+  assert.equal(d.accounts[0].bal, 850);
+  assert.equal(K.misfiledTransfers(d).length, 2);
+  d = K.fixTransfers(d);
+  assert.equal(d.accounts[0].bal, 850);
+  assert.deepEqual(d.txns.map((t) => [t.type, t.from, t.to]), [['transfer', 'acct:chq', null], ['transfer', null, 'acct:chq']]);
+  const m = K.derive(d, { scope: 'personal', currency: 'Combined' }).month;
+  assert.equal(m.income || 0, 0);
+});

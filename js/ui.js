@@ -360,6 +360,13 @@
     const total = list.reduce((a, t) => a + (t.base || 0), 0);
     return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 loan payment (' + fmt(total) + ') counts as spending.' : list.length + ' loan payments (' + fmt(total) + ') count as spending.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixLoanPayments(data)); toast(list.length === 1 ? '1 loan payment fixed' : list.length + ' loan payments fixed'); }}>Fix</button></div>`;
   };
+  // Transfers imported earlier as spending or income
+  K.TransferNote = function TransferNote() {
+    const { data, commit, toast } = useApp();
+    const list = K.misfiledTransfers(data);
+    if (!list.length) return null;
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 transfer counts as spending or income.' : list.length + ' transfers count as spending or income.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixTransfers(data)); toast(list.length === 1 ? '1 transfer fixed' : list.length + ' transfers fixed'); }}>Fix</button></div>`;
+  };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
     const [busy, setBusy] = useState(false);

@@ -487,6 +487,13 @@
   // Become loan payments; balances stay as they are
   K.fixLoanPayments = (d) => K.misfiledLoanPayments(d).reduce((acc, t) => { const l = K.loanPaymentFor(acc, t.merchant, t.amt); return l ? K.editTxn(acc, t.id, Object.assign(K.loanPayment(acc, l, t.amt, t.date), { recurring: null, keepLoanBal: true })) : acc; }, d);
 
+  // ---------------------------------------------------------------- transfers ("E-TRANSFER", "TRANSFER TO SAVINGS", "TRANSFERENCIA")
+  // Money moving in or out by transfer isn't spending or income; the direction stays as the statement says
+  K.isTransferText = (desc) => /\b(e ?transfers?|etransfers?|interac transfer|transfers?|transferred|transferencias?|transf|trf|tfr|xfer|wire)\b/.test(norm(desc)) && !K.isPayroll(desc);
+  K.misfiledTransfers = (d) => d.txns.filter((t) => t.source === 'statement' && (t.type === 'expense' || t.type === 'income') && K.isTransferText(t.merchant));
+  // Become transfers with the same account on the same side, so no balance moves
+  K.fixTransfers = (d) => K.misfiledTransfers(d).reduce((acc, t) => K.editTxn(acc, t.id, t.type === 'expense' ? { type: 'transfer', cat: 'transfer', from: t.from, to: null, recurring: null } : { type: 'transfer', cat: 'transfer', from: null, to: t.from, recurring: null }), d);
+
   // The movements one statement import added. Imports from before they were tagged: everything imported on that account or card
   K.importTxns = (d, imp) => {
     const tagged = d.txns.filter((t) => t.imp === imp.id);
