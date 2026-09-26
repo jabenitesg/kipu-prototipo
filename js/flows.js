@@ -8,7 +8,15 @@
   const grouped = (v) => { if (v == null || v === '') return ''; const [i, d] = String(v).split('.'); return (i ? Number(i).toLocaleString('en-US') : '0') + (d != null ? '.' + d : ''); };
   const Amount = ({ value, onChange, cur, id }) => html`<div class="stack-s" style=${{ alignItems: 'center', gap: '2px' }}><span class="small muted">${K.sym(cur)} · ${cur}</span><input id=${id || 'amount'} class="amount-in num" type="text" inputmode="decimal" pattern="[0-9.,]*" enterkeyhint="done" placeholder="0.00" value=${grouped(value)} onInput=${(e) => { let v = e.target.value.replace(/,/g, '').replace(/[^0-9.]/g, ''); const k = v.indexOf('.'); if (k >= 0) v = v.slice(0, k + 1) + v.slice(k + 1).replace(/\./g, '').slice(0, 2); onChange(v); }} aria-label="Amount" autofocus /></div>`;
   const Select = ({ value, onChange, options, id, placeholder }) => html`<select id=${id} class="input" value=${value || ''} onChange=${(e) => onChange(e.target.value)}>${placeholder && html`<option value="">${placeholder}</option>`}${options.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select>`;
-  const In = ({ id, label, value, onInput, ph, mode, hint, type }) => html`<${Field} label=${label} hint=${hint}><input id=${id} class="input" type=${type || 'text'} value=${value == null ? '' : value} onInput=${onInput} placeholder=${ph || ''} inputmode=${mode || 'text'} /></${Field}>`;
+  // Money fields show 4,800 while you type and hand back the plain number
+  const cleanNum = (raw) => { let v = String(raw).replace(/[^0-9.]/g, ''); const i = v.indexOf('.'); if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2); return v; };
+  K.cleanNum = cleanNum; K.groupNum = (v) => grouped(cleanNum(v));
+  const In = ({ id, label, value, onInput, ph, mode, hint, type }) => {
+    const money = mode === 'decimal';
+    const shown = value == null ? '' : money ? grouped(cleanNum(value)) : value;
+    const input = money ? (e) => onInput({ target: { value: cleanNum(e.target.value) } }) : onInput;
+    return html`<${Field} label=${label} hint=${hint}><input id=${id} class=${'input' + (money ? ' num' : '')} type=${type || 'text'} value=${shown} onInput=${input} placeholder=${ph || ''} inputmode=${mode || 'text'} /></${Field}>`;
+  };
   const useForm = (init) => { const [s, set] = useState(init); return [s, (k) => (e) => set((p) => Object.assign({}, p, { [k]: e && e.target ? e.target.value : e })), set]; };
   const numv = (v) => { const n = parseFloat(String(v || '').replace(',', '.')); return isNaN(n) ? 0 : n; };
   // Main currency first, then favorites, then the rest in your order
