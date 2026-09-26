@@ -257,6 +257,8 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^(\d+) accounts?$/, (m) => m[1] + (m[1] === '1' ? ' cuenta' : ' cuentas')],
+    [/^(\d+) types$/, (m) => m[1] + ' tipos'],
     [/^You’d be short about (.+)\.$/, (m) => 'Te faltarían unos ' + m[1] + '.'],
     [/^Yes\. You’d reach (.+) with about (.+) to spare\.$/, (m, t) => 'Sí. Llegarías al ' + t(m[1]) + ' con unos ' + m[2] + ' de sobra.'],
     [/^Before your next payday \((.+)\)$/, (m, t) => 'Antes de tu próximo pago (' + t(m[1]) + ')'],
