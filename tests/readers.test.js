@@ -219,3 +219,10 @@ test('a credit card statement is recognized, with its last four digits', () => {
   assert.deepEqual(k, { card: true, last4: '4011' });
   assert.equal(K.statementKind('Date,Description,Withdrawals,Deposits\n2026-09-14,PAYROLL,,2689.00').card, false);
 });
+
+test('card numbers are found in Visa, Mastercard and Amex formats', () => {
+  assert.equal(K.statementKind('Account number 4505 XXXX XXXX 4011 Credit Limit Minimum Payment').last4, '4011');
+  assert.equal(K.statementKind('American Express Cobalt Card XXXX XXXXXX 71004 Minimum Payment Due New Balance').last4, '1004');
+  assert.equal(K.statementKind('The Cobalt Card from American Express. Card ending 1-23456. Minimum amount due').last4, '3456');
+  assert.equal(K.statementKind('Mastercard **** **** **** 8821 credit limit minimum payment').last4, '8821');
+});

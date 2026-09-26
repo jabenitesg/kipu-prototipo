@@ -343,8 +343,9 @@
   K.statementKind = (text) => {
     const t = String(text || '');
     const hits = [/credit limit|l[ií]mite de cr[eé]dito/i, /minimum payment|pago m[ií]nimo/i, /payment thank you|paiement merci/i, /card number|n[uú]mero de tarjeta|tarjeta de cr[eé]dito/i, /cash advance/i, /\b(visa|mastercard|amex|american express)\b/i, /new balance|total balance|amount due/i].filter((re) => re.test(t)).length;
-    const m = t.match(/(?:X{4}|x{4}|\*{4}|•{4})[\s-]*(?:(?:X{4}|x{4}|\*{4}|•{4})[\s-]*)*(\d{4})\b/);
-    return { card: hits >= 2, last4: m ? m[1] : null };
+    // Masked numbers: 4505 XXXX XXXX 4011 (Visa, Mastercard), XXXX XXXXXX X1004 or "ending 1-23456" (Amex); the last four digits identify the card
+    const m = t.match(/(?:[X*•x]{4,})(?:[\s-]*[X*•x]{2,})*[\s-]*[X*•x]?(\d{4,5})\b/) || t.match(/\b(?:card )?ending(?: in)?\s*(?:\d-)?(\d{4,5})\b/i);
+    return { card: hits >= 2, last4: m ? m[1].slice(-4) : null };
   };
   K.readStatement = async (file, opts) => {
     const name = (file.name || '').toLowerCase();
