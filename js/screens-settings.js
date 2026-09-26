@@ -334,7 +334,7 @@
     const { data, commit, toast } = useApp();
     const [armed, setArmed] = useState(false);
     const n = K.importTxns(data, imp).length;
-    return html`<div class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${imp.name}</span><span class="t2">${K.fmtDate(imp.when, true)} · ${K.whereName(data, imp.where) || '—'} · ${n + ' movements'}</span></span>
+    return html`<div class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${imp.name}</span><span class="t2">${K.fmtDate(imp.when, true)} · ${K.whereName(data, imp.where) || '—'} · ${n + ' movements'}</span>${(imp.where || '').startsWith('acct:') && (imp.kind === 'card' || K.importTxns(data, imp).some((t) => /payment thank you|paiement merci/i.test(t.merchant || ''))) && html`<span class="tiny" style=${{ color: 'var(--warn)' }}>Card statement saved in a bank account: undo it and import it in the card.</span>`}</span>
       ${armed ? html`<div class="row" style=${{ gap: '6px' }}><button class="btn sec sm" onClick=${() => setArmed(false)}>Keep it</button><button class="btn dan sm" onClick=${() => { commit(K.undoImport(data, imp.id)); toast(n + ' movements removed · balances updated'); }}>Undo import</button></div>` : html`<button class="btn sec sm" disabled=${!n} onClick=${() => setArmed(true)}>Undo</button>`}</div>`;
   }
   function DataSec() {
