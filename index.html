@@ -210,8 +210,10 @@ p { margin: 0; }
 .kcal-day i { position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; }
 .kcal-day i.has-tx { background: var(--acc); }
 .kcal-day.on i.has-tx { background: var(--hero-ink); }
-.act-wide { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
-.act-side { position: sticky; top: 150px; }
+/* Wide screens: the date on the left, the calendar on the right, both above the list */
+.wide .kcal { display: grid; grid-template-columns: minmax(240px, 32%) minmax(0, 1fr); }
+.wide .kcal-head { padding: 22px 24px; }
+.wide .kcal-body { padding: 16px 18px 12px; }
 .app:not(.wide) .kcal-date { font-size: 23px; }
 .activity-day i { width: 4px; height: 4px; border-radius: 50%; }
 .activity-day i.has-tx { background: var(--acc); }
