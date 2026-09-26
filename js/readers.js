@@ -237,14 +237,21 @@
     // and stops at its totals or the end of the page. Summaries, contact details and rates around it are skipped.
     const MONEY_HEAD = (low) => /withdraw|debit|retiro|cargo|paid out|money out/.test(low) && /deposit|credit|abono|paid in|money in/.test(low);
     // A header is a short line naming a date, a description and an amount column (legal text mentioning "transaction date" isn't one)
-    const TABLE_HEAD = (low) => low.length <= 140 && (MONEY_HEAD(low) || (/\b(date|fecha)\b/.test(low) && /\b(description|descripci[oó]n|details|detalle|concepto|transaction)\b/.test(low) && /(amount|monto|importe|withdraw|deposit|debit|credit|balance|saldo|cargo|abono)/.test(low)));
-    const TABLE_END = /^(total\b|information about|important information|if you find an error|page \d+ of \d+|p[aá]gina \d+ de \d+)/i;
+    // (Amex prints "Transaction Posting Details Amount" with "Date Date" on the line below)
+    const TABLE_HEAD = (low) => low.length <= 140 && (MONEY_HEAD(low) || ((/\b(date|fecha)\b/.test(low) || /^(transaction|posting|trans\.?)\s/.test(low)) && /\b(description|descripci[oó]n|details|detalle|concepto|transaction)\b/.test(low) && /(amount|monto|importe|withdraw|deposit|debit|credit|balance|saldo|cargo|abono)/.test(low)));
+    const TABLE_END = /^(total\b|information about|important information|if you find an error|about your|membership rewards|summary of points|your offers|important notice|page \d+ (of|\/) ?\d+|p[aá]gina \d+ (de|\/) ?\d+)/i;
+    // A new section of the same table after a total ("New Transactions for <supplementary cardholder>", "Other Account Transactions")
+    const SECTION = /^(new (transactions|payments|charges|purchases)|other account transactions)\b/i;
     const hasTable = lines.some((l) => TABLE_HEAD(l.toLowerCase()));
-    let inTable = !hasTable;
+    let inTable = !hasTable, seenHead = false;
+    // Page headers and footers print the same line on every page: never part of a description
+    const seenCount = {}; lines.forEach((l) => { const k = l.trim(); if (k && !/\d+\.\d{2}/.test(k)) seenCount[k] = (seenCount[k] || 0) + 1; });
+    const repeated = (l) => seenCount[l.trim()] >= 3;
     rows.forEach((items) => {
       const line = items.map((i) => i.s).join(' ');
       const low = line.toLowerCase();
-      if (TABLE_HEAD(low)) { inTable = true; pending = null; }
+      if (TABLE_HEAD(low)) { inTable = true; seenHead = true; pending = null; }
+      else if (seenHead && SECTION.test(line.trim())) { inTable = true; pending = null; justPushed = false; return; }
       else if (hasTable && TABLE_END.test(line.trim())) { inTable = false; pending = null; justPushed = false; lastDate = null; }
       // Header row: remember where each money column sits
       if (MONEY_HEAD(low)) {
@@ -259,6 +266,7 @@
       let d = K.parseDateText(firstTokens(line, 3), dmy);
       const text = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
       if (!amts.length) {
+        if (repeated(line)) return;
         // A dated line without an amount: its amount comes on the next line. An undated one right after a movement continues its description.
         if (d && !isNaN(d)) pending = { d, text };
         else if (pending) pending.text = (pending.text + ' ' + text).trim();
@@ -276,6 +284,8 @@
       } else if (pending && !text) desc = pending.text;
       pending = null;
       if (desc.length < 2 || (desc !== text && NOT_TX.test(desc))) return;
+      // A dated subtotal ("Feb 16 Total of Payment Activity") isn't a movement
+      if (/^(sub)?total\b/i.test(desc)) { justPushed = false; return; }
       // CIBC prints a spend category next to each purchase: keep it as a hint, out of the description
       let bankCat = null;
       for (const [re, c] of BANK_CATS) if (re.test(desc)) { desc = desc.replace(re, ' ').replace(/\s+/g, ' ').trim(); bankCat = c; break; }

@@ -67,6 +67,33 @@ test('opening balance and balance forward are how the statement starts, not mone
   assert.deepEqual(out.map((r) => [r.desc, r.amt, r.dir]), [['METRO', -100, 'out'], ['PAYROLL ACME', 2689, 'in']]);
 });
 
+test('card PDF: a header split over two lines, subtotals, extra cardholders, page footers and rewards pages', () => {
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const footer = () => [row([40, 'Sample Card']), row([40, 'Statement of Account'])];
+  const out = K.parseStatementRows([
+    row([40, 'Closing Date Feb 27, 2026']), row([40, 'Credit limit'], [500, '5,000.00']),
+    row([40, 'Transaction'], [100, 'Posting'], [200, 'Details'], [500, 'Amount ($)']), row([40, 'Date'], [100, 'Date']),
+    row([40, 'New Payments']),
+    row([40, 'Feb 16'], [100, 'Feb 16'], [200, 'PAYMENT RECEIVED - THANK YOU'], [500, '-100.00']),
+    row([40, 'Feb 16'], [200, 'Total of Payment Activity'], [500, '-100.00']),
+    row([40, 'New Transactions for A']),
+    row([40, 'Feb 3'], [100, 'Feb 4'], [200, 'APPLE.COM/BILL TORONTO'], [500, '13.43']),
+    ...footer(), row([40, 'Page 3 / 5']),
+    row([40, 'Transaction'], [100, 'Posting'], [200, 'Details'], [500, 'Amount ($)']),
+    row([40, 'Feb 8'], [100, 'Feb 9'], [200, 'METRO'], [500, '26.57']),
+    row([40, 'Feb 25'], [200, 'Total of New Transactions for A'], [500, '40.00']),
+    row([40, 'New Transactions for B']),
+    row([40, 'Feb 15'], [100, 'Feb 16'], [200, 'CARTERS'], [500, '51.45']),
+    row([40, 'Total of New Transactions for B'], [500, '51.45']),
+    ...footer(), row([40, 'Page 4 / 5']), row([40, 'Membership Rewards']),
+    row([40, 'Date'], [100, 'Description'], [300, 'Qualifying Purchases'], [500, 'No. of Points']),
+    row([40, 'Feb 8'], [100, 'METRO'], [300, '26.57'], [500, '133']),
+    ...footer(), row([40, 'Page 5 / 5']),
+    row([40, 'Effective Nov 5 2025 the monthly fee'], [500, '12.99']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.desc, r.amt, r.dir]), [['PAYMENT RECEIVED - THANK YOU', -100, 'in'], ['APPLE.COM/BILL TORONTO', 13.43, 'out'], ['METRO', 26.57, 'out'], ['CARTERS', 51.45, 'out']]);
+});
+
 test('dates: month names are whole words, one day/month order per file, and the statement decides the year', () => {
   const iso = (s, dmy) => { const d = K.parseDateText(s, dmy); return d ? K.iso(d) : null; };
   // "14 MARKET" is not March 14; "3 DECATHLON" is not December 3

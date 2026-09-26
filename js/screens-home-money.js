@@ -154,22 +154,40 @@
     const head = html`<div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     const rate = D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`;
     // Computer and tablet: everything on one page. Phone: one tab at a time.
-    if (wide) {
-      const sec = (id, title, body) => html`<section id=${'money-' + id} class="stack-s" style=${{ gap: '12px' }}><h2 class="money-h">${title}</h2>${body}</section>`;
-      return html`<div class="stack" style=${{ gap: '28px' }}>${head}${rate}
-        <div class="grid w2" style=${{ alignItems: 'start', gap: '20px' }}>
-          <div class="stack" style=${{ gap: '20px' }}><${MoneyOverview} only="net" />${sec('loans', 'Loans', html`<${Loans} />`)}</div>
-          ${sec('accounts', 'Accounts', html`<${Accounts} narrow=${true} />`)}
-        </div>
-        ${sec('cards', 'Cards', html`<${Cards} />`)}
-        <section id="money-activity" class="stack-s" style=${{ gap: '12px', paddingTop: '4px' }}><${Activity} /></section></div>`;
-    }
+    if (wide) return html`<div class="stack" style=${{ gap: '28px' }}>${head}${rate}<${MoneyWide} /></div>`;
     return html`<div class="stack">
       ${head}
       <${Tabs} tabs=${MONEY_TABS} value=${tab} onChange=${(t) => go({ r: 'money', tab: t }, true)} />
       ${rate}
       <${Body} /></div>`;
   };
+
+  // ---------------------------------------------------------------- Money on computer and tablet: one designed page
+  function MoneyWide() {
+    const { D, fmt, go, openSheet, data } = useApp();
+    const jump = (id) => { const el = document.getElementById('money-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    if (!D.accts.length && !D.cards.length && !D.loans.length) return html`<${MoneyOverview} />`;
+    const Head = ({ title, total, sub, add, sheet }) => html`<div class="mw-head"><div class="stack-s" style=${{ gap: '2px', flex: 1, minWidth: 0 }}><h2>${title}</h2>${sub && html`<span class="tiny muted">${sub}</span>`}</div><span class="row" style=${{ gap: '10px', flexShrink: 0 }}>${total != null && html`<b class="num">${total}</b>`}<button class="pill-link" onClick=${() => openSheet({ k: sheet })}><${Icon} n="plus" s=${13} w=${2.4} />${add}</button></span></div>`;
+    const liab = D.cardBal + D.loanBal;
+    const tiles = [['Cash & savings', D.cash, 'accounts', 'wallet', 'var(--acc)'], ['Investments & property', D.invest + D.property, 'accounts', 'trend', 'color-mix(in srgb, var(--acc) 45%, var(--surface2))'], ['Credit cards', -D.cardBal, 'cards', 'card', 'var(--info2)'], ['Loans', -D.loanBal, 'loans', 'loan', 'var(--warn2)']];
+    const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'].map((g) => [g, D.accts.filter((a) => a.kind === g)]).filter((x) => x[1].length);
+    const paid = K.sum(D.loans, (l) => Math.max(0, (l.orig || l.bal) - l.bal)), orig = K.sum(D.loans, (l) => l.orig || l.bal);
+    return html`<div class="stack" style=${{ gap: '28px' }}>
+      <div class="card mw-summary">
+        <div class="stack-s" style=${{ gap: '6px', minWidth: 0 }}><span class="small muted">Net position</span><span class="disp num" style=${{ fontSize: K.fitSize(fmt(D.netWorth), 42), fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>${fmt(D.netWorth)}</span><span class="small muted">What you own minus what you owe</span><div style=${{ marginTop: '8px' }}><${Stripe} parts=${tiles.map((t) => [Math.abs(t[1]), t[4]])} h=${10} /></div></div>
+        <div class="mw-tiles">${tiles.map(([l, v, id, ic, c]) => html`<button key=${l} class="mw-tile" onClick=${() => jump(id)}><span class="row" style=${{ gap: '8px' }}><i class="dotk" style=${{ background: c }}></i><span class="tiny muted">${l}</span></span><b class="num">${fmt(v)}</b></button>`)}</div>
+      </div>
+      <div class="mw-split">
+        <section id="money-accounts" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Accounts" total=${fmt(D.cash + D.invest + D.property)} add="Add" sheet="addAccount" />
+          ${groups.length ? html`<div class="card tight list">${groups.map(([g, list]) => html`<div key=${g}><div class="mw-group"><span class="eyebrow">${g}</span><span class="tiny muted num">${fmt(K.sum(list, (a) => a.baseBal))}</span></div>${list.map((a) => html`<${AccountRow} key=${a.id} a=${a} />`)}</div>`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No accounts yet.</div>`}</section>
+        <section id="money-loans" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Loans" total=${D.loans.length ? fmt(D.loanBal) : null} sub=${D.loans.length && orig ? fmt(paid) + ' paid of ' + fmt(orig) + ' borrowed' : null} add="Add" sheet="addLoan" />
+          ${D.loans.length ? html`<div class="card tight list">${D.loans.map((l) => html`<${LoanRow} key=${l.id} l=${l} />`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No loans. Car loans, mortgages or financing go here.</div>`}</section>
+      </div>
+      <section id="money-cards" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Credit cards" total=${D.cards.length ? fmt(D.cardBal) : null} sub=${D.cards.length ? D.util.toFixed(1) + '% of your limit used' : null} add="Add" sheet="addCard" />
+        ${D.cards.length ? html`<div class="mw-cards">${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '6px' }}><${CardPreview} c=${c} onClick=${() => go({ r: 'card', id: c.id })} /><span class="tiny muted" style=${{ padding: '0 4px' }}>${[c.closeDay && 'Closes the ' + K.ord(c.closeDay), c.dueDay && 'due the ' + K.ord(c.dueDay)].filter(Boolean).join(' · ')}</span></div>`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No cards yet.</div>`}</section>
+      <section id="money-activity" style=${{ paddingTop: '4px' }}><${Activity} /></section>
+    </div>`;
+  }
 
   const AddRow = ({ label, sheet }) => { const { openSheet } = useApp(); return html`<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => openSheet({ k: sheet })}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>${label}</button>`; };
   K.AddRow = AddRow;
