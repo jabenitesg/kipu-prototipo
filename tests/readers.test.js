@@ -253,3 +253,8 @@ test('card numbers are found in Visa, Mastercard and Amex formats', () => {
   assert.equal(K.statementKind('The Cobalt Card from American Express. Card ending 1-23456. Minimum amount due').last4, '3456');
   assert.equal(K.statementKind('Mastercard **** **** **** 8821 credit limit minimum payment').last4, '8821');
 });
+
+test('a movement you renamed is still found as already in Kipu when the statement comes again', () => {
+  const data = { txns: [{ id: 't1', type: 'expense', merchant: 'Tim Hortons', raw: 'TIM HORTONS #2445 LANGFORD', amt: 5, from: 'acct:chq', date: '2026-09-03', source: 'statement' }] };
+  assert.ok(K.findDuplicate(data, { desc: 'TIM HORTONS #2445 LANGFORD', amt: -5, date: '2026-09-03' }, 'acct:chq'));
+});

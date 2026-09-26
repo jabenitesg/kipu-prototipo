@@ -68,9 +68,12 @@
       const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from, date, note, trip: trip || null, autoTrip: false, shared, source: preset.source || (item && item.source) || 'manual' };
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
       if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared });
+      // A new name for the shop goes to its other movements and to the next statements
+      const renamed = item && item.merchant !== t.merchant && t.merchant !== 'Expense' ? K.sameShopTxns(data, item).length : 0;
+      if (item && item.merchant !== t.merchant && t.merchant !== 'Expense') next = K.renameShop(next, item, t.merchant);
       commit(next);
       const safe = K.derive(next, ctx).plan;
-      toast(item ? 'Expense updated' : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
+      toast(item ? (renamed ? 'Expense updated · ' + renamed + (renamed === 1 ? ' more renamed' : ' more renamed') : 'Expense updated') : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
       onClose();
     };
     return html`<${Sheet} title=${item ? 'Edit expense' : preset.source === 'receipt' ? 'Check the receipt' : 'Add expense'} sub=${preset.source === 'receipt' ? 'Kipu read these from the photo. Fix anything that looks wrong.' : null} onClose=${onClose}>
@@ -93,7 +96,7 @@
     const places = K.whereOptions(data, { cashOnly: true, noCards: true });
     const [f, on] = useForm({ amt: item ? String(item.amt) : '', cur: item ? item.cur : data.base, merchant: item ? item.merchant : '', from: item ? item.from : (places[0] || [])[0] || '', date: item ? item.date : K.iso(K.today()) });
     const v = numv(f.amt);
-    const save = () => { const t = { type: 'income', cat: 'income', merchant: f.merchant || 'Income', amt: v, cur: f.cur, from: f.from, date: f.date }; commit(item ? K.editTxn(K.editTxn(data, item.id, t), item.id, { merchant: t.merchant, date: t.date }) : K.addTxn(data, t)); toast(item ? 'Income updated' : 'Income added'); onClose(); };
+    const save = () => { const t = { type: 'income', cat: 'income', merchant: f.merchant || 'Income', amt: v, cur: f.cur, from: f.from, date: f.date }; const renamed = item && f.merchant && item.merchant !== t.merchant ? K.sameShopTxns(data, item).length : 0; let next = item ? K.editTxn(K.editTxn(data, item.id, t), item.id, { merchant: t.merchant, date: t.date }) : K.addTxn(data, t); if (item && f.merchant && item.merchant !== t.merchant) next = K.renameShop(next, item, t.merchant); commit(next); toast(item ? (renamed ? 'Income updated · ' + renamed + ' more renamed' : 'Income updated') : 'Income added'); onClose(); };
     return html`<${Sheet} title=${item ? 'Edit income' : 'Add income'} sub="For a one-off payment. Regular pay goes in Plan › income sources." onClose=${onClose}>
       <${Amount} value=${f.amt} onChange=${on('amt')} cur=${f.cur} />${curOptions(data).length > 1 && html`<${Seg} options=${curOptions(data)} value=${f.cur} onChange=${on('cur')} labels=${curOptions(data).map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       <${In} id="i-src" label="From" value=${f.merchant} onInput=${on('merchant')} ph="Employer, client or refund" />
@@ -234,7 +237,7 @@
       return isCard ? { type: 'transfer', amt, from: null, to: where } : { type: 'income', amt, from: where, payroll: K.isPayroll(r.desc) };
     };
     const dups = K.markDuplicates(data, st.rows || [], where);
-    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], cat: (() => { const g = K.guessCat(data, r.desc); return g === 'other' && r.bankCat ? r.bankCat : g; })(), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
+    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], name: K.shopName(data, r.desc), cat: (() => { const nm = K.shopName(data, r.desc); let g = K.guessCat(data, nm); if (g === 'other' && nm !== r.desc) g = K.guessCat(data, r.desc); return g === 'other' && r.bankCat ? r.bankCat : g; })(), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
     // Lines up to the day the balance was typed in are already inside it: history for statistics.
     // Without that date, a statement older than 40 days is taken as already paid.
@@ -254,7 +257,7 @@
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
-      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
+      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));
@@ -324,7 +327,7 @@
   };
 
   // ---------------------------------------------------------------- create and edit
-  const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<button class="btn sec block" style=${{ color: 'var(--crit)' }} onClick=${onDelete}>Delete</button>`}</${Sheet}>`;
+  const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<${K.DangerButton} label="Delete" ask=${'Delete ' + (title || '').replace(/^Edit /, '') + '?'} onConfirm=${onDelete} />`}</${Sheet}>`;
 
   const AddAccount = ({ onClose, item }) => {
     const { data, commit, toast, openSheet } = useApp();

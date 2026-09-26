@@ -605,3 +605,20 @@ test('a replaced card keeps its old numbers', () => {
   assert.deepEqual(K.cardNumbers({ last4: '7788', oldLast4: ['4011'] }), ['7788', '4011']);
   assert.deepEqual(K.cardNumbers({ last4: '7788' }), ['7788']);
 });
+
+test('renaming a shop renames its other movements you haven’t named, and the next statements use the name', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (m, date) => { d = K.addTxn(d, { type: 'expense', merchant: m, amt: 5, cur: 'CAD', from: 'acct:chq', date, source: 'statement', cat: 'dining' }); };
+  add('TIM HORTONS #2445 LANGFORD', '2026-09-01'); add('TIM HORTONS #2445 LANGFORD', '2026-09-03'); add('TIM HORTONS #2445 LANGFORD', '2026-09-05'); add('SUBWAY 59360', '2026-09-05');
+  // One already named by hand keeps its name
+  d = K.editTxn(d, d.txns.find((t) => t.date === '2026-09-05' && /TIM/.test(t.merchant)).id, { merchant: 'Coffee with Ana' });
+  const first = d.txns.find((t) => t.date === '2026-09-01');
+  assert.equal(K.sameShopTxns(d, first).length, 1);
+  d = K.renameShop(d, first, 'Tim Hortons');
+  assert.deepEqual(d.txns.map((t) => t.merchant).sort(), ['Coffee with Ana', 'SUBWAY 59360', 'Tim Hortons', 'Tim Hortons']);
+  assert.equal(d.txns.find((t) => t.date === '2026-09-01').raw, 'TIM HORTONS #2445 LANGFORD');
+  // Next statement: same shop with another store number gets the name; a re-imported line is still seen as already in Kipu
+  assert.equal(K.shopName(d, 'TIM HORTONS #0099 LANGFORD'), 'Tim Hortons');
+  assert.equal(K.shopName(d, 'SUBWAY 59360'), 'SUBWAY 59360');
+});

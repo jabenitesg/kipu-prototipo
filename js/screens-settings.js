@@ -281,7 +281,6 @@
     const { data, commit, toast, openSheet } = useApp();
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState(null);
-    const [confirmDel, setConfirmDel] = useState(null);
     const custom = data.customCats || [];
     const uses = (id) => data.txns.filter((t) => t.cat === id).length;
     const save = (d, msg) => { K.syncCats(d); commit(d); toast(msg); };
@@ -289,7 +288,7 @@
       <button class="btn sec block" onClick=${() => openSheet({ k: 'reviewCats' })}><${Icon} n="tag" s=${16} />Review categories by shop</button>
       <div class="stack-s"><span class="eyebrow">Your categories</span>
         <div class="card tight list">${custom.map((c) => editing === c.id ? html`<div key=${c.id} style=${{ padding: '8px' }}><${K.CategoryForm} initial=${c} saveLabel="Save" onCancel=${() => setEditing(null)} onSave=${(v) => { save(K.editCategory(data, c.id, v), 'Category updated'); setEditing(null); }} />
-            ${confirmDel === c.id ? html`<div class="card stack-s" style=${{ marginTop: '8px', borderColor: 'var(--crit2)' }}><span style=${{ fontWeight: 600 }}>Delete ${c.name}?</span><span class="small muted">${uses(c.id) ? uses(c.id) + ' transactions move to Other. ' : ''}Rules for it are removed.</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => setConfirmDel(null)}>Keep it</button><button class="btn dan sm" onClick=${() => { save(K.deleteCategory(data, c.id), c.name + ' deleted'); setConfirmDel(null); setEditing(null); }}>Delete</button></div></div>` : html`<button class="link" style=${{ color: 'var(--crit)', marginTop: '8px' }} onClick=${() => setConfirmDel(c.id)}>Delete category</button>`}</div>`
+            <div style=${{ marginTop: '8px' }}><${DangerButton} link label="Delete category" ask="Delete this category?" note=${(uses(c.id) ? uses(c.id) + ' transactions move to Other. ' : '') + 'Rules for it are removed.'} onConfirm=${() => { save(K.deleteCategory(data, c.id), c.name + ' deleted'); setEditing(null); }} /></div></div>`
           : html`<button key=${c.id} class="lrow" onClick=${() => { setEditing(c.id); setConfirmDel(null); setAdding(false); }}><${Tile} icon=${c.icon} tone=${c.tone} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span class="t1">${c.name}</span><span class="t2">${uses(c.id)} ${uses(c.id) === 1 ? 'transaction' : 'transactions'}</span></span><${Icon} n="sliders" s=${15} c="var(--muted)" /></button>`)}
           ${!adding && html`<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => { setAdding(true); setEditing(null); }}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>Add a category</button>`}</div>
         ${adding && html`<${K.CategoryForm} onCancel=${() => setAdding(false)} onSave=${(v) => { save(K.addCategory(data, v)[0], v.name + ' added'); setAdding(false); }} />`}

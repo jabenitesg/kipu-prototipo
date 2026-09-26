@@ -341,6 +341,11 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 @media (max-width: 900px) { .mw-split { grid-template-columns: 1fr; gap: 28px; } }
 /* A long sheet scrolls; its rows keep their height instead of squeezing */
 .sheet > * { flex-shrink: 0; }
+.confirm-bg { position: fixed; inset: 0; z-index: 90; background: rgba(12, 10, 24, 0.5); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadein 0.15s ease; }
+.confirm { width: 100%; max-width: 360px; background: var(--surface); border-radius: 24px; padding: 24px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); animation: up 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.confirm-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--critbg, rgba(220, 60, 90, 0.12)); color: var(--crit); }
+.confirm-t { font-size: 17px; font-weight: 700; }
+.confirm .grid { margin-top: 6px; }
 .wide .sheet-bg { align-items: center; }
 .wide .sheet { border-radius: 24px; max-height: 86vh; padding-bottom: 24px; }
 .grab { width: 36px; height: 5px; border-radius: 999px; background: var(--neutral); margin: 0 auto; }

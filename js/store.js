@@ -91,6 +91,29 @@
     });
     return Object.values(g).map((x) => { const cat = Object.keys(x.cats).sort((a, b) => x.cats[b] - x.cats[a])[0]; return Object.assign(x, { cat, mixed: Object.keys(x.cats).length > 1 }); }).sort((a, b) => b.total - a.total);
   };
+  // Your name for a shop: "TIM HORTONS #2445 LANGFORD" → "Tim Hortons". Renaming one movement renames the others
+  // with the same original name that you haven't named yourself, and the next statements use it too.
+  const rawKey = (x) => K.merchantKey(x) || String(x || '').toLowerCase().trim();
+  K.shopName = (d, desc) => {
+    const key = rawKey(desc);
+    const r = key && (d.shopNames || []).find((x) => sameShop(key, x.key));
+    return r ? r.name : desc;
+  };
+  // The other movements that follow a rename of `t`: same original shop and still showing the name it had
+  K.sameShopTxns = (d, t) => {
+    const key = rawKey(t.raw || t.merchant);
+    if (!key) return [];
+    return (d.txns || []).filter((x) => x.id !== t.id && x.type === t.type && x.merchant === t.merchant && sameShop(rawKey(x.raw || x.merchant), key));
+  };
+  K.renameShop = (d, t, name) => {
+    name = String(name || '').trim();
+    const key = rawKey(t.raw || t.merchant);
+    if (!name || !key || name === t.merchant) return d;
+    const ids = new Set(K.sameShopTxns(d, t).map((x) => x.id).concat([t.id]));
+    const txns = d.txns.map((x) => (ids.has(x.id) ? Object.assign({}, x, { merchant: name, raw: x.raw || (x.id === t.id ? t.merchant : x.merchant) }) : x));
+    const shopNames = (d.shopNames || []).filter((x) => x.key !== key).concat([{ id: 'sn:' + key, key, name }]);
+    return Object.assign({}, d, { txns, shopNames });
+  };
   // One category for every expense at a shop, and remembered for the next ones
   K.setShopCategory = (d, key, cat) => {
     const txns = d.txns.map((t) => (t.type === 'expense' && (K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim()) === key ? Object.assign({}, t, { cat }) : t));

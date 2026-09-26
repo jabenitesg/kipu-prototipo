@@ -272,9 +272,22 @@
   const Facts = ({ rows }) => html`<div class="card tight list">${rows.filter(Boolean).map(([k, v, tone]) => html`<div key=${k} class="between" style=${{ padding: '12px 16px' }}><span class="muted">${k}</span><span style=${{ fontWeight: 600, textAlign: 'right', color: tone ? 'var(--' + tone + ')' : null }} class="num">${v}</span></div>`)}</div>`;
   K.Facts = Facts;
   // Two-step delete, built into the page
-  const DangerButton = ({ label, onConfirm }) => {
+  // Deleting asks first in a pop-up. `typed`: something big (a card) also needs DELETE written out.
+  const DangerButton = ({ label, onConfirm, ask, note, link, typed }) => {
     const [armed, setArmed] = useState(false);
-    return armed ? html`<div class="card stack-s" style=${{ borderColor: 'var(--crit2)' }}><span style=${{ fontWeight: 600 }}>${label}?</span><span class="small muted">This can’t be undone.</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => setArmed(false)}>Keep it</button><button class="btn dan sm" onClick=${onConfirm}>${label}</button></div></div>` : html`<button class="btn dan block" style=${{ height: '44px', fontSize: '14px' }} onClick=${() => setArmed(true)}>${label}</button>`;
+    const [text, setText] = useState('');
+    const ok = !typed || text.trim().toUpperCase() === 'DELETE';
+    const cancel = () => { setArmed(false); setText(''); };
+    const go = () => { if (!ok) return; setArmed(false); setText(''); onConfirm(); };
+    const pop = armed && ReactDOM.createPortal(html`<div class="confirm-bg" onClick=${(e) => { if (e.target === e.currentTarget) cancel(); }} onKeyDown=${(e) => { if (e.key === 'Escape') cancel(); }}>
+      <div class="confirm" role="alertdialog" aria-modal="true" aria-label=${ask || label + '?'}>
+        <span class="confirm-ic"><${Icon} n="alert" s=${20} w=${2.2} /></span>
+        <b class="confirm-t">${ask || label + '?'}</b>
+        <span class="small muted" style=${{ lineHeight: 1.5 }}>${note ? note + ' ' : ''}This can’t be undone.</span>
+        ${typed && html`<label class="stack-s" style=${{ gap: '6px', width: '100%', textAlign: 'left' }}><span class="small">Type DELETE to confirm</span><input class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" value=${text} onInput=${(e) => setText(e.target.value)} onKeyDown=${(e) => { if (e.key === 'Enter') go(); }} placeholder="DELETE" data-raw autoFocus /></label>`}
+        <div class="grid g2" style=${{ gap: '8px', width: '100%' }}><button class="btn sec" autoFocus=${!typed} onClick=${cancel}>Cancel</button><button class="btn dan" disabled=${!ok} style=${{ opacity: ok ? 1 : 0.5 }} onClick=${go}>Delete</button></div>
+      </div></div>`, document.body);
+    return html`${link ? html`<button class="link" style=${{ color: 'var(--crit)', alignSelf: 'flex-start' }} onClick=${() => setArmed(true)}>${label}</button>` : html`<button class="btn dan block" style=${{ height: '44px', fontSize: '14px' }} onClick=${() => setArmed(true)}>${label}</button>`}${pop}`;
   };
   K.DangerButton = DangerButton;
   const EditBtn = ({ onClick }) => html`<button class="btn sec sm" onClick=${onClick}><${Icon} n="sliders" s=${14} />Edit</button>`;
@@ -292,7 +305,7 @@
       ${goal && html`<div class="stack-s"><${SectionHeader} title="Linked goal" /><${K.GoalProgress} g=${goal} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`}
       <${K.CardPayNote} />
       <${ImportedNote} where=${'acct:' + a.id} />
-      <${DangerButton} label="Delete account" onConfirm=${() => { commit(K.remove(data, 'accounts', a.id)); toast('Account deleted'); back(); }} /></div>`;
+      <${DangerButton} label="Delete account" ask="Delete this account?" onConfirm=${() => { commit(K.remove(data, 'accounts', a.id)); toast('Account deleted'); back(); }} /></div>`;
     const acur = a.cur || data.base;
     const spendFrom = (t) => { if (t.from !== 'acct:' + a.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === acur) return t.amt || 0; const r = K.rate(data, acur, data.base); return r && t.base != null ? t.base / r : 0; };
     const amoney = (v) => fmt.native(v, acur);
@@ -326,7 +339,7 @@
       <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: cyc ? cyc.owed || c.bal : c.stmtBal || c.bal })}>${c.cur2 ? 'Pay ' + (c.cur || data.base) : 'Pay card'}</button>${c.cur2 && html`<button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur2, amount: c.stmtBal2 || c.bal2 })}>Pay ${c.cur2}</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
       <${K.PurchaseNote} card=${'card:' + c.id} />
       <${ImportedNote} where=${'card:' + c.id} />
-      <${DangerButton} label="Delete card" onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
+      <${DangerButton} label="Delete card" ask="Delete this card?" typed onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
     // What each movement cost on this card, in its own currency
     const ccur = c.cur || data.base;
     const spendOn = (t) => { if (t.from !== 'card:' + c.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === ccur) return t.amt || 0; const r = K.rate(data, ccur, data.base); return r && t.base != null ? t.base / r : 0; };
@@ -353,7 +366,7 @@
       <div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Payoff</h3><span class="tag">Estimate</span></div><div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Paid off" value=${p.label} /><${Metric} label="Payments left" value=${isFinite(p.n) ? p.n : '—'} /><${Metric} label="Interest left" value=${isFinite(p.interest) ? '≈ ' + money(p.interest) : '—'} /></div>
         <button class="btn sec block" onClick=${() => go({ r: 'stats', tab: 'forecast', metric: 'debt', scen: { loan: 100 } })}><${Icon} n="trend" s=${16} />Try an extra payment</button></div>
       <div class="stack-s"><${SectionHeader} title="Payments" />${pays.length ? html`<div class="card tight list">${pays.map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="loan" title="No payments recorded" text="Use Record payment each time you pay; Kipu splits principal and interest." /></div>`}</div>
-      <${DangerButton} label="Delete loan" onConfirm=${() => { commit(K.remove(data, 'loans', l.id)); toast('Loan deleted'); back(); }} /></div>`;
+      <${DangerButton} label="Delete loan" ask="Delete this loan?" onConfirm=${() => { commit(K.remove(data, 'loans', l.id)); toast('Loan deleted'); back(); }} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${l.name} sub=${(l.kind || 'Loan') + (l.lender ? ' · ' + l.lender : '')} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
   const D0 = () => K.today();
@@ -414,7 +427,7 @@
 
       <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], K.txnName(data, t) !== t.merchant && t.merchant && ['Bank text', t.merchant], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
       <div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
-      <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />
+      <${DangerButton} label="Delete transaction" ask="Delete this transaction?" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />
     </div>`;
   };
 })();

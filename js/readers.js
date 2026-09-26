@@ -382,7 +382,7 @@
       if (where && t.from !== where && t.to !== where) return false;
       const gap = gapOf(t);
       if (gap > 3) return false;
-      return (key && w1(t.merchant) === key) || (t.source !== 'statement' && gap <= 1);
+      return (key && (w1(t.merchant) === key || (t.raw && w1(t.raw) === key))) || (t.source !== 'statement' && gap <= 1);
     }).sort((a, b) => gapOf(a) - gapOf(b))[0];
   };
   // Every line of a file against what's already in Kipu, one match each; exact dates are matched first
