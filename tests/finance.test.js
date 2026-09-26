@@ -558,3 +558,29 @@ test('reminders cover what is due in the next three days and not paid yet', () =
   d = K.addTxn(d, { type: 'expense', merchant: 'Rent', amt: 1500, cur: 'CAD', from: 'acct:cad', recurring: 'rent', cat: 'housing' });
   assert.equal(K.derive(d, ctx).dueSoon.length, 0); // paid early
 });
+
+test('bought in one currency, charged in another: the card moves by what the bank charged', () => {
+  let d = K.factory();
+  d.base = 'CAD'; d.fx.usd = { USD: 1, CAD: 1.35, PEN: 3.75 };
+  d.cards = [{ id: 'us', name: 'US card', cur: 'USD', bal: 0, limit: 5000 }, { id: 'pe', name: 'Two-currency', cur: 'PEN', cur2: 'USD', bal: 0, bal2: 0, limit: 8000, fxFee: 3 }];
+  const est = K.chargeEstimate(d, 135, 'CAD', 'card:us');
+  assert.equal(est.cur, 'USD'); assert.equal(est.market, 100); assert.equal(est.amt, 102.5); // 2.5% default card fee
+  const est2 = K.chargeEstimate(d, 135, 'CAD', 'card:pe');
+  assert.equal(est2.cur, 'USD'); assert.equal(est2.amt, 103); // foreign purchase billed in dollars, 3% fee
+  assert.equal(K.chargeEstimate(d, 50, 'PEN', 'card:pe'), null); // same currency: nothing to convert
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 135, cur: 'CAD', from: 'card:us', charged: { amt: 103.1, cur: 'USD', market: 100, exact: true } });
+  assert.equal(d.cards[0].bal, 103.1);
+  assert.equal(d.txns[0].amt, 135); assert.equal(d.txns[0].cur, 'CAD'); // the purchase keeps its own currency
+  assert.equal(d.txns[0].base, K.toBase(d, 103.1, 'USD')); // what it really cost you
+  assert.equal(K.fxCost(d, 'card:us').pct, 3.1);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 67.5, cur: 'CAD', from: 'card:pe', charged: { amt: 51.5, cur: 'USD' } });
+  assert.equal(d.cards[1].bal2, 51.5); assert.equal(d.cards[1].bal, 0);
+});
+
+test('statement lines that show the original purchase and the rate', () => {
+  assert.deepStrictEqual(K.parseFxInfo('AMAZON.CA CAD 45.00 T/C 0.7412', 'USD'), { cur: 'CAD', amt: 45, rate: 0.7412, desc: 'AMAZON.CA' });
+  assert.equal(K.parseFxInfo('UBER USD 12,50 TC:3.745', 'PEN').amt, 12.5);
+  assert.equal(K.parseFxInfo('WALMART USD 1,234.50', 'PEN').amt, 1234.5);
+  assert.equal(K.parseFxInfo('WONG PEN 45.00', 'PEN'), null); // same currency as the statement
+  assert.equal(K.parseFxInfo('TIM HORTONS #123', 'CAD'), null);
+});

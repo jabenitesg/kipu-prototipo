@@ -9,6 +9,11 @@
 
   const words = {
     // added with the solo and household pass
+    "Fee on purchases in other currencies (%)": "Comisión por compras en otra moneda (%)",
+    "Most cards charge 2.5–3%. Kipu adds it to its estimate when you pay in another currency.": "La mayoría de tarjetas cobra 2.5–3 %. Kipu la suma a su estimado cuando pagas en otra moneda.",
+    "Fee when the debit card pays in other currencies (%)": "Comisión de la tarjeta de débito en otra moneda (%)",
+    "Leave empty if your bank doesn’t charge one.": "Déjalo vacío si tu banco no cobra.",
+    "Real cost in other currencies": "Costo real en otras monedas",
     "Payment reminders": "Recordatorios de pagos",
     "A heads-up before rent, bills, loan and card payments are due.": "Un aviso antes de que venzan el alquiler, los recibos y los pagos de préstamos y tarjetas.",
     "Remind me before payments": "Avisarme antes de los pagos",
@@ -190,6 +195,12 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Charged to (.+)$/, (m) => 'Se cobró en ' + m[1]],
+    [/^Amount charged in ([A-Z]{3})$/, (m) => 'Monto cobrado en ' + m[1]],
+    [/^Estimate: today’s rate plus a ([\d.]+)% card fee\. Type the exact amount from your bank when you have it\.$/, (m) => 'Estimado: tasa de hoy más ' + m[1] + ' % de comisión de la tarjeta. Escribe el monto exacto de tu banco cuando lo tengas.'],
+    [/^(.+)% over today’s rate$/, (m) => m[1] + ' % sobre la tasa de hoy'],
+    [/^(.+)% over the market rate$/, (m) => m[1] + ' % sobre la tasa de mercado'],
+    [/^(\d+) purchases?$/, (m) => m[1] + (m[1] === '1' ? ' compra' : ' compras')],
     [/^(\d+) months? sooner and (.+) less interest than paying only the minimum\.$/, (m) => m[1] + (m[1] === '1' ? ' mes antes' : ' meses antes') + ' y ' + m[2] + ' menos de interés que pagando solo el mínimo.'],
     [/^(\d+)\. (.+)$/, (m, t) => m[1] + '. ' + t(m[2])],
     [/^Add ([−-]?[^\d\s]*\s?\d[\d.,]*)$/, (m) => 'Agregar ' + m[1]],

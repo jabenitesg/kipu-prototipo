@@ -368,13 +368,51 @@
       if (!where || !(where.startsWith('acct:') || where.startsWith('card:'))) return;
       // A two-currency card keeps charges in its second currency on their own balance
       const card = where.startsWith('card:') ? d.cards.find((c) => 'card:' + c.id === where) : null;
-      if (card && card.cur2 && t.cur === card.cur2 && t.amt != null) out.push({ where, amount: r2(sign * t.amt), slot: 2 });
+      // Bought in one currency, charged in another: the amount the bank charged moves the balance
+      const ch = t.charged && t.charged.amt != null && where === t.from && (t.type === 'expense' || t.type === 'income') ? t.charged : null;
+      const item = ch ? K.whereItem(d, where) : null;
+      if (ch && card && card.cur2 && ch.cur === card.cur2) out.push({ where, amount: r2(sign * ch.amt), slot: 2 });
+      else if (ch && item && (item.cur || d.base) === ch.cur) out.push({ where, amount: r2(sign * ch.amt) });
+      else if (card && card.cur2 && t.cur === card.cur2 && t.amt != null) out.push({ where, amount: r2(sign * t.amt), slot: 2 });
       else out.push({ where, amount: postingAmount(d, t, where, sign) });
     };
     if (t.type === 'expense') post(t.from, -1);
     if (t.type === 'income') post(t.from, 1);
     if (['transfer', 'saving', 'debt'].includes(t.type)) { post(t.from, -1); post(t.to, 1); }
     return out;
+  };
+  // ---------------------------------------------------------------- paying in another currency
+  // Card and account fees for purchases in another currency (cards usually charge about 2.5%)
+  K.fxFeeOf = (d, where) => { const it = K.whereItem(d, where); if (!it) return 0; return it.fxFee != null && it.fxFee !== '' ? Number(it.fxFee) : String(where).startsWith('card:') ? 2.5 : 0; };
+  K.payCurrencies = (d, where) => { const it = K.whereItem(d, where); return it ? [it.cur || d.base].concat(it.cur2 ? [it.cur2] : []) : []; };
+  // What the bank will likely charge for a purchase in another currency: today's rate plus the card's fee.
+  // A two-currency card bills foreign purchases in dollars when it has them, as most banks do.
+  K.chargeEstimate = (d, amt, cur, where, into) => {
+    const curs = K.payCurrencies(d, where);
+    if (!curs.length || !amt || curs.includes(cur)) return null;
+    const to = into && curs.includes(into) ? into : curs.length > 1 && curs.includes('USD') ? 'USD' : curs[0];
+    const k = K.rate(d, cur, to); if (k == null) return null;
+    const market = r2(amt * k), fee = K.fxFeeOf(d, where);
+    return { cur: to, amt: r2(market * (1 + fee / 100)), market, fee };
+  };
+  // What each card or account really charged over the market rate, from amounts you confirmed or statements
+  K.fxCost = (d, where) => {
+    const list = d.txns.filter((t) => t.from === where && t.charged && t.charged.exact && t.charged.market > 0);
+    if (!list.length) return null;
+    const paid = sum(list, (t) => t.charged.amt), market = sum(list, (t) => t.charged.market);
+    const extra = sum(list, (t) => K.toBase(d, t.charged.amt - t.charged.market, t.charged.cur) || 0);
+    return { count: list.length, pct: r2((paid / market - 1) * 100), extra: r2(extra) };
+  };
+  // Statement lines that show the original purchase: "AMAZON.CA CAD 45.00 T/C 0.7412", "USD 20.00 @ 3.75"
+  const FX_CODES = /\b(USD|CAD|EUR|GBP|MXN|PEN|COP|CLP|ARS|BRL|JPY|AUD|CHF|CNY|BOB|UYU)\s*\$?\s*([\d]{1,3}(?:[,.]\d{3})*(?:[.,]\d{1,2})|\d+(?:[.,]\d{1,2})?)\b/;
+  K.parseFxInfo = (desc, statementCur) => {
+    const s = String(desc || '');
+    const m = FX_CODES.exec(s);
+    if (!m || m[1] === statementCur) return null;
+    let raw = m[2]; if (/^\d{1,3}([,.]\d{3})+([.,]\d{1,2})?$/.test(raw) && /[.,]\d{1,2}$/.test(raw)) raw = raw.slice(0, -3).replace(/[.,]/g, '') + '.' + raw.slice(-2); else if (/^\d{1,3}([,.]\d{3})+$/.test(raw)) raw = raw.replace(/[.,]/g, ''); else raw = raw.replace(',', '.');
+    const amt = Number(raw); if (!(amt > 0)) return null;
+    const r = /(?:T\/?C|TC|tipo de cambio|exch(?:ange)?\.? rate|rate|@)\s*:?\s*([\d]+[.,]\d+)/i.exec(s);
+    return { cur: m[1], amt, rate: r ? Number(r[1].replace(',', '.')) : null, desc: s.replace(m[0], ' ').replace(r ? r[0] : '', ' ').replace(/\s+/g, ' ').trim() };
   };
   // What a transaction would move in each account's own currency, before saving it
   K.previewPostings = (d, t) => { try { return postingsFor(d, Object.assign({ cur: d.base }, t, { base: K.toBase(d, t.amt, t.cur || d.base) })); } catch (e) { return null; } };
@@ -412,7 +450,9 @@
   };
   K.addTxn = (d, t) => {
     const cur = t.cur || d.base;
-    const base = t.base != null ? t.base : K.toBase(d, t.amt, cur);
+    // What it cost you: with a charged amount (bank rate and fee included), that's the real cost
+    const chargedBase = t.charged && t.charged.amt != null ? K.toBase(d, t.charged.amt, t.charged.cur) : null;
+    const base = t.base != null ? t.base : chargedBase != null ? chargedBase : K.toBase(d, t.amt, cur);
     t = Object.assign({ id: uid('t'), date: iso(today()), cur, base, rate: K.rate(d, cur, d.base), source: 'manual', shared: false }, t, { base });
     t.postings = postingsFor(d, t);
     if (t.type === 'expense' && !t.recurring && t.billMatch !== 'off') { const b = K.matchBill(d, t); if (b) { t.recurring = b.id; t.billMatch = 'auto'; } }
@@ -425,11 +465,11 @@
   K.removeTxn = (d, id) => { const t = d.txns.find((x) => x.id === id); if (!t) return d; d = effects(d, t, -1); return K.snapshot(Object.assign({}, d, { txns: d.txns.filter((x) => x.id !== id) })); };
   K.editTxn = (d, id, patch) => {
     const t = d.txns.find((x) => x.id === id); if (!t) return d;
-    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
+    const financial = ['amt', 'cur', 'base', 'from', 'to', 'type', 'goal', 'loan', 'principal', 'settled', 'charged'].some((k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== t[k]);
     if (!financial) { const next = Object.assign({}, d, { txns: upd(d.txns, id, (x) => Object.assign({}, x, patch)) }); return patch.recurring ? K.applyBillPrice(next, patch.recurring) : next; }
     const next = Object.assign({}, t, patch);
     delete next.postings;
-    if (patch.amt != null || patch.cur != null) { next.base = K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
+    if (patch.amt != null || patch.cur != null || Object.prototype.hasOwnProperty.call(patch, 'charged')) { next.base = next.charged && next.charged.amt != null && K.toBase(d, next.charged.amt, next.charged.cur) != null ? K.toBase(d, next.charged.amt, next.charged.cur) : K.toBase(d, next.amt, next.cur); next.rate = K.rate(d, next.cur, d.base); }
     else if (patch.base != null) next.rate = next.amt ? next.base / next.amt : 1;
     d = K.removeTxn(d, id);
     return K.addTxn(d, next);
