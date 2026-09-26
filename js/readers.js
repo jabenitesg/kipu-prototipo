@@ -124,52 +124,78 @@
   };
 
   // ---------------------------------------------------------------- statements
-  const splitCSV = (line, sep) => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out.map((s) => s.trim()); };
+  // Splits the whole file, so a quoted description with a line break stays in its row
+  const csvRows = (text, sep) => {
+    const rows = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') { if (q && text[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+      else if (ch === sep && !q) { row.push(cur.trim()); cur = ''; }
+      else if ((ch === '\n' || ch === '\r') && !q) { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur.trim()); if (row.some((c) => c)) rows.push(row); row = []; cur = ''; }
+      else cur += q && (ch === '\n' || ch === '\r') ? ' ' : ch;
+    }
+    row.push(cur.trim()); if (row.some((c) => c)) rows.push(row);
+    return rows;
+  };
+  const HEAD = { type: /^(transaction )?(type|tipo)$|^(dr|cr)\s*\/\s*(cr|dr)$|^(debit|credit)\s*\/\s*(credit|debit)$/, date: /date|fecha/, desc: /desc|payee|merchant|detalle|concepto|name|memo|narrative|details|transaction$/, debit: /debit|cargo|withdraw|retiro|paid out|money out/, credit: /credit|abono|deposit|paid in|money in/, amount: /amount|monto|importe|value|valor|^(cad|usd|pen|eur|mxn|gbp)\s*\$?$|^\$$|\$\s*$/, balance: /balance|saldo/ };
+  const isNumCell = (v) => v === '' || /^[-+(]?\s*(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*[-+]?\d[\d.,\s]*\)?\s*(?:CR|DR)?$/i.test(v);
   K.parseCSV = (text, opts) => {
-    const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim());
-    if (!lines.length) return [];
-    const sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : lines[0].includes('\t') ? '\t' : ',';
-    let rows = lines.map((l) => splitCSV(l, sep));
-    const head = rows[0].map((h) => h.toLowerCase());
-    const hasHeader = head.some((h) => /date|fecha|description|descrip|amount|monto|importe|debit|credit|cargo|abono|payee|merchant|detalle|withdraw|deposit|retiro/.test(h));
-    let iDate = -1, iDesc = -1, iAmt = -1, iDebit = -1, iCredit = -1, iType = -1;
-    if (hasHeader) {
-      head.forEach((h, i) => {
-        if (iType < 0 && /^(transaction )?(type|tipo)$|^(dr|cr)\s*\/\s*(cr|dr)$|^(debit|credit)\s*\/\s*(credit|debit)$/.test(h)) iType = i;
-        else if (iDate < 0 && /date|fecha/.test(h)) iDate = i;
-        else if (iDesc < 0 && /desc|payee|merchant|detalle|concepto|name|memo/.test(h)) iDesc = i;
-        else if (/debit|cargo|withdraw|retiro/.test(h)) iDebit = i;
-        else if (/credit|abono|deposit/.test(h)) iCredit = i;
-        else if (iAmt < 0 && /amount|monto|importe|value|valor/.test(h)) iAmt = i;
+    text = String(text || '').replace(/^﻿/, '');
+    const first = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 5).join('\n');
+    const sep = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : (first.match(/\t/g) || []).length > (first.match(/,/g) || []).length ? '\t' : ',';
+    let rows = csvRows(text, sep);
+    if (!rows.length) return [];
+    // The header can sit below a few lines of account details
+    const isHead = (r) => { const h = r.map((c) => c.toLowerCase()); return h.some((c) => HEAD.date.test(c)) && h.some((c) => HEAD.desc.test(c) || HEAD.amount.test(c) || HEAD.debit.test(c) || HEAD.credit.test(c)); };
+    const hi = rows.slice(0, 15).findIndex(isHead);
+    let iDate = -1, iType = -1, iDebit = -1, iCredit = -1;
+    let iDescs = [], iAmts = [];
+    if (hi >= 0) {
+      rows[hi].map((c) => c.toLowerCase()).forEach((h, i) => {
+        if (iType < 0 && HEAD.type.test(h)) iType = i;
+        else if (iDate < 0 && HEAD.date.test(h)) iDate = i;
+        else if (HEAD.balance.test(h)) return;
+        else if (HEAD.debit.test(h) && iDebit < 0) iDebit = i;
+        else if (HEAD.credit.test(h) && iCredit < 0) iCredit = i;
+        else if (HEAD.amount.test(h)) iAmts.push(i);
+        else if (HEAD.desc.test(h)) iDescs.push(i);
       });
-      rows = rows.slice(1);
+      rows = rows.slice(hi + 1);
     }
-    if (iDate < 0 || (iAmt < 0 && iDebit < 0)) {
-      const sample = rows.slice(0, 8);
-      const cols = sample[0] ? sample[0].length : 0;
-      for (let i = 0; i < cols; i++) {
-        const vals = sample.map((r) => r[i] || '');
-        if (iDate < 0 && vals.every((v) => K.parseDateText(v))) iDate = i;
-        else if (iAmt < 0 && iDebit < 0 && vals.every((v) => v === '' || !isNaN(num(v)))) iAmt = i;
-        else if (iDesc < 0 && vals.some((v) => /[a-z]{3}/i.test(v))) iDesc = i;
+    // No header (TD, Scotiabank…): work the columns out from the rows themselves
+    if (iDate < 0 || (!iAmts.length && iDebit < 0 && iCredit < 0) || !iDescs.length) {
+      const sample = rows.filter((r) => r.some((c) => K.parseDateText(c))).slice(0, 40);
+      const cols = Math.max(0, ...sample.map((r) => r.length));
+      const frac = (i, f) => sample.filter((r) => f(r[i] || '')).length / (sample.length || 1);
+      if (iDate < 0) { let best = 0; for (let i = 0; i < cols; i++) { const f = frac(i, (v) => !!K.parseDateText(v)); if (f > best && f >= 0.8) { best = f; iDate = i; } } }
+      const nums = []; for (let i = 0; i < cols; i++) if (i !== iDate && frac(i, isNumCell) >= 0.95 && frac(i, (v) => v !== '') > 0) nums.push(i);
+      if (!iAmts.length && iDebit < 0 && iCredit < 0) {
+        // Two neighbouring money columns where each row fills exactly one: withdrawals and deposits
+        const pair = nums.find((i) => nums.includes(i + 1) && frac(i, () => true) && sample.filter((r) => ((r[i] || '') !== '') !== ((r[i + 1] || '') !== '')).length >= sample.length * 0.8);
+        if (pair != null) { iDebit = pair; iCredit = pair + 1; }
+        else { const full = nums.filter((i) => frac(i, (v) => v !== '') >= 0.9); if (full.length) iAmts = [full[0]]; } // a second full column is the running balance
       }
+      // Description can be split over several columns ("POS PURCHASE", "METRO"): keep every text column
+      if (!iDescs.length) { let best = -1, bi = -1; for (let i = 0; i < cols; i++) { if (i === iDate || nums.includes(i)) continue; const f = frac(i, (v) => /[a-z]{2}/i.test(v)); if (f >= 0.5) iDescs.push(i); if (f > best) { best = f; bi = i; } } if (!iDescs.length && bi >= 0) iDescs = [bi]; }
     }
+    if (iDate < 0) return [];
     const dmy = K.dateOrder(rows.map((r) => r[iDate] || ''), opts && opts.dmy);
     return K.settleYears(rows.map((r) => {
       const d = K.parseDateText(r[iDate] || '', dmy);
-      let amt = iAmt >= 0 ? num(r[iAmt]) : NaN;
-      let dir = null;
+      let amt = NaN, dir = null;
+      for (const i of iAmts) { const v = num(r[i] || ''); if (!isNaN(v) && v !== 0) { amt = /\(|CR\s*$/i.test(r[i]) && v > 0 ? -v : v; break; } }
       // Separate Withdrawal and Deposit columns: money out and money in
       if (iDebit >= 0 || iCredit >= 0) { const db = iDebit >= 0 ? num(r[iDebit]) : NaN, cr = iCredit >= 0 ? num(r[iCredit]) : NaN; if (!isNaN(db) && db) { amt = -Math.abs(db); dir = 'out'; } else if (!isNaN(cr) && cr) { amt = Math.abs(cr); dir = 'in'; } }
       // A Type column saying Withdrawal / Deposit, Debit / Credit
       if (iType >= 0 && !isNaN(amt)) { const t = K.moneyDir(r[iType]); if (t) { dir = t; amt = t === 'out' ? -Math.abs(amt) : Math.abs(amt); } }
-      return { date: d && !isNaN(d) ? K.iso(d) : null, noYear: !!(d && d.noYear), desc: (r[iDesc] || '').replace(/\s+/g, ' ').trim(), amt, dir };
-    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc && !K.isBalanceLine(x.desc)), statementEnd(lines));
+      const desc = iDescs.map((i) => r[i] || '').filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      return { date: d && !isNaN(d) ? K.iso(d) : null, noYear: !!(d && d.noYear), desc, amt, dir };
+    }).filter((x) => x.date && !isNaN(x.amt) && x.amt !== 0 && x.desc && !K.isBalanceLine(x.desc)), statementEnd(rows.map((r) => r.join(' '))));
   };
   // Summary lines of a statement, not movements: "Opening balance", "Balance forward", "Saldo anterior", "Total deposits"…
   K.isBalanceLine = (text) => {
     const m = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
-    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros)\b|^balance$|^saldo$/.test(m);
+    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)$|^(sub ?total|total) (deposits|withdrawals|debits|credits|payments|purchases|fees|interest|abonos|cargos|depositos|retiros|pagos|compras|a pagar|del mes|del periodo)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros)\b|^balance$|^saldo$/.test(m);
   };
   // Words that say which way money went: withdrawal, purchase, fee → out; deposit, payroll, credit → in
   K.moneyDir = (text) => {
@@ -185,18 +211,21 @@
     const out = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const c = await (await pdf.getPage(p)).getTextContent();
-      const rows = {};
-      c.items.forEach((it) => { if (!it.str.trim()) return; const y = Math.round(it.transform[5] / 2) * 2; (rows[y] = rows[y] || []).push({ x: it.transform[4], w: it.width || 0, s: it.str.trim() }); });
-      Object.keys(rows).sort((a, b) => b - a).forEach((y) => out.push(rows[y].sort((a, b) => a.x - b.x)));
+      // Items a few points apart vertically are the same printed line (amounts often sit slightly higher than text)
+      const items = c.items.filter((it) => it.str.trim()).map((it) => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, h: Math.abs(it.transform[3]) || 8, s: it.str.trim() })).sort((a, b) => b.y - a.y);
+      const lines = [];
+      items.forEach((it) => { const l = lines.find((x) => Math.abs(x.y - it.y) <= Math.max(2.5, Math.min(it.h, x.h) * 0.45)); if (l) l.items.push(it); else lines.push({ y: it.y, h: it.h, items: [it] }); });
+      lines.sort((a, b) => b.y - a.y).forEach((l) => out.push(l.items.sort((a, b) => a.x - b.x)));
     }
     return out;
   };
   // A chequing PDF: Date | Description | Withdrawals | Deposits | Balance. Each amount goes to the column it sits under.
   const ONEAMT = /^(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*-?\(?\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}\)?(?:\s*(?:CR|DR|-))?$/;
+  const NOT_TX = /\b(credit limit|l[ií]mite|minimum|m[ií]nimo|payment due|due date|fecha de pago|available|disponible|points|puntos|rewards|annual interest|interest rate|tasa|apr|account number|n[uú]mero de cuenta|page|p[aá]gina|statement date|fecha de corte)\b/i;
   K.parseStatementRows = (rows, opts) => {
     let cols = null;
     const out = [];
-    let lastBal = null;
+    let lastBal = null, lastDate = null, pending = null, justPushed = false;
     const lines = rows.map((items) => items.map((i) => i.s).join(' '));
     const dmy = K.dateOrder(lines.map((l) => firstTokens(l, 2)), opts && opts.dmy);
     rows.forEach((items) => {
@@ -211,11 +240,26 @@
       const amts = items.filter((i) => ONEAMT.test(i.s));
       // "Opening balance 1,000.00": where the statement starts; it tells the direction of the first movement
       if (K.isBalanceLine(items.filter((i) => !ONEAMT.test(i.s) && !K.parseDateText(i.s)).map((i) => i.s).join(' '))) { if (amts.length) lastBal = num(amts[amts.length - 1].s); return; }
-      const d = K.parseDateText(firstTokens(line, 3), dmy);
-      if (!d || isNaN(d)) return;
-      if (!amts.length) return;
-      const desc = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
-      if (desc.length < 2) return;
+      let d = K.parseDateText(firstTokens(line, 3), dmy);
+      const text = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
+      if (!amts.length) {
+        // A dated line without an amount: its amount comes on the next line. An undated one right after a movement continues its description.
+        if (d && !isNaN(d)) pending = { d, text };
+        else if (pending) pending.text = (pending.text + ' ' + text).trim();
+        else if (justPushed && text.length >= 2 && text.length <= 60 && !/page|pagina|continued|continua/i.test(text)) out[out.length - 1].desc = (out[out.length - 1].desc + ' ' + text).slice(0, 80);
+        justPushed = false;
+        return;
+      }
+      let desc = text;
+      if (!d || isNaN(d)) {
+        // Banks print the date once per day: later lines of that day have none. Summary figures (limit, minimum payment, points) are not movements.
+        if (NOT_TX.test(text)) { pending = null; return; }
+        if (pending) { d = pending.d; desc = (pending.text + ' ' + text).trim(); }
+        else if (lastDate && text.length >= 2) d = lastDate;
+        else return;
+      } else if (pending && !text) desc = pending.text;
+      pending = null;
+      if (desc.length < 2 || (desc !== text && NOT_TX.test(desc))) return;
       let amt = null, dir = null, bal = null;
       if (cols && (cols.out != null || cols.in != null)) {
         amts.forEach((a) => {
@@ -233,7 +277,8 @@
         else { const raw = amts[vals.length > 1 ? vals.length - 2 : 0].s; amt = /(CR|\))\s*$|^\(/.test(raw) || /-\s*$/.test(raw) ? -v : vals.length > 1 ? v : vals[0]; }
       }
       if (bal != null) lastBal = bal;
-      if (amt) out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 60), amt, dir });
+      justPushed = false;
+      if (amt) { out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 80), amt, dir }); lastDate = d; justPushed = true; }
     });
     return K.settleYears(out, statementEnd(lines));
   };
@@ -271,7 +316,30 @@
     return K.parseCSV(await file.text(), opts);
   };
   // Existing transactions that look like the same purchase (same amount within 3 days)
-  K.findDuplicate = (data, row, where) => data.txns.find((t) => Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) < 0.01 && Math.abs(K.days(K.parse(t.date), K.parse(row.date))) <= 3 && (!where || t.from === where));
+  // Same account or card, same amount, within 3 days and the same shop (one typed by hand counts the same day)
+  // `used`: movements already matched to another line of the same file, so two coffees on two days aren't both taken for one
+  K.findDuplicate = (data, row, where, used) => {
+    const w1 = (x) => (K.merchantKey(x) || String(x || '').toLowerCase()).split(' ')[0];
+    const key = w1(row.desc);
+    const gapOf = (t) => Math.abs(K.days(K.parse(t.date), K.parse(row.date)));
+    return data.txns.filter((t) => {
+      if (used && used.has(t.id)) return false;
+      if (Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) >= 0.01) return false;
+      if (where && t.from !== where && t.to !== where) return false;
+      const gap = gapOf(t);
+      if (gap > 3) return false;
+      return (key && w1(t.merchant) === key) || (t.source !== 'statement' && gap <= 1);
+    }).sort((a, b) => gapOf(a) - gapOf(b))[0];
+  };
+  // Every line of a file against what's already in Kipu, one match each; exact dates are matched first
+  K.markDuplicates = (data, rows, where) => {
+    const used = new Set(), out = {};
+    rows.map((r, i) => ({ r, i })).sort((a, b) => (a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : 0)).forEach(({ r, i }) => {
+      const t = K.findDuplicate(data, { date: r.date, amt: Math.abs(r.amt), desc: r.desc }, where, used);
+      if (t) { used.add(t.id); out[i] = t; }
+    });
+    return out;
+  };
 
   // ---------------------------------------------------------------- downloads
   K.download = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };

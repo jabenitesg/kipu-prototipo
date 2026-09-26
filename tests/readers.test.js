@@ -94,3 +94,48 @@ test('dates: month names are whole words, one day/month order per file, and the 
   ]);
   assert.deepEqual(out.map((r) => [r.date, r.desc]), [['2025-07-18', 'MARKET FRESH'], ['2025-08-02', 'DECATHLON']]);
 });
+
+test('no line is lost: bank CSVs without headers, with preambles, currency columns and quoted line breaks', () => {
+  // TD-style: no header; withdrawal and deposit columns, then the balance
+  const td = K.parseCSV('08/14/2026,PAYROLL ACME,,2689.00,3689.00\n08/15/2026,METRO,54.20,,3634.80\n08/15/2026,TIM HORTONS,4.50,,3630.30\n08/16/2026,TIM HORTONS,4.50,,3625.80', { dmy: false });
+  assert.deepEqual(td.map((r) => [r.desc, r.amt]), [['PAYROLL ACME', 2689], ['METRO', -54.2], ['TIM HORTONS', -4.5], ['TIM HORTONS', -4.5]]);
+  // RBC-style: amount column called CAD$, two description columns
+  const rbc = K.parseCSV('"Account Type","Account Number","Transaction Date","Cheque Number","Description 1","Description 2","CAD$","USD$"\nChequing,01234-5678901,8/14/2026,,"PAYROLL","ACME INC",2689.00,\nChequing,01234-5678901,8/15/2026,,"POS PURCHASE","METRO #123",-54.20,', { dmy: false });
+  assert.deepEqual(rbc.map((r) => [r.desc, r.amt]), [['PAYROLL ACME INC', 2689], ['POS PURCHASE METRO #123', -54.2]]);
+  // Account details before the header, and a description with a line break inside quotes
+  const pre = K.parseCSV('Account: 1234\nPeriod: Aug 2026\n\nDate,Description,Amount\n2026-08-14,"E-TRANSFER\nFROM ANA",150.00\n2026-08-15,TOTAL ENERGIES,-60.00');
+  assert.deepEqual(pre.map((r) => [r.desc, r.amt]), [['E-TRANSFER FROM ANA', 150], ['TOTAL ENERGIES', -60]]);
+  // Scotiabank-style: date, amount, blank, two description columns
+  const sco = K.parseCSV('8/14/2026,-54.20,-,POS PURCHASE,METRO\n8/15/2026,2689.00,-,DEPOSIT,PAYROLL ACME', { dmy: false });
+  assert.deepEqual(sco.map((r) => [r.desc, r.amt]), [['POS PURCHASE METRO', -54.2], ['DEPOSIT PAYROLL ACME', 2689]]);
+});
+
+test('no line is lost in PDFs: one date per day, amounts a little off the line, descriptions over two lines', () => {
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const out = K.parseStatementRows([
+    row([40, 'Date'], [120, 'Description'], [380, 'Withdrawals'], [470, 'Deposits'], [560, 'Balance']),
+    row([40, 'Aug 14'], [120, 'PAYROLL ACME'], [470, '2,689.00'], [560, '3,689.00']),
+    row([120, 'METRO #123'], [385, '54.20'], [560, '3,634.80']), // same day, no date printed
+    row([40, 'Aug 15'], [120, 'E-TRANSFER SENT']),
+    row([120, 'TO JOHN SMITH'], [385, '100.00'], [560, '3,534.80']), // amount on the next line
+    row([40, 'Aug 16'], [120, 'AMAZON.CA'], [385, '25.00'], [560, '3,509.80']),
+    row([120, 'ORDER 111-222']), // description continues
+    row([120, 'Your credit limit'], [560, '5,000.00']), // not a movement
+  ]);
+  assert.deepEqual(out.map((r) => [r.date.slice(5), r.desc, r.amt]), [['08-14', 'PAYROLL ACME', 2689], ['08-14', 'METRO #123', -54.2], ['08-15', 'E-TRANSFER SENT TO JOHN SMITH', -100], ['08-16', 'AMAZON.CA ORDER 111-222', -25]]);
+});
+
+test('duplicates need the same shop: two coffees or different shops with the same amount are both kept', () => {
+  const data = { txns: [{ amt: 10, date: '2026-08-14', merchant: 'UBER TRIP', from: 'acct:chq', source: 'statement' }, { amt: 4.5, date: '2026-08-15', merchant: 'Coffee', from: 'acct:chq', source: 'manual' }] };
+  assert.equal(!!K.findDuplicate(data, { date: '2026-08-15', amt: 10, desc: 'STARBUCKS 123' }, 'acct:chq'), false);
+  assert.equal(!!K.findDuplicate(data, { date: '2026-08-15', amt: 10, desc: 'UBER TRIP HELP.UBER.COM' }, 'acct:chq'), true);
+  assert.equal(!!K.findDuplicate(data, { date: '2026-08-15', amt: 4.5, desc: 'TIM HORTONS' }, 'acct:chq'), true); // typed by hand the same day
+  assert.equal(!!K.findDuplicate(data, { date: '2026-08-18', amt: 4.5, desc: 'TIM HORTONS' }, 'acct:chq'), false);
+});
+
+test('each movement already in Kipu covers only one line of a new file', () => {
+  const data = { txns: [{ id: 't1', amt: 4.5, date: '2026-09-15', merchant: 'TIM HORTONS', from: 'acct:chq', source: 'statement' }] };
+  const rows = [{ date: '2026-09-15', amt: -4.5, desc: 'TIM HORTONS' }, { date: '2026-09-16', amt: -4.5, desc: 'TIM HORTONS' }];
+  const d = K.markDuplicates(data, rows, 'acct:chq');
+  assert.deepEqual(Object.keys(d), ['0']);
+});
