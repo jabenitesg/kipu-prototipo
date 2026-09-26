@@ -387,3 +387,17 @@ test('a repeating payment that isn’t a bill can be left out, and a wrong bill 
   assert.equal(e.txns.filter((t) => t.recurring === id).length, 0);
   assert.equal(K.findRecurring(e).length, 0);
 });
+
+test('the person can mark any expense as repeating, and it becomes a bill with its other payments', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'PAD TD INSURANCE 0912', amt: 98.5, cur: 'CAD', from: 'acct:chq', date: '2026-07-21', source: 'statement', settled: true, cat: 'other' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'PAD TD INSURANCE 0913', amt: 98.5, cur: 'CAD', from: 'acct:chq', date: '2026-09-21', source: 'statement', settled: true, cat: 'other' });
+  assert.equal(K.findRecurring(d).length, 0); // a month missing: Kipu doesn't suggest it
+  d = K.billFromTxn(d, d.txns[1].id);
+  assert.equal(d.bills.length, 1);
+  assert.equal(d.bills[0].name, 'Td Insurance');
+  assert.equal(d.bills[0].day, 21);
+  assert.equal(d.bills[0].cat, 'bills');
+  assert.equal(d.txns.filter((t) => t.recurring === d.bills[0].id).length, 2);
+});

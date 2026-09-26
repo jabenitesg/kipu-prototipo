@@ -426,6 +426,17 @@
     });
     return out.sort((a, b) => b.amt - a.amt);
   };
+  // The person says this expense repeats: a bill from it, linked to its other payments at the same place
+  K.billFromTxn = (d, id) => {
+    const t = d.txns.find((x) => x.id === id); if (!t || t.type !== 'expense' || !t.from) return d;
+    const key = K.merchantKey(t.merchant) || norm(t.merchant);
+    const name = titleCase(key || t.merchant || 'Bill');
+    d = Object.assign({}, d, { notBills: (d.notBills || []).filter((k) => k !== t.from + '|' + key) });
+    d = K.addRecurringBills(d, [{ key, where: t.from, name, amt: t.amt, day: Math.min(28, parse(t.date).getDate()), cat: t.cat && t.cat !== 'other' ? t.cat : 'bills', kind: t.cat === 'subs' ? 'Subscription' : 'Bill' }]);
+    // A merchant with no usable key still links this one payment
+    const b = d.bills[d.bills.length - 1];
+    return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
+  };
   // "Not a bill": never offered again for that account or card
   K.dismissRecurring = (d, list) => Object.assign({}, d, { notBills: Array.from(new Set((d.notBills || []).concat(list.map((r) => r.where + '|' + r.key)))) });
   // Deleting a bill unlinks its payments; one Kipu found on its own is also marked "not a bill"
