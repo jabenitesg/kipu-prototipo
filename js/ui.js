@@ -253,29 +253,42 @@
   K.LineChart = LineChart;
 
   // groups: [{ label, values:[v1, v2...] }], colors per value index; stacked or side by side
-  const BarChart = ({ groups, colors, h = 160, stacked, fmtY, hi, ref, labelTop }) => {
+  const canHover = () => { try { return window.matchMedia('(hover: hover)').matches; } catch (e) { return true; } };
+  // Bars per month (or day). Hover or tap a column to light it up and see its numbers; `onPick` makes a click choose it.
+  const BarChart = ({ groups, colors, h = 160, stacked, fmtY, hi, ref, labelTop, names, fmtV, extra, onPick }) => {
+    const [hov, setHov] = useState(null);
     const W = 600, pl = 44, pr = 8, pt = 18, pb = 24;
     const tot = groups.map((g) => (stacked ? g.values.reduce((s, v) => s + Math.max(0, v), 0) : Math.max(...g.values)));
     const mx = niceMax(Math.max(...tot, ref ? ref.value : 0));
     const Y = (v) => pt + (1 - v / mx) * (h - pt - pb);
     const slot = (W - pl - pr) / groups.length, bw = Math.min(34, slot * (stacked ? 0.56 : 0.72));
-    return html`<svg class="chart" viewBox=${'0 0 ' + W + ' ' + h} width="100%" role="img" style=${{ display: 'block' }}>
+    const on = hov != null ? hov : hi;
+    const fv = fmtV || fmtY || ((v) => Math.round(v).toLocaleString('en-US'));
+    const tipX = hov != null ? ((pl + slot * hov + slot / 2) / W) * 100 : 0;
+    const g0 = hov != null ? groups[hov] : null;
+    const rows = g0 ? g0.values.map((v, j) => [names ? names[j] : null, fv(v), (g0.colors || colors)[j]]).concat(extra ? extra(hov) || [] : []) : [];
+    return html`<div class="bar-chart" style=${{ position: 'relative' }} onMouseLeave=${() => setHov(null)}>
+      <svg class="chart" viewBox=${'0 0 ' + W + ' ' + h} width="100%" role="img" style=${{ display: 'block' }}>
       ${[0, 0.5, 1].map((t, i) => html`<g key=${i}><line x1=${pl} x2=${W - pr} y1=${Y(t * mx)} y2=${Y(t * mx)} stroke="var(--line)"></line><text x=${pl - 8} y=${Y(t * mx) + 3} text-anchor="end">${fmtY ? fmtY(t * mx) : Math.round(t * mx)}</text></g>`)}
       ${ref && html`<line x1=${pl} x2=${W - pr} y1=${Y(ref.value)} y2=${Y(ref.value)} stroke=${ref.color || 'var(--warn2)'} stroke-dasharray="5 5" stroke-width="1.5"></line>`}
       ${groups.map((g, i) => {
         const cx = pl + slot * i + slot / 2;
         let acc = 0;
         const n = g.values.length;
-        return html`<g key=${i} opacity=${hi != null && hi !== i ? 0.55 : 1}>
+        return html`<g key=${i} opacity=${on != null && on !== i ? 0.4 : 1} style=${{ transition: 'opacity 0.15s' }}>
+          ${hov === i && html`<rect x=${cx - slot / 2 + 2} y=${pt - 8} width=${slot - 4} height=${h - pt - pb + 8} rx="8" fill="var(--surface2)"></rect>`}
           ${g.values.map((v, j) => {
             if (stacked) { const y0 = Y(acc), y1 = Y(acc + Math.max(0, v)); acc += Math.max(0, v); return html`<rect key=${j} x=${cx - bw / 2} y=${y1} width=${bw} height=${Math.max(0, y0 - y1)} rx="3" fill=${(g.colors || colors)[j]}></rect>`; }
             const w = bw / n, x = cx - bw / 2 + j * w;
             return html`<rect key=${j} x=${x + 1} y=${Y(Math.max(0, v))} width=${w - 2} height=${Math.max(0, Y(0) - Y(Math.max(0, v)))} rx="3" fill=${(g.colors || colors)[j]} opacity=${g.dash && j === n - 1 ? 0.45 : 1}></rect>`;
           })}
-          ${labelTop && hi === i && html`<text class="lbl" x=${cx} y=${Y(tot[i]) - 6} text-anchor="middle">${labelTop(tot[i])}</text>`}
-          <text x=${cx} y=${h - 6} text-anchor="middle" style=${hi === i ? { fill: 'var(--ink)', fontWeight: 700 } : null}>${g.label}</text></g>`;
+          ${labelTop && on === i && html`<text class="lbl" x=${cx} y=${Y(tot[i]) - 6} text-anchor="middle">${labelTop(tot[i])}</text>`}
+          <text x=${cx} y=${h - 6} text-anchor="middle" style=${on === i ? { fill: 'var(--ink)', fontWeight: 700 } : null}>${g.label}</text>
+          <rect x=${cx - slot / 2} y="0" width=${slot} height=${h} fill="transparent" style=${{ cursor: onPick ? 'pointer' : 'default' }} onMouseEnter=${() => setHov(i)} onClick=${() => { setHov(i); onPick && onPick(i); }}></rect></g>`;
       })}
-    </svg>`;
+      </svg>
+      ${g0 && html`<div class="chart-tip" style=${{ left: tipX + '%', transform: tipX < 22 ? 'translateX(-10%)' : tipX > 78 ? 'translateX(-90%)' : 'translateX(-50%)' }}><b>${g0.full || g0.label}</b>${rows.map(([n, v, c], k) => html`<span key=${k} class="row" style=${{ gap: '6px', justifyContent: 'space-between' }}><span class="row" style=${{ gap: '6px' }}>${c && html`<i class="dotk" style=${{ background: c }}></i>`}${n}</span><b class="num">${v}</b></span>`)}${onPick && canHover() && html`<span class="tiny muted">Click to open</span>`}</div>`}
+    </div>`;
   };
   K.BarChart = BarChart;
 

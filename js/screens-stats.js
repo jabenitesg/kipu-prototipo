@@ -20,7 +20,7 @@
   // ---------------------------------------------------------------- Statistics
   const SECTIONS = [['overview', 'Overview'], ['big', 'Big picture'], ['spending', 'Spending'], ['income', 'Income'], ['cashflow', 'Cash flow'], ['networth', 'Net worth'], ['debt', 'Debt'], ['credit', 'Credit']];
   function Statistics({ route }) {
-    const { D, openSheet, wide } = useApp();
+    const { D, openSheet, wide, ctx, setCtx } = useApp();
     const [sec, setSec] = useState(route.tab === 'spending' || route.tab === 'income' ? route.tab : route.sub || 'overview');
     if (!D.txAll.length) return html`<div class="card"><${EmptyState} icon="chart" title="No numbers yet" text="Statistics fill in as you add transactions. Importing a statement is the fastest way to bring in history." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} /></div>`;
     const Body = { overview: SOverview, big: SBig, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit }[sec];
@@ -31,7 +31,7 @@
   }
   // ---------------------------------------------------------------- Big picture: all history by month or by year, and any two periods side by side
   function SBig() {
-    const { D, fmt, wide } = useApp();
+    const { D, fmt, wide, ctx, setCtx } = useApp();
     const H = useMemo(() => K.history(D.txAll), [D.txAll]);
     const [mode, setMode] = useState('month');
     const list = mode === 'year' ? H.years : H.months;
@@ -50,7 +50,7 @@
     const signed = (v) => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
     if (!filled.length) return null;
     // Long histories scroll sideways and open on the most recent months
-    const bars = html`<div style=${{ overflowX: 'auto' }} ref=${(el) => { if (el && !el.dataset.end) { el.scrollLeft = el.scrollWidth; el.dataset.end = '1'; } }}><div style=${{ minWidth: list.length > 12 ? list.length * 46 + 'px' : null }}><${BarChart} groups=${list.map((x, i) => ({ label: list.length <= 12 || x === A0 || i % Math.ceil(list.length / 8) === 0 ? x.label : '', values: [x.income, x.out] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${list.indexOf(A0)} fmtY=${fmt.k} h=${200} /></div></div>`;
+    const bars = html`<div style=${{ overflowX: 'auto' }} ref=${(el) => { if (el && !el.dataset.end) { el.scrollLeft = el.scrollWidth; el.dataset.end = '1'; } }}><div style=${{ minWidth: list.length > 12 ? list.length * 46 + 'px' : null }}><${BarChart} groups=${list.map((x, i) => ({ label: list.length <= 12 || x === A0 || i % Math.ceil(list.length / 8) === 0 ? x.label : '', full: x.long, values: [x.income, x.out] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${list.indexOf(A0)} fmtY=${fmt.k} h=${200} names=${['Money in', 'Money out']} fmtV=${(v) => fmt(v)} extra=${(i) => [['Left over', (list[i].left >= 0 ? '+' : '−') + fmt(Math.abs(list[i].left))]]} onPick=${(i) => setA(list[i].key)} /></div></div>`;
     const rows = list.slice().reverse().filter((x) => x.count > 0 || x.current);
     const opts = rows.map((x) => html`<option key=${x.key} value=${x.key}>${x.long}</option>`);
     const cats = A && B ? Array.from(new Set(Object.keys(A.cats).concat(Object.keys(B.cats)))).map((c) => ({ c, a: A.cats[c] || 0, b: B.cats[c] || 0 })).sort((x, y) => Math.abs(y.a - y.b) - Math.abs(x.a - x.b)).slice(0, 6) : [];
@@ -91,7 +91,7 @@
   };
 
   function SOverview() {
-    const { D, ctx, fmt, wide } = useApp();
+    const { D, ctx, fmt, wide, setCtx } = useApp();
     const p = periodTotals(D, ctx);
     const idx = K.statIdx(D, ctx);
     const prev0 = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1] : null;
@@ -112,11 +112,11 @@
         <${Tile2} label="Total debt" value=${p.debt != null ? fmt(p.debt) : '—'} />
       </div>
       ${prev && html`<span class="tiny muted">Green helps you, amber deserves a look.</span>`}
-      ${S.length > 1 && html`<${ChartBox} title="Income and spending" question="Did more come in than went out each month?" legend=${[['var(--c2)', 'Income'], ['var(--c1)', 'Spending']]}><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income, s.spending] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${S.length - 1} fmtY=${fmt.k} /></${ChartBox}>`}</div>`;
+      ${S.length > 1 && html`<${ChartBox} title="Income and spending" question="Did more come in than went out each month?" legend=${[['var(--c2)', 'Income'], ['var(--c1)', 'Spending']]}><${BarChart} groups=${S.map((s) => ({ label: s.m, full: K.MONTH_LONG[s.mi] + ' ' + s.y, values: [s.income, s.spending] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${K.statIdx(D, ctx) == null ? null : S.indexOf(D.series[K.statIdx(D, ctx)])} fmtY=${fmt.k} names=${['Income', 'Spending']} fmtV=${(v) => fmt(v)} extra=${(i) => [['Left over', fmt(S[i].income - S[i].spending - (S[i].debtPaid || 0))]]} onPick=${(i) => setCtx({ period: D.series.indexOf(S[i]), periodSet: true })} /></${ChartBox}>`}</div>`;
   }
 
   function SSpending() {
-    const { D, ctx, fmt, wide, data } = useApp();
+    const { D, ctx, fmt, wide, data, setCtx } = useApp();
     const p = periodTotals(D, ctx);
     const idx = K.statIdx(D, ctx);
     const prevCats = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1].cats : null;
@@ -136,18 +136,18 @@
   }
 
   function SIncome() {
-    const { D, fmt, data } = useApp();
+    const { D, fmt, data, ctx, setCtx } = useApp();
     const S = D.activeSeries;
     const byCur = {}; D.txAll.filter((t) => t.type === 'income').forEach((t) => (byCur[t.cur] = (byCur[t.cur] || 0) + t.amt));
     const tot = K.sum(S, (s) => s.income);
     return html`<div class="stack">
-      <${ChartBox} title="Income by month" question="How steady is what comes in?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.income] }))} colors=${['var(--c2)']} hi=${S.length - 1} fmtY=${fmt.k} labelTop=${fmt.k} /></${ChartBox}>
+      <${ChartBox} title="Income by month" question="How steady is what comes in?"><${BarChart} groups=${S.map((s) => ({ label: s.m, full: K.MONTH_LONG[s.mi] + ' ' + s.y, values: [s.income] }))} colors=${['var(--c2)']} hi=${S.length - 1} fmtY=${fmt.k} labelTop=${fmt.k} names=${['Income']} fmtV=${(v) => fmt(v)} onPick=${(i) => setCtx({ period: D.series.indexOf(S[i]), periodSet: true })} /></${ChartBox}>
       <div class="grid g3" style=${{ gap: '10px' }}><div class="card solid"><${Metric} label="Total" value=${fmt(tot)} /></div><div class="card tint"><${Metric} label="Monthly average" value=${fmt(tot / Math.max(1, S.length))} /></div><div class="card tint"><${Metric} label="Sources" value=${String(D.incomeSrc.length)} /></div></div>
       ${Object.keys(byCur).length > 1 && html`<div class="card stack-s"><h3 style=${{ fontSize: '16px' }}>By original currency</h3>${Object.keys(byCur).map((c) => html`<div key=${c} class="between small"><span>${c}</span><b class="num">${fmt.native(byCur[c], c)}</b></div>`)}<span class="tiny muted">Each payment keeps its own amount and rate.</span></div>`}</div>`;
   }
 
   function SCash() {
-    const { D, ctx, fmt, wide } = useApp();
+    const { D, ctx, fmt, wide, setCtx } = useApp();
     const p = periodTotals(D, ctx);
     const left = p.income - p.spending - p.saved - p.debtPaid;
     const S = D.activeSeries;
@@ -157,11 +157,11 @@
         <${KeyRow} color="transparent" label="Income" value=${fmt(p.income)} bold=${true} /><${KeyRow} color="var(--c1)" label="Spending" value=${'−' + fmt(p.spending)} /><${KeyRow} color="var(--c2)" label="Saved to goals" value=${'−' + fmt(p.saved)} /><${KeyRow} color="var(--c3)" label="Loan payments" value=${'−' + fmt(p.debtPaid)} />
         <div style=${{ borderTop: '1.5px solid var(--ink)', paddingTop: '10px' }}><${KeyRow} color="var(--neutral)" label="Left over" value=${fmt(left, { sign: true })} bold=${true} /></div>
         <span class="tiny muted">Transfers between your own accounts and card payments aren’t counted, so nothing appears twice.</span></div>
-      ${S.length > 1 && html`<${ChartBox} title="Left over each month" question="Which months added to your cushion?"><${BarChart} groups=${S.map((s) => ({ label: s.m, values: [Math.max(0, s.net)] }))} colors=${['var(--c2)']} fmtY=${fmt.k} hi=${S.length - 1} labelTop=${fmt.k} /></${ChartBox}>`}</div>`;
+      ${S.length > 1 && html`<${ChartBox} title="Left over each month" question="Which months added to your cushion?"><${BarChart} groups=${S.map((s) => ({ label: s.m, full: K.MONTH_LONG[s.mi] + ' ' + s.y, values: [Math.max(0, s.net)] }))} colors=${['var(--c2)']} fmtY=${fmt.k} hi=${S.length - 1} labelTop=${fmt.k} names=${['Left over']} fmtV=${(v) => fmt(v)} onPick=${(i) => setCtx({ period: D.series.indexOf(S[i]), periodSet: true })} /></${ChartBox}>`}</div>`;
   }
 
   function SNW() {
-    const { D, fmt, wide } = useApp();
+    const { D, fmt, wide, ctx, setCtx } = useApp();
     const S = D.series.filter((s) => s.netWorth != null);
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Net worth" question="Is what you own growing faster than what you owe?">
@@ -172,18 +172,18 @@
   }
 
   function SDebt() {
-    const { D, fmt, wide } = useApp();
+    const { D, fmt, wide, ctx, setCtx } = useApp();
     if (!D.loans.length && !D.cards.length) return html`<div class="card"><${EmptyState} icon="loan" title="No debt tracked" text="Add loans or credit cards in Money to see progress here." /></div>`;
     const S = D.series.filter((s) => s.debt != null);
     const interest = K.sum(D.series, (s) => s.interest);
     return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>
       <${ChartBox} title="Total debt" question="Is debt actually going down?" legend=${[['var(--c1)', 'Loans'], ['var(--c3)', 'Cards']]}><div class="grid g2" style=${{ gap: '8px' }}><${Metric} label="Now" value=${fmt(D.debt)} />${S.length > 1 && html`<${Metric} label=${'Change since ' + S[0].m} value=${fmt(D.debt - S[0].debt, { sign: true })} tone=${D.debt <= S[0].debt ? 'pos' : 'warn'} />`}</div>
-        ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--c1)', 'var(--c3)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
+        ${S.length > 1 ? html`<${BarChart} groups=${S.map((s) => ({ label: s.m, full: K.MONTH_LONG[s.mi] + ' ' + s.y, values: [s.loans || 0, s.cards || 0] }))} colors=${['var(--c1)', 'var(--c3)']} stacked=${true} fmtY=${fmt.k} hi=${S.length - 1} names=${['Loans', 'Cards']} fmtV=${(v) => fmt(v)} />` : html`<span class="small muted">The trend appears after your second month.</span>`}</${ChartBox}>
       <div class="stack">${D.loans.length > 0 && html`<div class="card tight list">${D.loans.map((l) => html`<${K.LoanRow} key=${l.id} l=${l} />`)}</div>`}<div class="card stack-s"><div class="between"><span class="muted">Loan interest paid (12 months)</span><span class="amt">${fmt(interest)}</span></div></div></div></div>`;
   }
 
   function SCredit() {
-    const { D, fmt, data, wide } = useApp();
+    const { D, fmt, data, wide, ctx, setCtx } = useApp();
     if (!D.cards.length) return html`<div class="card"><${EmptyState} icon="card" title="No cards tracked" text="Add credit cards in Money to follow utilization." /></div>`;
     const ref = data.prefs.utilRef;
     const S = D.series.filter((s) => s.util != null);
@@ -207,7 +207,7 @@
   const RSection = ({ title, children }) => html`<div class="card stack" style=${{ gap: '10px' }}><h3 style=${{ fontSize: '17px' }}>${title}</h3>${children}</div>`;
   const CompareRow = ({ label, a, b, text, d, good }) => html`<div class="between" style=${{ padding: '11px 0', borderTop: '1px solid var(--line)' }}><span class="stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 500 }}>${label}</span><span class="tiny muted num">${a} → ${b}</span></span><${Trend} d=${d} good=${good} text=${text} /></div>`;
   function Reviews({ route }) {
-    const { D, fmt, go, wide } = useApp();
+    const { D, fmt, go, wide, ctx, setCtx } = useApp();
     const months = D.series.filter((s) => !s.current && s.count > 0).reverse();
     const [sel, setSel] = useState(route.m || (months[0] && months[0].key));
     if (!months.length) return html`<div class="card"><${EmptyState} icon="review" title="Your first review is on its way" text=${'Monthly reviews appear once a month with activity has finished. ' + K.MONTH_LONG[D.T.getMonth()] + ' closes on ' + K.fmtDate(D.plan.monthEnd) + '.'} /></div>`;
@@ -233,7 +233,7 @@
   // ---------------------------------------------------------------- Forecast
   const METRICS = [['cash', 'Cash flow'], ['safe', 'Safe to Spend'], ['savings', 'Savings'], ['debt', 'Debt'], ['networth', 'Net worth']];
   function Forecast({ route }) {
-    const { D, data, fmt, ctx, wide, openSheet } = useApp();
+    const { D, data, fmt, ctx, wide, openSheet, setCtx } = useApp();
     const [metric, setMetric] = useState(route.metric || 'cash');
     const [h, setH] = useState(data.prefs.horizon || 12);
     const [assumption, setAssumption] = useState(data.prefs.assumption);
