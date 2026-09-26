@@ -298,7 +298,7 @@
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));
-      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidCount, kind: st.kind && st.kind.card ? 'card' : undefined }].concat(d.imports) });
+      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, from: chosen.map((r) => r.date).filter(Boolean).sort()[0], to: chosen.map((r) => r.date).filter(Boolean).sort().pop(), settled: paidCount, kind: st.kind && st.kind.card ? 'card' : undefined }].concat(d.imports) });
       commit(d); toast(newBills.length ? chosen.length + ' transactions imported · ' + newBills.length + (newBills.length === 1 ? ' bill added' : ' bills added') : salary && useSalary ? chosen.length + ' transactions imported · salary updated' : paidCount === chosen.length ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
     };
     // "Which card is it?": re-read the file for that card and remember the number on it
