@@ -1,7 +1,7 @@
 /* Kipu · Home and Money */
 (function () {
   const K = window.K;
-  const { useState } = React;
+  const { useState, useEffect } = React;
   const { html, useApp, Icon, Metric, SectionHeader, Row, Tile, Bar, Stripe, TxnRow, AccountRow, CardPreview, LoanRow, UpcomingItem, InsightCard, ContextFilter, Tabs, Chips, EmptyState } = K;
 
   const initials = (n) => (n || 'K').split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -149,17 +149,32 @@
     const { go, wide, D } = useApp();
     const tab = route.tab || 'overview';
     const Body = { overview: MoneyOverview, accounts: Accounts, cards: Cards, loans: Loans, activity: Activity }[tab];
+    // Coming from the side menu (Money › Cards…): scroll to that section
+    useEffect(() => { if (!wide || tab === 'overview') return; const el = document.getElementById('money-' + tab); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); }, [wide, tab]);
+    const head = html`<div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const rate = D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`;
+    // Computer and tablet: everything on one page. Phone: one tab at a time.
+    if (wide) {
+      const sec = (id, title, body) => html`<section id=${'money-' + id} class="stack-s" style=${{ gap: '12px' }}><h2 class="money-h">${title}</h2>${body}</section>`;
+      return html`<div class="stack" style=${{ gap: '28px' }}>${head}${rate}
+        <div class="grid w2" style=${{ alignItems: 'start', gap: '20px' }}>
+          <div class="stack" style=${{ gap: '20px' }}><${MoneyOverview} only="net" />${sec('loans', 'Loans', html`<${Loans} />`)}</div>
+          ${sec('accounts', 'Accounts', html`<${Accounts} narrow=${true} />`)}
+        </div>
+        ${sec('cards', 'Cards', html`<${Cards} />`)}
+        <section id="money-activity" class="stack-s" style=${{ gap: '12px', paddingTop: '4px' }}><${Activity} /></section></div>`;
+    }
     return html`<div class="stack">
-      <div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>
+      ${head}
       <${Tabs} tabs=${MONEY_TABS} value=${tab} onChange=${(t) => go({ r: 'money', tab: t }, true)} />
-      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}
+      ${rate}
       <${Body} /></div>`;
   };
 
   const AddRow = ({ label, sheet }) => { const { openSheet } = useApp(); return html`<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => openSheet({ k: sheet })}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>${label}</button>`; };
   K.AddRow = AddRow;
 
-  function MoneyOverview() {
+  function MoneyOverview({ only }) {
     const { D, fmt, go, wide, openSheet } = useApp();
     if (!D.accts.length && !D.cards.length && !D.loans.length) return html`<div class="card"><${EmptyState} icon="wallet" title="Add your first account" text="Chequing, savings, cash or investments. Enter today’s balance; you can import history later." action="Add account" onAction=${() => openSheet({ k: 'addAccount' })} /></div>`;
     const liab = D.cardBal + D.loanBal;
@@ -169,13 +184,15 @@
       <div>${[['Cash & savings', D.cash, 'var(--acc)', 'accounts'], ['Investments & property', D.invest + D.property, 'color-mix(in srgb, var(--acc) 45%, var(--surface2))', 'accounts'], ['Credit card balances', -D.cardBal, 'var(--info2)', 'cards'], ['Loan balances', -D.loanBal, 'var(--info2)', 'loans']].map(([l, v, c, t]) => html`<button key=${l} class="between" style=${{ width: '100%', padding: '10px 0', borderTop: '1px solid var(--line)' }} onClick=${() => go({ r: 'money', tab: t }, true)}><span class="row" style=${{ gap: '10px' }}><span class="dotk" style=${{ background: c }}></span><span>${l}</span></span><span class="row" style=${{ gap: '6px' }}><span class="amt">${fmt(v)}</span><span class="muted"><${Icon} n="next" s=${14} /></span></span></button>`)}</div>
       <span class="tiny muted">Balances in other currencies use today’s exchange rate for this total.</span></div>`;
     const recent = html`<div class="stack-s"><${SectionHeader} title="Recent activity" action="See all" onAction=${() => go({ r: 'money', tab: 'activity' }, true)} />${D.tx.length ? html`<div class="card tight list">${D.tx.slice(0, 6).map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="history" title="No activity yet" text="Expenses, income and transfers you add will appear here." action="Add expense" onAction=${() => openSheet({ k: 'expense' })} /></div>`}</div>`;
+    if (only === 'net') return net;
     return wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${net}${recent}</div>` : html`<div class="stack">${net}${recent}</div>`;
   }
 
-  function Accounts() {
+  function Accounts({ narrow }) {
     const { D, fmt, wide } = useApp();
     const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'];
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>${groups.map((g) => {
+    const two = wide && !narrow;
+    return html`<div class=${two ? 'grid w2' : 'stack'} style=${two ? { alignItems: 'start' } : null}>${groups.map((g) => {
       const list = D.accts.filter((a) => a.kind === g);
       if (!list.length) return null;
       return html`<div class="stack-s" key=${g}><div class="between"><span class="eyebrow">${g}</span><span class="small muted num">${fmt(K.sum(list, (a) => a.baseBal))}</span></div><div class="card tight list">${list.map((a) => html`<${AccountRow} key=${a.id} a=${a} />`)}</div></div>`;
