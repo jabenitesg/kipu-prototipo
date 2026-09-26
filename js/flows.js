@@ -44,7 +44,7 @@
 
   // ---------------------------------------------------------------- expense (new, edit, or from a receipt)
   const ExpenseSheet = ({ onClose, preset, item }) => {
-    const { data, commit, ctx, fmt, toast, D } = useApp();
+    const { data, commit, ctx, fmt, toast, D, openSheet } = useApp();
     preset = preset || {};
     const src = item || preset;
     const places = K.whereOptions(data);
@@ -71,6 +71,7 @@
     const curs = curOptions(data).concat(src.cur && !data.active.includes(src.cur) ? [src.cur] : []);
     // Paying in another currency: what the bank charges, estimated until you type the real amount
     const est = v && from && !byPartner ? K.chargeEstimate(data, v, cur, from, into) : null;
+    const cardPay = merchant.trim().length > 3 ? K.cardPaymentFor(data, merchant) : null;
     const charged = est ? { amt: numv(chargedIn) || est.amt, cur: est.cur, market: est.market, exact: !!numv(chargedIn) } : null;
     const blocked = v && from && !byPartner ? K.canPost(data, { type: 'expense', amt: v, cur, from, charged }) : null;
     const noRate = !K.hasRateFor(data, cur);
@@ -96,6 +97,7 @@
           <span class="small muted" style=${{ fontWeight: 600 }}>How it splits</span><${Seg} options=${[50].concat(hhSplit !== 50 && hhSplit !== 0 ? [hhSplit] : []).concat(paidBy === 'me' ? [0] : [100])} labels=${['Half each'].concat(hhSplit !== 50 && hhSplit !== 0 ? ['You ' + hhSplit + '%'] : []).concat(paidBy === 'me' ? ['All ' + who + '’s'] : ['All yours'])} value=${mine} onChange=${setMine} />
           ${v > 0 && html`<span class="small muted">${paidBy === 'me' ? who + ' owes you ' + fmt(K.toBase(data, v, cur) * (1 - mine / 100), { dec: 2 }) : 'You owe ' + who + ' ' + fmt(K.toBase(data, v, cur) * mine / 100, { dec: 2 })}</span>`}</div>`}</div>`}
       ${byPartner ? null : places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      ${!item && cardPay && html`<div class="card flat stack-s" style=${{ gap: '8px', padding: '12px 14px', background: 'var(--warnbg)' }}><span class="small" style=${{ lineHeight: 1.45 }}>${'This looks like a card payment. Paying a card isn’t spending: the purchases on the card already are.'}</span><button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => openSheet({ k: 'transfer', preset: { amt: v || undefined, cur, from: from.startsWith('acct:') ? from : undefined, toWhere: cardPay.card ? 'card:' + cardPay.card.id : undefined } })}>Record as card payment</button></div>`}
       ${est && html`<div class="card flat stack-s" style=${{ gap: '8px', padding: '12px 14px' }}><span class="small" style=${{ fontWeight: 600 }}>${'Charged to ' + K.whereName(data, from)}</span>
         ${K.payCurrencies(data, from).filter((c) => c !== cur).length > 1 && html`<${Seg} options=${K.payCurrencies(data, from).filter((c) => c !== cur)} value=${est.cur} onChange=${(c) => { setInto(c); setChargedIn(''); }} />`}
         <div class="row" style=${{ gap: '8px', alignItems: 'center' }}><span class="small muted" style=${{ minWidth: '3.2em' }}>${est.cur}</span><input id="e-charged" class="input grow num" inputmode="decimal" aria-label=${'Amount charged in ' + est.cur} placeholder=${String(est.amt.toFixed(2))} value=${chargedIn} onInput=${(e) => setChargedIn(e.target.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''))} /></div>
@@ -259,6 +261,8 @@
       let d = data;
       const imp = K.uid('i');
       chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } d = K.addTxn(d, { imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined }); });
+      // A card payment seen on both statements (bank and card) counts once
+      d = K.mergeCardPayments(d);
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));

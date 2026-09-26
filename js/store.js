@@ -478,21 +478,47 @@
   K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
   K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
   // A card-payment line on a bank statement ("PAGO TARJETA VISA", "CIBC VISA PAYMENT"): which card it pays, or null
-  const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono)\b/;
-  const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|credit|credito|cr)\b/;
+  const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono|autopay|epayment|epay|preauth|pay)\b/;
+  const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|crd|credit|credito|cr)\b/;
+  // Card issuers: a bank withdrawal to one of them is a card payment even without the word "payment"
+  const ISSUER = /\b(amex|american express|capital one|discover|citi ?cards?|chase card|chase credit|synchrony|barclaycard|ctfs|triangle|pc financial|rogers bank|mbna|diners)\b/;
+  const WALLET = /\b(apple|google|samsung) pay\b/g;
   K.cardPaymentFor = (d, desc) => {
-    const m = norm(desc);
-    if (!m || !PAY.test(m)) return null;
+    const m = norm(desc).replace(WALLET, ' ').replace(/\s+/g, ' ').trim();
+    const issuer = ISSUER.exec(m);
+    if (!m || (!PAY.test(m) && !issuer)) return null;
     const named = (d.cards || []).filter((c) => (c.last4 && m.includes(c.last4)) || norm(c.name).split(' ').filter((w) => w.length >= 4 && !['card', 'visa', 'credit'].includes(w)).some((w) => m.split(' ').includes(w)));
     if (named.length === 1) return { card: named[0] };
+    if (issuer) { const byIssuer = (d.cards || []).filter((c) => norm(c.name + ' ' + (c.network || '')).includes(issuer[1].split(' ')[0])); return { card: byIssuer.length === 1 ? byIssuer[0] : null }; }
     if (!CARDWORD.test(m)) return null;
     const byNet = (d.cards || []).filter((c) => c.network && m.includes(norm(c.network)));
     return { card: byNet.length === 1 ? byNet[0] : (d.cards || []).length === 1 ? d.cards[0] : null };
   };
+  // The same card payment seen twice: leaving the bank account, and arriving on the card statement ("PAYMENT - THANK YOU").
+  // Same amount (a few percent apart across currencies) within a week.
+  K.cardPaymentPairs = (d) => {
+    const cardSide = d.txns.filter((t) => t.type === 'transfer' && !t.from && (t.to || '').startsWith('card:') && !t.pair && K.looksLikePayment(t.merchant));
+    const bankSide = d.txns.filter((t) => (t.from || '').startsWith('acct:') && !t.pair && (t.type === 'expense' || (t.type === 'transfer' && (!t.to || t.to.startsWith('card:')))));
+    const used = new Set(), pairs = [];
+    cardSide.forEach((c) => {
+      const near = bankSide.filter((b) => !used.has(b.id) && b.base != null && c.base != null && Math.abs(K.days(parse(b.date), parse(c.date))) <= 7 && (b.to ? b.to === c.to : true)
+        && (b.cur === c.cur ? Math.abs(b.amt - c.amt) <= 0.01 : Math.abs(b.base - c.base) <= Math.max(1, Math.abs(c.base) * 0.03)));
+      // Lines that say they pay a card come first, then the closest date
+      const score = (b) => (b.type === 'transfer' ? 0 : K.cardPaymentFor(d, b.merchant) ? 1 : 2) * 100 + Math.abs(K.days(parse(b.date), parse(c.date)));
+      const best = near.sort((x, y) => score(x) - score(y))[0];
+      if (best) { used.add(best.id); pairs.push([best, c]); }
+    });
+    return pairs;
+  };
+  // One payment, one effect: the bank line stops being spending and stops crediting the card, since the card's own line already does
+  K.mergeCardPayments = (d) => K.cardPaymentPairs(d).reduce((acc, [b, c]) => {
+    acc = K.editTxn(acc, b.id, { type: 'transfer', cat: 'transfer', to: null, recurring: null, pays: c.to, pair: c.id });
+    return K.editTxn(acc, c.id, { pair: b.id });
+  }, d);
   // Card payments imported from a bank before Kipu recognized them: they count as spending twice
-  K.misfiledCardPayments = (d) => d.txns.filter((t) => t.type === 'expense' && t.source === 'statement' && (t.from || '').startsWith('acct:') && K.cardPaymentFor(d, t.merchant));
+  K.misfiledCardPayments = (d) => { const paired = new Set(K.cardPaymentPairs(d).map(([b]) => b.id)); return d.txns.filter((t) => t.type === 'expense' && (t.from || '').startsWith('acct:') && ((t.source === 'statement' && K.cardPaymentFor(d, t.merchant)) || paired.has(t.id))); };
   // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
-  K.fixCardPayments = (d) => K.misfiledCardPayments(d).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d);
+  K.fixCardPayments = (d) => K.mergeCardPayments(K.misfiledCardPayments(d).filter((t) => t.source === 'statement' && K.cardPaymentFor(d, t.merchant)).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d));
   // Payment wording on a card statement ("PAYMENT - THANK YOU", "PAGO RECIBIDO", "ABONO")
   K.looksLikePayment = (desc) => { const m = norm(desc); return PAY.test(m) || /\b(thank you|gracias|recibido|received)\b/.test(m); };
   // On a statement most lines are purchases, so the sign most lines share is spending

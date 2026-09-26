@@ -584,3 +584,37 @@ test('statement lines that show the original purchase and the rate', () => {
   assert.equal(K.parseFxInfo('WONG PEN 45.00', 'PEN'), null); // same currency as the statement
   assert.equal(K.parseFxInfo('TIM HORTONS #123', 'CAD'), null);
 });
+
+test('a card payment is never spending, whatever the bank calls it', () => {
+  const d = K.factory();
+  d.cards = [{ id: 'amex', name: 'Amex Cobalt', network: 'Amex', cur: 'CAD', bal: 500 }, { id: 'v', name: 'Visa Infinite', network: 'Visa', last4: '1187', cur: 'CAD', bal: 0 }];
+  assert.equal(K.cardPaymentFor(d, 'AMEX BANK OF CANADA').card.id, 'amex'); // issuer only, no "payment"
+  assert.equal(K.cardPaymentFor(d, 'CHASE CREDIT CRD AUTOPAY').card, null); // a card that isn't in Kipu: still not spending
+  assert.equal(K.cardPaymentFor(d, 'TD VISA PREAUTH PYMT 1187').card.id, 'v');
+  assert.equal(K.cardPaymentFor(d, 'APPLE PAY STARBUCKS'), null); // paying with a phone wallet is a purchase
+  assert.equal(K.cardPaymentFor(d, 'BILL PAY HYDRO ONE'), null);
+});
+
+test('the same card payment on the bank and the card statement counts once', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 2000)];
+  d.cards = [card('visa', 'CAD', 800)];
+  // Bank line with no payment wording, imported as spending
+  d = K.addTxn(d, { type: 'expense', merchant: 'ONLINE TRANSFER 00123', cat: 'other', amt: 800, cur: 'CAD', from: 'acct:chq', date: K.iso(K.addDays(K.today(), -3)), source: 'statement' });
+  // The card statement shows the payment arriving
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT - THANK YOU', amt: 800, cur: 'CAD', from: null, to: 'card:visa', date: K.iso(K.addDays(K.today(), -1)), source: 'statement' });
+  assert.equal(K.misfiledCardPayments(d).length, 1);
+  d = K.fixCardPayments(d);
+  assert.equal(K.derive(d, ctx).month.spending, 0);
+  assert.equal(d.accounts[0].bal, 1200); // left the bank once
+  assert.equal(d.cards[0].bal, 0); // paid once
+  assert.equal(K.cardPaymentPairs(d).length, 0);
+  // A transfer typed by hand and the card statement's payment line: the card isn't credited twice
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 2000)]; e.cards = [card('visa', 'CAD', 800)];
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'Payment to Visa', amt: 800, cur: 'CAD', from: 'acct:chq', to: 'card:visa' });
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'PAGO RECIBIDO', amt: 800, cur: 'CAD', from: null, to: 'card:visa', source: 'statement' });
+  assert.equal(e.cards[0].bal, -800); // credited twice before merging
+  e = K.mergeCardPayments(e);
+  assert.equal(e.cards[0].bal, 0); assert.equal(e.accounts[0].bal, 1200);
+});
