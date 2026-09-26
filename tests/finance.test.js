@@ -663,3 +663,11 @@ test('a card added with nothing owed: its statements move the balance, and one s
   assert.equal(K.stuckCard(d, d.cards[0]), null);
   assert.equal(d.txns.find((t) => t.merchant === 'B').settled, true); // the old statement stays history
 });
+
+test('a bank line with only the card company name ("AMERICAN EXPRESS") is a payment to that card', () => {
+  const d = Object.assign(K.factory(), { cards: [Object.assign(card('cobalt', 'CAD'), { name: 'Cobalt', network: 'Amex' }), Object.assign(card('cibc', 'CAD'), { name: 'CIBC', network: 'Visa' })] });
+  assert.equal(K.cardPaymentFor(d, 'AMERICAN EXPRESS').card.id, 'cobalt');
+  assert.equal(K.cardPaymentFor(d, 'AMEX BILL PYMT').card.id, 'cobalt');
+  assert.equal(K.cardPaymentFor(d, 'CAPITAL ONE'), null); // no such card
+  assert.equal(K.cardPaymentFor(d, 'TIM HORTONS'), null);
+});

@@ -422,9 +422,16 @@
   // A card-payment line on a bank statement ("PAGO TARJETA VISA", "CIBC VISA PAYMENT"): which card it pays, or null
   const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono)\b/;
   const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|credit|credito|cr)\b/;
+  // Card companies whose name alone on a bank line is a payment to their card ("AMERICAN EXPRESS", "CAPITAL ONE")
+  const ISSUER = /\b(american express|amex|capital one|mbna|rogers bank|brim|neo financial|home trust|diners club|discover)\b/;
   K.cardPaymentFor = (d, desc) => {
     const m = norm(desc);
-    if (!m || !PAY.test(m)) return null;
+    if (!m) return null;
+    if (!PAY.test(m)) {
+      if (!ISSUER.test(m)) return null;
+      const byName = (d.cards || []).filter((c) => [c.network, c.name, c.issuer].some((x) => x && ISSUER.test(norm(x)) && m.match(ISSUER)[0] === norm(x).match(ISSUER)[0]) || (c.network && /amex|american express/.test(norm(c.network)) && /amex|american express/.test(m)));
+      return byName.length === 1 ? { card: byName[0] } : null;
+    }
     const named = (d.cards || []).filter((c) => (c.last4 && m.includes(c.last4)) || norm(c.name).split(' ').filter((w) => w.length >= 4 && !['card', 'visa', 'credit'].includes(w)).some((w) => m.split(' ').includes(w)));
     if (named.length === 1) return { card: named[0] };
     if (!CARDWORD.test(m)) return null;

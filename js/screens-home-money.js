@@ -396,11 +396,17 @@
     const known = t ? [t.from, t.to, imp && imp.where].find((w) => w && K.whereItem(data, w)) || null : null;
     const places = K.whereOptions(data);
     const [place, setPlace] = useState(known || (places[0] || [])[0] || '');
+    const [pickCard, setPickCard] = useState(false);
     if (!t) return html`<${EmptyState} title="Transaction not found" text="It may have been deleted." />`;
     const foreign = t.cur !== data.base;
     const liveNow = foreign ? K.toBase(data, t.amt, t.cur) : null;
     const trip = t.trip && data.trips.find((x) => x.id === t.trip);
-    const typeLabel = { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
+    // Money from an account to a card is paying the card: it isn't spending (the purchases already were)
+    const cardPay = t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:');
+    const typeLabel = cardPay ? 'Card payment' : { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
+    const payable = (t.from || '').startsWith('acct:') && data.cards.length > 0;
+    const payCard = (id) => { const card = data.cards.find((x) => x.id === id); commit(K.editTxn(data, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: 'card:' + id })); setPickCard(false); toast('Payment to ' + card.name + ' · not counted as spending'); };
+    const toCardPay = () => { const hit = K.cardPaymentFor(data, t.merchant); if (hit && hit.card) payCard(hit.card.id); else if (data.cards.length === 1) payCard(data.cards[0].id); else setPickCard(true); };
     const c = K.CATS[t.cat];
     const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);
     const toggle = (k) => setOpen(open === k ? null : k);
@@ -418,7 +424,9 @@
 
       ${editable && html`<div class="card tight list">
         <${OptRow} icon="transfer" label="Type" value=${typeLabel} open=${open === 'type'} onToggle=${() => toggle('type')}>
-          <${K.Seg} options=${['expense', 'income', 'transfer']} labels=${['Expense', 'Income', 'Transfer']} value=${t.type} onChange=${setType} />
+          <${K.Seg} options=${payable ? ['expense', 'income', 'transfer', 'cardpay'] : ['expense', 'income', 'transfer']} labels=${payable ? ['Expense', 'Income', 'Transfer', 'Card payment'] : ['Expense', 'Income', 'Transfer']} value=${pickCard || cardPay ? 'cardpay' : t.type} onChange=${(v) => (v === 'cardpay' ? toCardPay() : (setPickCard(false), setType(v)))} />
+          ${(pickCard || cardPay) && payable && html`<div class="stack-s" style=${{ gap: '6px' }}><span class="tiny muted">Which card did you pay?</span><div class="txo-choices">${data.cards.map((cd) => choice(t.to === 'card:' + cd.id, cd.name + (cd.last4 ? ' ·' + cd.last4 : ''), () => payCard(cd.id), cd.id))}</div></div>`}
+          ${cardPay && html`<span class="tiny muted" style=${{ lineHeight: 1.5 }}>${t.settled ? 'Kept as history: it doesn’t change what you have or owe, and it isn’t spending.' : 'It lowers what you owe on the card and isn’t counted as spending, since the purchases already were.'}</span>`}
           ${!known && places.length > 0 && html`<label class="stack-s" style=${{ gap: '4px' }}><span class="tiny muted">Account or card it belongs to</span><select class="input" value=${place} onChange=${(e) => setPlace(e.target.value)}>${places.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select></label>`}</${OptRow}>
         ${t.type === 'expense' && html`<${OptRow} icon="tag" label="Category" value=${c ? c.name : 'Other'} open=${open === 'cat'} onToggle=${() => toggle('cat')}>
           <div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (t.cat === k ? ' on' : '')} onClick=${() => { commit(K.editTxn(data, t.id, { cat: k })); toast('Category updated'); }}>${K.CATS[k].name}</button>`)}</div>
