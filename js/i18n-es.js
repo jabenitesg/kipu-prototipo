@@ -9,6 +9,7 @@
 
   const words = {
     // added with the solo and household pass
+    "Sections": "Secciones",
     "at today’s rate": "con la tasa de hoy",
     "In": "En",
     "Worth watching next month": "Para vigilar el próximo mes",
