@@ -586,3 +586,17 @@ test('categories: shops are recognized without store numbers, and one choice per
   assert.deepEqual(d.txns.map((t) => t.cat), ['groceries', 'groceries']);
   assert.equal(K.guessCat(d, 'ZIGGYS MKT CORNER 0099'), 'groceries');
 });
+
+test('insights use the whole history, so there is something to say before this month has data', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date, type, amt, merchant, cat) => { d = K.addTxn(d, { type, merchant, amt, cur: 'CAD', from: 'acct:chq', date, cat, source: 'statement', settled: true }); };
+  const T = K.today(), mk = (back, day) => K.iso(new Date(T.getFullYear(), T.getMonth() - back, day));
+  add(mk(2, 14), 'income', 5000, 'PAYROLL', 'income'); add(mk(2, 18), 'expense', 400, 'METRO', 'groceries'); add(mk(2, 20), 'expense', 300, 'METRO', 'groceries');
+  add(mk(1, 14), 'income', 5000, 'PAYROLL', 'income'); add(mk(1, 18), 'expense', 900, 'METRO', 'groceries'); add(mk(1, 20), 'expense', 400, 'METRO', 'groceries');
+  const ins = K.insights(d, K.derive(d, ctx));
+  const ids = ins.map((i) => i.id);
+  assert.ok(ids.includes('month'));
+  assert.ok(ids.includes('cat-up'));
+  assert.ok(ids.includes('shop'));
+});

@@ -208,9 +208,9 @@
   K.UpcomingItem = UpcomingItem;
 
   const InsightCard = ({ i, compact }) => {
-    const { go } = useApp();
+    const { go, openSheet } = useApp();
     const tone = { Priority: 'a', Spending: 'a', Savings: 'g', Debt: 'b', Credit: 'b', Goals: 'p', Recurring: 'p' }[i.kind] || 'p';
-    return html`<button class="card" style=${{ display: 'flex', gap: '12px', alignItems: 'flex-start', width: '100%', borderColor: i.kind === 'Priority' ? 'color-mix(in srgb, var(--warn2) 45%, var(--line))' : null }} onClick=${() => go(i.route)}>
+    return html`<button class="card" style=${{ display: 'flex', gap: '12px', alignItems: 'flex-start', width: '100%', borderColor: i.kind === 'Priority' ? 'color-mix(in srgb, var(--warn2) 45%, var(--line))' : null }} onClick=${() => (i.sheet ? openSheet(i.sheet) : go(i.route))}>
       <${Tile} icon=${i.icon} tone=${tone} />
       <span class="grow stack-s" style=${{ gap: '6px' }}><span class="row" style=${{ gap: '6px' }}><span class="tag" style=${{ background: 'var(--surface2)', color: 'var(--muted)' }}>${i.kind}</span></span><span style=${{ fontSize: '15px', lineHeight: 1.45, fontWeight: 500 }}>${i.title}</span>${!compact && i.why && html`<span class="small muted" style=${{ lineHeight: 1.5 }}>${i.why}</span>`}<span class="link">${i.cta}<${Icon} n="next" s=${13} w=${2.2} /></span></span></button>`;
   };

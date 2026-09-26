@@ -906,6 +906,52 @@
     D.goals.filter((g) => !g.targetDate && g.left > 0).forEach((g) => out.push({ id: 'goal-' + g.id, kind: 'Goals', icon: 'target', title: g.name + ' has no target date, so Kipu can’t tell whether the monthly amount is enough.', why: g.monthly ? 'At the current pace it’s done in ' + g.etaLabel + '.' : 'It has no monthly amount yet.', cta: 'Open goal', route: { r: 'goal', id: g.id } }));
     (D.cards || []).forEach((c) => { const ex = K.expiryInfo && K.expiryInfo(c); if (!ex) return; if (ex.expired) out.push({ id: 'exp-' + c.id, kind: 'Priority', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expired in ' + K.fmtMonth(ex.end) + '.', why: 'Add the new expiry date once the replacement card arrives.', cta: 'Open card', route: { r: 'card', id: c.id } }); else if (ex.soon) out.push({ id: 'exp-' + c.id, kind: 'Credit', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expires at the end of ' + K.fmtMonth(ex.end) + '.', why: 'Watch for the replacement and update subscriptions that use this card.', cta: 'Open card', route: { r: 'card', id: c.id } }); });
     if (D.unpaid.length) out.push({ id: 'unpaid', kind: 'Priority', icon: 'calendar', title: D.unpaid.length === 1 ? D.unpaid[0].name + ' was due and isn’t marked as paid.' : D.unpaid.length + ' bills were due and aren’t marked as paid.', why: 'Marking them paid keeps Safe to Spend accurate.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
+    // ---- From your whole history, so there's something useful even before this month's statement arrives
+    const H = K.history(D.txAll || []);
+    const done = H.months.filter((m) => !m.current && m.count > 0);
+    const L = done[done.length - 1], P = done[done.length - 2];
+    const mname = (m) => MONTH_LONG[+m.key.slice(5) - 1];
+    if (L && L.income > 0) {
+      const more = P ? L.left - P.left : null;
+      out.push({ id: 'month', kind: 'Savings', icon: L.left >= 0 ? 'trend' : 'alert', title: (L.left >= 0 ? 'In ' + mname(L) + ' you kept ' + f(L.left) : 'In ' + mname(L) + ' you spent ' + f(-L.left) + ' more than came in') + ' (' + Math.round(L.rate) + '% of income).', why: P && more != null ? (more >= 0 ? f(more) + ' more than ' + mname(P) + '.' : f(-more) + ' less than ' + mname(P) + '.') : 'Money in ' + f(L.income) + ', money out ' + f(L.out) + '.', cta: 'Big picture', route: { r: 'stats', tab: 'overview' } });
+    }
+    if (L && P) {
+      const cats = Array.from(new Set(Object.keys(L.cats).concat(Object.keys(P.cats)))).map((c) => [c, (L.cats[c] || 0) - (P.cats[c] || 0), P.cats[c] || 0]).filter((x) => K.CATS[x[0]]);
+      const up = cats.slice().sort((a, b) => b[1] - a[1])[0], down = cats.slice().sort((a, b) => a[1] - b[1])[0];
+      if (up && up[1] > Math.max(50, up[2] * 0.2)) out.push({ id: 'cat-up', kind: 'Spending', icon: 'trend', title: K.CATS[up[0]].name + ' went up ' + f(up[1]) + ' in ' + mname(L) + '.', why: 'Compared with ' + mname(P) + ': ' + f(up[2]) + ' → ' + f(up[2] + up[1]) + '.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+      if (down && down[1] < -Math.max(50, down[2] * 0.2)) out.push({ id: 'cat-down', kind: 'Savings', icon: 'check', title: K.CATS[down[0]].name + ' went down ' + f(-down[1]) + ' in ' + mname(L) + '.', why: 'Compared with ' + mname(P) + ': ' + f(down[2]) + ' → ' + f(down[2] + down[1]) + '.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+    }
+    if (L) {
+      const inL = (D.txAll || []).filter((t) => t.type === 'expense' && t.date && t.date.startsWith(L.key));
+      const shops = {};
+      inL.forEach((t) => { const k = K.merchantKey(t.merchant) || t.merchant; const x = (shops[k] = shops[k] || { name: K.txnName(data, t), total: 0, n: 0, bill: !!t.recurring }); x.total += t.base || 0; x.n++; });
+      const top = Object.values(shops).filter((x) => !x.bill).sort((a, b) => b.total - a.total)[0];
+      if (top && top.n > 1 && top.total > 50) out.push({ id: 'shop', kind: 'Spending', icon: 'bag', title: top.name + ' was where you spent the most in ' + mname(L) + ': ' + f(top.total) + '.', why: top.n + ' purchases, about ' + f(top.total / top.n) + ' each.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+      // A purchase far above what that category usually costs
+      const since = iso(addMonths(today(), -4));
+      const byCat = {}; (D.txAll || []).forEach((t) => { if (t.type === 'expense' && t.date >= since && !t.recurring) (byCat[t.cat] = byCat[t.cat] || []).push(t.base || 0); });
+      const med = (a) => { const x = a.slice().sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : 0; };
+      const odd = inL.filter((t) => !t.recurring && (byCat[t.cat] || []).length >= 5 && (t.base || 0) > 100 && (t.base || 0) > 4 * med(byCat[t.cat])).sort((a, b) => b.base - a.base)[0];
+      if (odd) out.push({ id: 'odd-' + odd.id, kind: 'Spending', icon: 'alert', title: K.txnName(data, odd) + ' (' + f(odd.base) + ') was much bigger than your usual ' + (K.CATS[odd.cat] || { name: 'purchase' }).name.toLowerCase() + '.', why: 'Usually about ' + f(med(byCat[odd.cat])) + ' per purchase.', cta: 'Open it', route: { r: 'txn', id: odd.id } });
+    }
+    if (done.length >= 4) {
+      const last3 = done.slice(-3), before = done.slice(-6, -3);
+      const avg = (a) => a.reduce((x, m) => x + m.left, 0) / a.length;
+      if (before.length === 3) { const d = avg(last3) - avg(before); if (Math.abs(d) > 50) out.push({ id: 'avg3', kind: 'Savings', icon: 'chart', title: 'Over the last 3 months you kept ' + f(avg(last3)) + ' a month on average.', why: (d >= 0 ? f(d) + ' more a month' : f(-d) + ' less a month') + ' than the 3 months before.', cta: 'Big picture', route: { r: 'stats', tab: 'overview' } }); }
+    }
+    // This month so far against the same days of last month
+    const curM = H.months.find((m) => m.current), prevM = H.months[H.months.length - 2];
+    if (curM && curM.count >= 5 && prevM && prevM.count) {
+      const same = K.sameStretch(D.txAll, prevM), d = curM.spending - same.spending;
+      if (Math.abs(d) > 50) out.push({ id: 'pace', kind: 'Spending', icon: d > 0 ? 'trend' : 'check', title: 'So far this month you spent ' + f(curM.spending) + '.', why: (d > 0 ? f(d) + ' more' : f(-d) + ' less') + ' than by this day last month.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+    }
+    // Card statements coming due
+    (data.cards || []).forEach((c) => { const cyc = K.cardCycle(data, c); if (cyc && cyc.owed > 0 && cyc.reserveOn && days(today(), parse(cyc.reserveOn)) <= 10) out.push({ id: 'stmt-' + c.id, kind: cyc.late ? 'Priority' : 'Credit', icon: 'card', title: c.name + ': ' + f(K.toBase(data, cyc.owed, c.cur || data.base)) + ' from the statement to pay by ' + K.fmtDate(cyc.reserveOn) + '.', why: 'Charges from ' + K.fmtDate(cyc.from) + ' to ' + K.fmtDate(cyc.lastClose) + ', less what you already paid.', cta: 'Open card', route: { r: 'card', id: c.id } }); });
+    const rec = K.findRecurring(data);
+    if (rec.length) out.push({ id: 'rec', kind: 'Recurring', icon: 'repeat', title: rec.length === 1 ? rec[0].name + ' repeats every month.' : rec.length + ' payments repeat every month and aren’t bills yet.', why: 'As bills, Safe to Spend sets money aside for them.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
+    const otherN = (data.txns || []).filter((t) => t.type === 'expense' && (!t.cat || t.cat === 'other')).length;
+    if (otherN >= 3) out.push({ id: 'other', kind: 'Spending', icon: 'tag', title: otherN + ' expenses are in Other.', why: 'Sorting them shop by shop makes every chart more accurate.', cta: 'Review categories', sheet: { k: 'reviewCats' } });
+    (data.bills || []).filter((b) => b.lastChange && !b.lastChange.seen).forEach((b) => out.push({ id: 'price-' + b.id, kind: 'Recurring', icon: b.lastChange.to < b.lastChange.from ? 'down' : 'up', title: b.name + (b.lastChange.to < b.lastChange.from ? ' went down' : ' went up') + ': ' + f(b.lastChange.from) + ' → ' + f(b.lastChange.to) + '.', why: 'The bill follows your latest payment.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } }));
     const order = { Priority: 0, Credit: 1, Debt: 2, Spending: 3, Savings: 4, Goals: 5, Recurring: 6 };
     return out.sort((a, b) => order[a.kind] - order[b.kind]);
   };
