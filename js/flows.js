@@ -35,7 +35,7 @@
     const { ctx, setCtx, data, D, cloud } = useApp();
     const curs = ['Combined'].concat(curOptions(data));
     return html`<${Sheet} title="View" sub="Country, scope, currency and period apply across Kipu." onClose=${onClose}>
-      ${data.household.enabled && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
+      ${K.hhMode(data) === 'mixed' && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['personal', 'household']} labels=${['Personal', 'Household']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only items marked as shared.' : 'Everything that belongs to you.'}</span></div>`}
       ${D.countries && D.countries.length > 1 && html`<div class="stack-s"><span class="eyebrow">Country</span><${Chips} options=${['All'].concat(D.countries)} value=${ctx.country || 'All'} onChange=${(v) => setCtx({ country: v })} labels=${['All'].concat(D.countries).map((c) => (c === 'All' ? html`<${Icon} n="globe" s=${16} />Global · ${K.sym(data.base)}` : html`<${K.CountryFlag} cc=${c} s=${18} />${K.countryName(c)} · ${K.sym(K.countryCur(data, c))}`))} /><span class="tiny muted">${(ctx.country || 'All') === 'All' ? 'Everything, converted to ' + data.base + ' at today’s rates.' : 'Only ' + K.countryName(ctx.country) + ', in its own currency.'}</span></div>`}
       ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
       ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${ctx.period == null ? 11 : ctx.period} onChange=${(v) => setCtx({ period: v })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
@@ -58,16 +58,21 @@
     const [note, setNote] = useState(src.note || '');
     const [trip, setTrip] = useState(src.trip || (K.activeTrip(data, K.parse(date)) || {}).id || '');
     const [shared, setShared] = useState(src.shared != null ? src.shared : ctx.scope === 'household');
+    const mode = K.hhMode(data), who = K.partnerName(data) || 'Partner', hhSplit = data.household.split != null ? data.household.split : 50;
+    const [paidBy, setPaidBy] = useState((src.split && src.split.by) || 'me');
+    const [mine, setMine] = useState(src.split && src.split.mine != null ? src.split.mine : hhSplit);
+    const splitting = mode === 'mixed' && shared;
+    const byPartner = splitting && paidBy === 'partner';
     const guessed = !cat && merchant ? K.guessCat(data, merchant) : null;
     const category = cat || guessed || 'other';
     const v = numv(amt);
     const curs = curOptions(data).concat(src.cur && !data.active.includes(src.cur) ? [src.cur] : []);
-    const blocked = v && from ? K.canPost(data, { type: 'expense', amt: v, cur, from }) : null;
+    const blocked = v && from && !byPartner ? K.canPost(data, { type: 'expense', amt: v, cur, from }) : null;
     const noRate = !K.hasRateFor(data, cur);
     const save = () => {
-      const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from, date, note, trip: trip || null, autoTrip: false, shared, source: preset.source || (item && item.source) || 'manual' };
+      const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from: byPartner ? '' : from, date, note, trip: trip || null, autoTrip: false, shared: mode === 'together' || shared, split: splitting ? { by: paidBy, mine } : null, source: preset.source || (item && item.source) || 'manual' };
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
-      if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared });
+      if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared, split: t.split });
       commit(next);
       const safe = K.derive(next, ctx).plan;
       toast(item ? 'Expense updated' : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
@@ -81,11 +86,15 @@
       <${In} id="e-merchant" label="Merchant" value=${merchant} onInput=${(e) => setMerchant(e.target.value)} ph="Where did you spend?" />
       <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].custom && html`<${Icon} n=${K.CATS[c].icon} s=${13} />`}${K.CATS[c].name}</button>`)}${!newCat && html`<button type="button" class="chip" style=${{ color: 'var(--acc)', background: 'var(--accbg)' }} onClick=${() => setNewCat(true)}><${Icon} n="plus" s=${13} w=${2.4} />New category</button>`}</div>
         ${newCat && html`<${K.CategoryForm} onCancel=${() => setNewCat(false)} onSave=${(c) => { const [d, id] = K.addCategory(data, c); K.syncCats(d); commit(d); setCat(id); setNewCat(false); toast(c.name + ' added'); }} />`}</div>
-      ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      ${mode === 'mixed' && html`<div class="card tight stack-s" style=${{ gap: '10px' }}><${ToggleRow} title=${'Shared with ' + who} sub=${shared ? null : 'Only yours'} on=${shared} onChange=${setShared} icon="people" tone="p" />
+        ${shared && html`<div class="stack-s" style=${{ gap: '8px', padding: '0 4px 6px' }}><span class="small muted" style=${{ fontWeight: 600 }}>Who paid?</span><${Seg} options=${['me', 'partner']} labels=${['Me', who]} value=${paidBy} onChange=${setPaidBy} />
+          <span class="small muted" style=${{ fontWeight: 600 }}>How it splits</span><${Seg} options=${[50].concat(hhSplit !== 50 && hhSplit !== 0 ? [hhSplit] : []).concat(paidBy === 'me' ? [0] : [100])} labels=${['Half each'].concat(hhSplit !== 50 && hhSplit !== 0 ? ['You ' + hhSplit + '%'] : []).concat(paidBy === 'me' ? ['All ' + who + '’s'] : ['All yours'])} value=${mine} onChange=${setMine} />
+          ${v > 0 && html`<span class="small muted">${paidBy === 'me' ? who + ' owes you ' + fmt(K.toBase(data, v, cur) * (1 - mine / 100), { dec: 2 }) : 'You owe ' + who + ' ' + fmt(K.toBase(data, v, cur) * mine / 100, { dec: 2 })}</span>`}</div>`}</div>`}
+      ${byPartner ? null : places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
       <${K.DateInput} label="Date" value=${date} onChange=${setDate} /><${In} id="e-note" label="Note" value=${note} onInput=${(e) => setNote(e.target.value)} ph="Optional" />
-      ${(D.trips.length > 0 || data.household.enabled) && html`<div class="card tight list">${D.trips.length > 0 && html`<div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div>`}${data.household.enabled && html`<${ToggleRow} title="Share with Household" on=${shared} onChange=${setShared} icon="people" tone="p" />`}</div>`}
+      ${D.trips.length > 0 && html`<div class="card tight list"><div class="lrow"><${Tile} icon="plane" tone="b" /><span class="grow t1">Trip</span><select id="e-trip" class="input" style=${{ width: '55%' }} value=${trip} onChange=${(e) => setTrip(e.target.value)}><option value="">None</option>${D.trips.map((t) => html`<option key=${t.id} value=${t.id}>${t.name}</option>`)}</select></div></div>`}
       ${(blocked || (noRate && v > 0)) && html`<${K.RateNote} cur=${blocked || cur} blocked=${!!blocked} />`}
-      <button class="btn pri block" disabled=${!v || !from || !!blocked} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
+      <button class="btn pri block" disabled=${!v || (!from && !byPartner) || !!blocked} onClick=${save}>${item ? 'Save changes' : 'Add ' + (v ? (cur === data.base ? fmt(v, { dec: 2 }) : fmt.native(v, cur, { dec: 2 })) : 'expense')}</button></${Sheet}>`;
   };
 
   const IncomeSheet = ({ onClose, item }) => {
@@ -429,12 +438,51 @@
       <span class="tiny muted">Expenses in the trip currency during these dates are tagged to it automatically.</span></${Form}>`;
   };
 
-  const CreateHousehold = ({ onClose }) => {
-    const { data, commit, toast } = useApp();
-    const [name, setName] = useState(data.household.name || '');
-    return html`<${Form} title="Household" sub="Mark accounts, bills and goals as shared, then switch the scope to see only shared money on this device. Sign in to set up a joint space for two accounts." onClose=${onClose} cta="Turn on Household" onSave=${() => { commit(Object.assign({}, data, { household: { enabled: true, name: name || 'Home' } })); toast('Household on · use the scope switch to view shared items'); onClose(); }}>
-      <${In} id="hh-name" label="Name" value=${name} onInput=${(e) => setName(e.target.value)} ph="e.g. Home" /></${Form}>`;
+  // How you handle money: just you, together (everything shared) or mixed (some shared, split)
+  const HouseholdMode = ({ onClose, preset }) => {
+    const { data, commit, toast, setCtx } = useApp();
+    const h = data.household;
+    const [mode, setMode] = useState((preset && preset.mode) || (K.hhMode(data) === 'solo' ? 'together' : K.hhMode(data)));
+    const [partner, setPartner] = useState(h.partner || '');
+    const [split, setSplit] = useState(String(h.split != null ? h.split : 50));
+    const [name, setName] = useState(h.name || '');
+    const [shareAll, setShareAll] = useState(true);
+    const save = () => {
+      let d = K.setHouseholdMode(data, mode, { partner, split: mode === 'mixed' ? split : h.split, name });
+      // Moving to "together": what you already have becomes shared too, unless you say otherwise
+      if (mode === 'together' && shareAll) ['accounts', 'cards', 'loans', 'bills', 'income', 'goals', 'trips'].forEach((k) => { d = Object.assign({}, d, { [k]: d[k].map((x) => (x.shared ? x : Object.assign({}, x, { shared: true }))) }); });
+      commit(d);
+      setCtx({ scope: mode === 'solo' ? 'personal' : mode === 'together' ? 'household' : 'personal' });
+      toast(mode === 'solo' ? 'Just you · Household off' : mode === 'together' ? 'Shared with ' + (K.partnerName(d) || 'your partner') : 'Split expenses on');
+      onClose();
+    };
+    const who = partner.trim() || 'your partner';
+    return html`<${Form} title="How you handle money" sub="Change it whenever your situation changes. Nothing is deleted." onClose=${onClose} cta="Save" onSave=${save} disabled=${mode !== 'solo' && !partner.trim()}>
+      <div class="stack-s" role="radiogroup" aria-label="How you handle money">${K.HH_MODES.map(([k, ic, t, sub]) => html`<button key=${k} role="radio" aria-checked=${mode === k} class=${'card how' + (mode === k ? ' on' : '')} onClick=${() => setMode(k)}><${Tile} icon=${ic} tone=${mode === k ? 'p' : 'n'} /><span class="grow stack-s" style=${{ gap: '2px', textAlign: 'left' }}><span style=${{ fontWeight: 700 }}>${t}</span><span class="small muted" style=${{ lineHeight: 1.4 }}>${sub}</span></span><span class=${'radio' + (mode === k ? ' on' : '')}></span></button>`)}</div>
+      ${mode !== 'solo' && html`<${In} id="hh-partner" label="Partner’s name" value=${partner} onInput=${(e) => setPartner(e.target.value)} ph="e.g. Kari" />
+        <${In} id="hh-name" label="Household name" value=${name} onInput=${(e) => setName(e.target.value)} ph=${data.profile.name && partner.trim() ? data.profile.name.split(' ')[0] + ' & ' + partner.trim() : 'e.g. Home'} />`}
+      ${mode === 'mixed' && html`<${In} id="hh-split" label="Your usual share of shared costs (%)" value=${split} onInput=${(e) => setSplit(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} mode="numeric" ph="50" hint=${'Half each is 50. If you earn more and pay 60%, write 60. You can change it on each expense.'} />`}
+      ${mode === 'together' && K.hhMode(data) !== 'together' && html`<div class="card tight"><${ToggleRow} title="Share what I already have" sub=${'Accounts, cards, loans, bills and goals become shared with ' + who} on=${shareAll} onChange=${setShareAll} icon="people" tone="p" /></div>`}
+      ${mode === 'together' && html`<span class="small muted" style=${{ lineHeight: 1.5 }}>${'To see the same numbers on both phones, sign in and create a joint Household in Settings › Account & sync, then invite ' + who + '.'}</span>`}</${Form}>`;
   };
 
-  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: CreateHousehold };
+  // Even things out after split expenses
+  const Settle = ({ onClose }) => {
+    const { data, commit, toast, fmt } = useApp();
+    const who = K.partnerName(data) || 'Partner';
+    const bal = K.splitBalance(data).owed;
+    const places = K.whereOptions(data, { cashOnly: true, noCards: true });
+    const [amt, setAmt] = useState(bal ? String(Math.abs(bal)) : '');
+    const [where, setWhere] = useState((places[0] || [])[0] || '');
+    const [dir, setDir] = useState(bal < 0 ? 'out' : 'in');
+    const v = numv(amt);
+    const save = () => { commit(K.settleUp(data, { amt: v, where, dir, date: K.iso(K.today()) })); toast(dir === 'in' ? who + ' paid you ' + fmt(v, { dec: 2 }) : 'You paid ' + who + ' ' + fmt(v, { dec: 2 })); onClose(); };
+    return html`<${Form} title="Settle up" sub=${bal > 0 ? who + ' owes you ' + fmt(bal, { dec: 2 }) : bal < 0 ? 'You owe ' + who + ' ' + fmt(-bal, { dec: 2 }) : 'You’re even'} onClose=${onClose} cta=${dir === 'in' ? 'Record payment from ' + who : 'Record payment to ' + who} onSave=${save} disabled=${!v || !where}>
+      <${Seg} options=${['in', 'out']} labels=${[who + ' paid me', 'I paid ' + who]} value=${dir} onChange=${setDir} />
+      <${Amount} value=${amt} onChange=${setAmt} cur=${data.base} />
+      ${places.length ? html`<${Field} label=${dir === 'in' ? 'Into' : 'From'}><${Select} id="st-where" value=${where} onChange=${setWhere} options=${places} /></${Field}>` : html`<${NoPlace} />`}
+      <span class="small muted" style=${{ lineHeight: 1.5 }}>A settle-up moves your account balance but isn’t income or spending.</span></${Form}>`;
+  };
+
+  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle };
 })();

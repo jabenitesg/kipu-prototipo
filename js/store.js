@@ -125,7 +125,7 @@
     base: 'CAD', active: ['CAD'],
     fx: { usd: Object.assign({}, USD_RATES), updated: null, source: 'Built-in reference rates' },
     accounts: [], cards: [], loans: [], txns: [], bills: [], income: [], budget: {}, goals: [], trips: [], rules: [], imports: [],
-    household: { enabled: false, name: '' },
+    household: { enabled: false, name: '', mode: 'solo', partner: '', split: 50 },
     fxPairs: { fav: [], use: {} },
     customCats: [],
     snapshots: {},
@@ -137,6 +137,47 @@
   };
   K.save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } };
   K.wipe = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+
+  // ---------------------------------------------------------------- household: solo, together (everything shared) or mixed (some shared)
+  K.HH_MODES = [
+    ['solo', 'user', 'Just me', 'My own accounts and spending. Nothing to share.'],
+    ['together', 'people', 'Together, we share everything', 'One shared picture of all our money, for both of us.'],
+    ['mixed', 'split', 'Some mine, some shared', 'My own money, plus shared expenses split between us.'],
+  ];
+  K.hhMode = (d) => { const h = (d && d.household) || {}; return h.joint ? 'together' : h.mode || (h.enabled ? 'mixed' : 'solo'); };
+  K.partnerName = (d) => ((d && d.household && d.household.partner) || '').trim();
+  K.setHouseholdMode = (d, mode, opts) => {
+    const o = opts || {};
+    const h = Object.assign({ name: '', partner: '', split: 50 }, d.household, { mode, enabled: mode !== 'solo' });
+    if (o.partner != null) h.partner = String(o.partner).trim();
+    if (o.name != null) h.name = String(o.name).trim();
+    if (o.split != null) h.split = Math.max(0, Math.min(100, Math.round(Number(o.split) || 0)));
+    if (mode !== 'solo' && !h.name) h.name = h.partner ? (d.profile.name ? d.profile.name.trim() + ' & ' + h.partner : 'Home with ' + h.partner) : 'Household';
+    return Object.assign({}, d, { household: h });
+  };
+  // Your part of an expense (1 = all yours). A split expense keeps the full amount and who paid it.
+  K.myShare = (t) => (t && t.split && t.type === 'expense' ? Math.max(0, Math.min(100, t.split.mine != null ? t.split.mine : 50)) / 100 : 1);
+  // Who owes whom from split expenses and settle-ups. Positive: your partner owes you.
+  K.splitBalance = (d) => {
+    let owed = 0; const items = [];
+    (d.txns || []).forEach((t) => {
+      const b = t.base; if (b == null) return;
+      if (t.type === 'expense' && t.split) {
+        const mine = K.myShare(t);
+        const x = t.split.by === 'partner' ? -b * mine : b * (1 - mine);
+        if (x) { owed += x; items.push({ t, amount: r2(x) }); }
+      }
+      if (t.type === 'transfer' && t.cat === 'settle') { const x = t.to ? -b : b; owed += x; items.push({ t, amount: r2(x) }); }
+    });
+    return { owed: r2(owed), items: items.sort((a, b) => (a.t.date < b.t.date ? 1 : -1)) };
+  };
+  // Money that evens things out: your partner paid you (in) or you paid them (out)
+  K.settleUp = (d, o) => {
+    const who = K.partnerName(d) || 'Partner';
+    const t = o.dir === 'in' ? { type: 'transfer', cat: 'settle', merchant: who + ' paid you', amt: o.amt, cur: o.cur || d.base, from: '', to: o.where || '', date: o.date } : { type: 'transfer', cat: 'settle', merchant: 'You paid ' + who, amt: o.amt, cur: o.cur || d.base, from: o.where || '', to: '', date: o.date };
+    if (!t.date) delete t.date;
+    return K.addTxn(d, Object.assign(t, { shared: true }));
+  };
 
   // ---------------------------------------------------------------- currency
   // Every stored transaction keeps its original amount and currency plus the base-currency amount at the rate used then.
@@ -578,7 +619,8 @@
   // What a card has used of its limit, in the card's main currency (second-currency balance converted)
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
-    const inS = (x) => (scope === 'household' ? !!x.shared : true);
+    const all = K.hhMode(d) === 'together';
+    const inS = (x) => (scope === 'household' ? all || !!x.shared : true);
     const accts = d.accounts.filter((a) => !a.archived && inS(a)).map((a) => Object.assign({}, a, { baseBal: r2(a.bal * K.rate(d, a.cur, d.base)) }));
     const cash = r2(sum(accts.filter((a) => ['Everyday', 'Savings', 'Cash'].includes(a.kind)), (a) => a.baseBal));
     const invest = r2(sum(accts.filter((a) => a.kind === 'Investments'), (a) => a.baseBal));
@@ -604,7 +646,10 @@
   K.derive = (data, ctx) => {
     const T = today();
     const scope = ctx.scope;
-    const inS = (x) => (scope === 'household' ? !!x.shared : true);
+    const together = K.hhMode(data) === 'together';
+    const inS = (x) => (scope === 'household' ? together || !!x.shared : true);
+    // Your own view counts your part of a split expense; the Household view counts the whole thing
+    const share = (t) => (scope === 'household' ? 1 : K.myShare(t));
     const monthStart = new Date(T.getFullYear(), T.getMonth(), 1), monthEnd = new Date(T.getFullYear(), T.getMonth() + 1, 0);
     const txAll = data.txns.filter(inS).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     const cur = ctx.currency;
@@ -612,7 +657,8 @@
     const val = (t) => (cur === 'Combined' ? t.base : t.amt);
     const inMonth = (t, y, m) => { const d = parse(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const agg = (list, y, m, useVal) => {
-      const f = useVal ? val : (t) => t.base;
+      const f0 = useVal ? val : (t) => t.base;
+      const f = (t) => (t.type === 'expense' ? f0(t) * share(t) : f0(t));
       const mt = list.filter((t) => inMonth(t, y, m));
       const cats = {}; K.CAT_ORDER.forEach((c) => (cats[c] = 0));
       mt.filter((t) => t.type === 'expense').forEach((t) => (cats[t.cat] = r2((cats[t.cat] || 0) + f(t))));
@@ -635,7 +681,7 @@
     const incomeExpected = r2(sum(incomeSrc, (s) => occurrences(s.next || iso(T), s.freq, monthStart, monthEnd).length * K.toBase(data, s.amt, s.cur || data.base)));
     const monthAll = agg(txAll, T.getFullYear(), T.getMonth(), false);
     const expectedIncome = r2(Math.max(incomeExpected, monthAll.income));
-    const flexSpent = r2(sum(txAll.filter((t) => t.type === 'expense' && !t.recurring && inMonth(t, T.getFullYear(), T.getMonth())), (t) => t.base));
+    const flexSpent = r2(sum(txAll.filter((t) => t.type === 'expense' && !t.recurring && inMonth(t, T.getFullYear(), T.getMonth())), (t) => t.base * share(t)));
     const available = r2(expectedIncome - commitments - debtPlanned - savingsPlanned);
     const budgetRows = Object.keys(data.budget).filter((c) => data.budget[c] > 0).map((c) => ({ cat: c, plan: data.budget[c], actual: monthAll.cats[c] || 0 }));
 

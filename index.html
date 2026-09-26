@@ -322,6 +322,14 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 .tbl th:first-child, .tbl td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); }
 .tbl tr.tot td { font-weight: 700; border-top: 1.5px solid var(--ink); }
 .xscroll { overflow-x: auto; }
+/* How you handle money: solo, together, mixed */
+.card.how { display: flex; align-items: center; gap: 12px; padding: 14px; text-align: left; border: 1.5px solid var(--line); transition: border-color 0.15s, background 0.15s; }
+.card.how.on { border-color: var(--acc); background: var(--accbg); }
+.radio { width: 20px; height: 20px; flex: none; border-radius: 999px; border: 2px solid var(--line); }
+.radio.on { border: 6px solid var(--acc); }
+.space-switch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface2); gap: 2px; }
+.space-switch button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.space-switch button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .md h2 { font-size: 20px; margin-top: 8px; }
 .md h3 { font-size: 15px; margin-top: 4px; }
 .md p, .md li { line-height: 1.55; color: var(--ink2); max-width: 70ch; }

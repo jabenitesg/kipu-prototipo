@@ -34,6 +34,9 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Recibos que cambian de precio:** el recibo sigue su último pago (hasta 25% se actualiza solo y avisa; más, pregunta) y puede tener un mes de fin ("Termina en") después del cual deja de contar.
 - **Recibos pagados:** un gasto escrito o importado que coincide con un recibo (nombre parecido, monto dentro del 3 % y ±7 días) lo marca como pagado, así no se descuenta dos veces. Se puede vincular o desvincular a mano en el detalle del gasto.
 
+- **Solo, en pareja o mixto:** al empezar, Kipu pregunta cómo manejas tu plata. *Solo yo* no muestra nada de hogar. *En pareja, compartimos todo* ve todo junto, saluda a los dos y ofrece invitar a la pareja al Hogar conjunto. *Algo mío, algo en común* agrega "Compartido con…" a cada gasto: quién pagó y cómo se divide (mitad y mitad o tu porcentaje habitual). Tus cifras cuentan solo tu parte, la vista del Hogar cuenta el total, e Inicio muestra quién le debe a quién con un botón para saldar cuentas (mueve el saldo, pero no es ingreso ni gasto). Se cambia en Ajustes → Hogar sin borrar nada.
+- **Cambiar de espacio en un toque:** en Inicio, un selector pasa de *Todo* a *Compartido*. Con un Hogar conjunto en la nube, pasa de *Lo mío* al Hogar, y un espacio ya abierto en la sesión no vuelve a pedir la frase.
+
 ## Bloqueo
 
 En Settings → App lock puedes pedir un PIN de 6 dígitos (y Face ID, Touch ID o huella si tu dispositivo lo permite) al abrir Kipu y al volver después de un rato. El PIN no se guarda, solo una versión cifrada irreversible. El bloqueo no cifra los datos: mantén también el bloqueo de pantalla de tu teléfono o computadora.

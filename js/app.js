@@ -24,6 +24,10 @@
     const vaultRef = useRef(null);
     const cloudUserRef = useRef(undefined);
     const spaceChoiceRef = useRef(false);
+    // Spaces already unlocked in this session (personal and each Household), so switching back needs no passphrase
+    const openVaultsRef = useRef({});
+    const makeVault = (household) => { const v = household ? new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }, 'household_vaults', 'household_id') : new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }); return v; };
+    const forgetVaults = () => { Object.values(openVaultsRef.current).forEach((v) => v !== vaultRef.current && v.clear()); openVaultsRef.current = {}; };
     const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
     const cloudRef = useRef(cloud); cloudRef.current = cloud;
     // When another device saved first, the vault merges both and hands the result back here
@@ -39,6 +43,7 @@
         if (cloudUserRef.current === id) return;
         cloudUserRef.current = id;
         spaceChoiceRef.current = false;
+        forgetVaults();
         if (vaultRef.current) vaultRef.current.clear();
         vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
         const next = user ? K.factory() : K.load(); dataRef.current = next; setData(next);
@@ -101,26 +106,30 @@
       try { const initial = seed === 'local' ? K.load() : K.factory(); if (initial.demo) throw new Error('Sample data stays in demo mode. Start your account with zero data.'); await vaultRef.current.create(initial); if (seed === 'local') K.wipe(); dataRef.current = initial; setData(initial); setCloud((c) => Object.assign({}, c, { status: 'ready', sync: 'synced', error: '' })); }
       catch (e) { setCloud((c) => Object.assign({}, c, { error: e.message })); throw e; }
     }, []);
-    const cloudSelectHousehold = useCallback((household) => {
-      if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
-      if (vaultRef.current) vaultRef.current.clear();
-      vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
+    // Switch spaces. A space opened earlier in this session opens straight away; otherwise it asks for its passphrase.
+    const switchSpace = (household) => {
+      const cur = vaultRef.current;
+      if (cur && (cur.latest || cur.busy)) throw new Error('Wait for sync before switching spaces.');
+      const from = cloudRef.current.target === 'household' && cloudRef.current.household ? cloudRef.current.household.id : 'personal';
+      if (cur && cur.key && cur.revision) openVaultsRef.current[from] = cur; else if (cur) cur.clear();
+      const to = household ? household.id : 'personal';
+      const kept = openVaultsRef.current[to];
       spaceChoiceRef.current = true;
-      try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, household.id); } catch (e) {}
+      try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, to); } catch (e) {}
+      setCtxRaw(household ? { scope: 'household', currency: 'Combined', period: 11 } : { scope: 'personal', currency: 'Combined', period: 11, country: 'All' }); setStack([{ r: 'home' }]); setSheet(null);
+      if (kept && kept.key && kept.base) {
+        vaultRef.current = kept;
+        const next = household ? K.jointData(kept.base, household.name) : kept.base; dataRef.current = next; setData(next);
+        setCloud((c) => Object.assign({}, c, { status: 'ready', target: household ? 'household' : 'personal', household: household || null, error: '', sync: 'synced' }));
+        kept.refresh().then((fresh) => { if (fresh && vaultRef.current === kept) { const n = household ? K.jointData(fresh, household.name) : fresh; dataRef.current = n; setData(n); } }).catch(() => {});
+        return;
+      }
+      vaultRef.current = makeVault(household);
       const next = K.factory(); dataRef.current = next; setData(next);
-      setCtxRaw({ scope: 'household', currency: 'Combined', period: 11 }); setStack([{ r: 'home' }]); setSheet(null);
-      setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'household', household, error: '', sync: null }));
-    }, []);
-    const cloudSelectPersonal = useCallback(() => {
-      if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.');
-      if (vaultRef.current) vaultRef.current.clear();
-      vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
-      spaceChoiceRef.current = true;
-      try { localStorage.setItem('kipu-cloud-space:' + cloudUserRef.current, 'personal'); } catch (e) {}
-      const next = K.factory(); dataRef.current = next; setData(next);
-      setCtxRaw({ scope: 'personal', currency: 'Combined', period: 11, country: 'All' }); setStack([{ r: 'home' }]); setSheet(null);
-      setCloud((c) => Object.assign({}, c, { status: 'locked', target: 'personal', household: null, error: '', sync: null }));
-    }, []);
+      setCloud((c) => Object.assign({}, c, { status: 'locked', target: household ? 'household' : 'personal', household: household || null, error: '', sync: null }));
+    };
+    const cloudSelectHousehold = useCallback((household) => switchSpace(household), []);
+    const cloudSelectPersonal = useCallback(() => switchSpace(null), []);
     const cloudStartHousehold = useCallback(() => {
       cloudSelectPersonal();
       setCloud((c) => Object.assign({}, c, { status: 'household-create' }));

@@ -492,3 +492,32 @@ test('a bill follows its latest payment; a big jump waits; a bill with an end st
   assert.equal(K.billActive(d.bills[1]), false);
   assert.ok(K.derive(d, ctx2).plan.commitments < before);
 });
+
+test('couples who split some costs: your part in your numbers, the whole in the Household, and who owes whom', () => {
+  let d = K.setHouseholdMode(K.factory(), 'mixed', { partner: 'Kari', split: 50 });
+  d.accounts = [account('cad', 'CAD', 1000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 100, cur: 'CAD', from: 'acct:cad', shared: true, split: { by: 'me', mine: 50 } });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Dinner', cat: 'dining', amt: 80, cur: 'CAD', from: '', shared: true, split: { by: 'partner', mine: 50 } });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 60, cur: 'CAD', from: 'acct:cad' });
+  assert.equal(d.accounts[0].bal, 840); // Kari's dinner doesn't touch your account
+  assert.equal(K.derive(d, ctx).month.spending, 150); // 50 + 40 + 60
+  assert.equal(K.derive(d, { scope: 'household', currency: 'Combined' }).month.spending, 180); // the whole shared costs
+  assert.equal(K.splitBalance(d).owed, 10); // Kari owes 50, you owe 40
+  d = K.settleUp(d, { amt: 10, where: 'acct:cad', dir: 'in' });
+  assert.equal(K.splitBalance(d).owed, 0);
+  assert.equal(d.accounts[0].bal, 850);
+  assert.equal(K.derive(d, ctx).month.income, 0); // settling up isn't income
+});
+
+test('couples who share everything see it all in the Household, without marking each item', () => {
+  let d = K.setHouseholdMode(K.factory(), 'together', { partner: 'Kari' });
+  d.profile.name = 'Jose';
+  d.accounts = [account('cad', 'CAD', 500)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Rent', cat: 'housing', amt: 400, cur: 'CAD', from: 'acct:cad' });
+  const H = K.derive(d, { scope: 'household', currency: 'Combined' });
+  assert.equal(H.month.spending, 400);
+  assert.equal(H.plan.cashNow, 100);
+  assert.equal(K.hhMode(d), 'together');
+  assert.equal(K.hhMode(K.setHouseholdMode(d, 'solo')), 'solo');
+  assert.equal(K.hhMode(Object.assign(K.factory(), { household: { enabled: true, name: 'Old' } })), 'mixed'); // households made before modes
+});

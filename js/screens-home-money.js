@@ -69,9 +69,46 @@
   };
 
   // ---------------------------------------------------------------- Home
+  // Mine / shared in one tap. With a joint cloud Household it switches spaces; on this device it filters shared items.
+  const SpaceSwitch = () => {
+    const { data, ctx, setCtx, cloud, cloudSelectHousehold, cloudSelectPersonal, toast } = useApp();
+    const joint = cloud.status === 'ready' && cloud.user && (cloud.households || []).length > 0;
+    const mode = K.hhMode(data);
+    if (!joint && mode !== 'mixed') return null;
+    const run = (fn) => { try { fn(); } catch (e) { toast(e.message); } };
+    if (joint) {
+      const hh = cloud.households;
+      return html`<div class="space-switch" role="tablist" aria-label="Space"><button role="tab" aria-selected=${cloud.target !== 'household'} class=${cloud.target !== 'household' ? 'on' : ''} onClick=${() => cloud.target === 'household' && run(cloudSelectPersonal)}><${Icon} n="user" s=${14} />Mine</button>${hh.map((h) => { const on = cloud.target === 'household' && cloud.household && cloud.household.id === h.id; return html`<button key=${h.id} role="tab" aria-selected=${on} class=${on ? 'on' : ''} onClick=${() => !on && run(() => cloudSelectHousehold(h))}><${Icon} n="people" s=${14} />${h.name}</button>`; })}</div>`;
+    }
+    const shared = ctx.scope === 'household';
+    return html`<div class="space-switch" role="tablist" aria-label="Scope"><button role="tab" aria-selected=${!shared} class=${!shared ? 'on' : ''} onClick=${() => setCtx({ scope: 'personal' })}><${Icon} n="user" s=${14} />Everything</button><button role="tab" aria-selected=${shared} class=${shared ? 'on' : ''} onClick=${() => setCtx({ scope: 'household' })}><${Icon} n="people" s=${14} />${'Shared with ' + (K.partnerName(data) || 'partner')}</button></div>`;
+  };
+  K.SpaceSwitch = SpaceSwitch;
+  // Who owes whom, for couples who split some costs
+  const SplitCard = () => {
+    const { data, fmt, openSheet } = useApp();
+    if (K.hhMode(data) !== 'mixed') return null;
+    const who = K.partnerName(data) || 'Partner';
+    const { owed, items } = K.splitBalance(data);
+    const text = !items.length ? 'Mark an expense as shared and Kipu keeps track of who owes whom.' : Math.abs(owed) < 0.01 ? 'You’re even.' : owed > 0 ? who + ' owes you ' + fmt(owed, { dec: 2 }) : 'You owe ' + who + ' ' + fmt(-owed, { dec: 2 });
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="split" tone=${owed > 0.009 ? 'g' : owed < -0.009 ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Shared with ' + who}</span><span class="small muted">${text}</span></span></div>
+      <div class="row" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => openSheet({ k: 'expense', preset: { shared: true } })}>Shared expense</button>${Math.abs(owed) >= 0.01 && html`<button class="btn pri sm" onClick=${() => openSheet({ k: 'settle' })}>Settle up</button>`}</div></div>`;
+  };
+  // Couples who share everything: get the other person in
+  const InviteCard = () => {
+    const { data, cloud, go, commit } = useApp();
+    if (K.hhMode(data) !== 'together' || cloud.target === 'household' || data.household.inviteHidden) return null;
+    const who = K.partnerName(data) || 'your partner';
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="people" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Bring ' + who + ' in'}</span><span class="small muted" style=${{ lineHeight: 1.45 }}>${'A joint Household shows both of you the same accounts, bills and spending, on each phone.'}</span></span></div>
+      <div class="row" style=${{ gap: '8px' }}><button class="btn pri sm" onClick=${() => go({ r: 'settings', s: 'cloud' })}>${'Invite ' + who}</button><button class="btn sec sm" onClick=${() => commit(Object.assign({}, data, { household: Object.assign({}, data.household, { inviteHidden: true }) }))}>Not now</button></div></div>`;
+  };
+
   K.Home = function Home() {
     const { D, fmt, go, data, displayName, cloud, ctx, wide, insights, openSheet } = useApp();
     const m = D.month, prev = D.series[10];
+    const first = displayName ? displayName.split(' ')[0] : '';
+    const pal = K.hhMode(data) === 'together' && cloud.target !== 'household' ? K.partnerName(data) : '';
+    const hello = first ? ', ' + first + (pal ? ' & ' + pal : '') : '';
     const top = insights[0];
     const trip = D.activeTrip;
     const month = html`<button class="kpis m" onClick=${() => go({ r: 'stats', tab: 'overview' })} aria-label="This month in Statistics">
@@ -93,8 +130,8 @@
     const goal = D.goals.filter((g) => g.pct < 100).sort((a, b) => b.pct - a.pct)[0] || D.goals[0];
     const goalCard = goal && html`<div class="stack-s"><${SectionHeader} title="Featured goal" action="Goals" onAction=${() => go({ r: 'plan', tab: 'goals' })} /><${K.GoalProgress} g=${goal} featured=${true} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`;
     const insight = top && html`<div class="stack-s"><${SectionHeader} title="Worth a look" action="Insights" onAction=${() => go({ r: 'stats', tab: 'insights' })} /><${InsightCard} i=${top} compact=${true} /></div>`;
-    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
-    const ctxChip = !wide && (data.household.enabled || cloud.target === 'household' || (D.countries && D.countries.length > 1)) && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const head = html`<header class="between" style=${{ paddingTop: wide ? 0 : '10px', alignItems: 'flex-start' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">${longDate()}</span><h1 style=${{ fontSize: wide ? '30px' : '26px', fontWeight: 800 }}>${greeting()}${hello}</h1></div>${wide ? html`<${ContextFilter} show=${['scope', 'currency']} />` : html`<${Avatar} />`}</header>`;
+    const ctxChip = !wide && (D.countries && D.countries.length > 1) && html`<div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
     if (wide) {
       const badge = (a, b, goodUp) => { if (!prev.count || !b) return null; const d = ((a - b) / Math.abs(b)) * 100; if (Math.abs(d) < 0.5) return null; return html`<span class=${'b ' + ((d > 0) === goodUp ? 'pos' : 'warn')}>${d > 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(0)}%</span>`; };
       const kpis = html`<div class="kpis">
@@ -125,8 +162,8 @@
       const areasMd = ['"hero hero"', r2 ? '"' + r2 + '"' : null, '"up nw"', '"flow flow"', '"cat bud"', '"rec rec"', '"ins gls"'].filter(Boolean).join(' ');
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
-        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${displayName ? ', ' + displayName.split(' ')[0] : ''}</h1></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} />
+        <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1><${SpaceSwitch} /></div>${kpis}</header>
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SplitCard} /><${InviteCard} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -134,7 +171,7 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} /><${CountrySafe} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}<${SpaceSwitch} />${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${SafeHero} /><${CountrySafe} /><${SplitCard} /><${InviteCard} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
