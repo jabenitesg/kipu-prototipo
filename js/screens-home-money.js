@@ -403,7 +403,7 @@
       <${Chips} options=${['All', 'Spending', 'Income', 'Transfers', 'Trips']} value=${f} onChange=${setF} scroll=${true} />
       ${Object.keys(byDay).map((d) => html`<div key=${d} class="stack-s"><span class="eyebrow">${K.fmtDate(d, K.parse(d).getFullYear() !== D.T.getFullYear())}</span><div class="card tight list">${byDay[d].map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div></div>`)}
       ${!list.length && html`<${EmptyState} icon="search" title="No transactions here" text="Choose another day, filter, or Show all dates." />`}`;
-    return wide ? html`<div class="act-wide"><div class="stack" style=${{ minWidth: 0 }}>${body}</div><div class="act-side">${cal}</div></div>` : html`<div class="stack">${cal}${body}</div>`;
+    return html`<div class="stack">${cal}${body}</div>`;
   }
 
   // ---------------------------------------------------------------- detail views
