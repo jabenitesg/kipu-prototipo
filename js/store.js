@@ -444,6 +444,43 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // ---------------------------------------------------------------- the big picture: every month and year since the first movement
+  // In = income; out = spending plus loan payments; left = what stayed. Transfers between your own accounts don't count.
+  K.totalsOf = (list) => {
+    const cats = {};
+    let income = 0, spending = 0, debtPaid = 0, count = 0;
+    list.forEach((t) => {
+      const v = t.base || 0; count++;
+      if (t.type === 'income') income += v;
+      else if (t.type === 'expense') { const c = t.cat || 'other'; spending += v; cats[c] = r2((cats[c] || 0) + v); }
+      else if (t.type === 'debt') debtPaid += v;
+    });
+    const out = spending + debtPaid, left = income - out;
+    return { income: r2(income), spending: r2(spending), debtPaid: r2(debtPaid), out: r2(out), left: r2(left), rate: income ? r2((left / income) * 100) : null, cats, count };
+  };
+  // A period cut to the same stretch as today's: Jan 1 – Sep 25 of another year, or the 1st – 25th of another month
+  K.sameStretch = (txns, p) => {
+    const T = today(), md = iso(T).slice(5);
+    const inP = (t) => t.date && t.date.startsWith(p.key);
+    const upTo = p.key.length === 4 ? (t) => t.date.slice(5) <= md : (t) => t.date.slice(8) <= md.slice(3);
+    return K.totalsOf((txns || []).filter((t) => inP(t) && upTo(t)));
+  };
+  K.history = (txns) => {
+    const list = (txns || []).filter((t) => t.date);
+    if (!list.length) return { months: [], years: [] };
+    const first = list.reduce((a, t) => (t.date < a ? t.date : a), list[0].date);
+    const byMonth = {}, byYear = {};
+    list.forEach((t) => { (byMonth[t.date.slice(0, 7)] = byMonth[t.date.slice(0, 7)] || []).push(t); (byYear[t.date.slice(0, 4)] = byYear[t.date.slice(0, 4)] || []).push(t); });
+    const months = [];
+    const T = today();
+    for (let d = new Date(+first.slice(0, 4), +first.slice(5, 7) - 1, 1); d <= T; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      const key = monthKey(d);
+      months.push(Object.assign({ key, label: MON[d.getMonth()] + ' ’' + String(d.getFullYear()).slice(2), long: MONTH_LONG[d.getMonth()] + ' ' + d.getFullYear(), year: d.getFullYear(), current: key === monthKey(T) }, K.totalsOf(byMonth[key] || [])));
+    }
+    const years = [];
+    for (let y = +first.slice(0, 4); y <= T.getFullYear(); y++) years.push(Object.assign({ key: String(y), label: String(y), long: String(y), year: y, current: y === T.getFullYear() }, K.totalsOf(byYear[String(y)] || [])));
+    return { months, years };
+  };
   // Which month Statistics shows. Until the person picks one, the current month, or the latest with movements
   // when this one has none yet (statements usually arrive after the month ends).
   K.statIdx = (D, ctx) => {

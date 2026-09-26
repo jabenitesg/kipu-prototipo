@@ -16,6 +16,7 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Escanear recibo:** lee comercio, total, fecha y moneda con OCR dentro del navegador. La primera vez descarga unos 10 MB.
 - **Subir estado de cuenta:** CSV o PDF; detecta duplicados y sugiere categorías
 - Presupuesto, facturas y suscripciones, metas, viajes
+- **Panorama:** todo el historial por meses o por años (entró, salió, te quedó y % ahorrado) y la comparación de cualquier par de periodos, total y por categoría; si uno es el periodo actual, se compara el mismo tramo del otro.
 - Estadísticas, insights, revisiones mensuales y forecast con escenarios
 - Settings: 4 fondos (Light blanco, Graphite, Dark negro, Midnight azul) más System, y 7 temas de color (Kipu, Ocean, Forest, Sand, Ember, Coral, Dusk, Mono) y uno Custom con tus propios colores que combinan con cualquier fondo; foto de perfil; ocultar montos; reglas de categorías; copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
 - Actividad con calendario semanal de fechas individuales y detalle de gastos e ingresos del día

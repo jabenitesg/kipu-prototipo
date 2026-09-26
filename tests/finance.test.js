@@ -522,3 +522,24 @@ test('a new price still pays the bill: the insurance goes down and the bill foll
   d = K.addTxn(d, { type: 'expense', merchant: 'GYM SHARK APPAREL', amt: 80, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', source: 'statement', settled: true });
   assert.equal(d.txns[4].recurring, undefined);
 });
+
+test('the big picture covers every month and year since the first movement', () => {
+  const t = (date, type, base, cat) => ({ date, type, base, cat });
+  const H = K.history([t('2025-08-14', 'income', 5000), t('2025-08-20', 'expense', 1200, 'groceries'), t('2025-08-25', 'debt', 400), t('2025-08-26', 'transfer', 999), t('2026-08-14', 'income', 5400), t('2026-08-20', 'expense', 1000, 'groceries')]);
+  const aug25 = H.months.find((m) => m.key === '2025-08'), aug26 = H.months.find((m) => m.key === '2026-08');
+  assert.deepEqual([aug25.income, aug25.out, aug25.left], [5000, 1600, 3400]); // transfers left out, loan payments count as out
+  assert.equal(aug25.rate, 68);
+  assert.deepEqual([aug26.income, aug26.out, aug26.left], [5400, 1000, 4400]);
+  assert.ok(H.months.find((m) => m.key === '2025-12').count === 0); // empty months are kept so gaps show
+  assert.deepEqual(H.years.map((y) => [y.key, y.left]), [['2025', 3400], ['2026', 4400]]);
+});
+
+test('comparing against the period we are in uses the same stretch of the other one', () => {
+  const T = K.today(), y = T.getFullYear();
+  const md = K.iso(T).slice(5);
+  const early = y - 1 + '-01-10', late = y - 1 + '-12-20';
+  const txns = [{ date: early, type: 'income', base: 1000 }, { date: late, type: 'income', base: 5000 }, { date: (y - 1) + '-' + md, type: 'expense', base: 10, cat: undefined }];
+  const same = K.sameStretch(txns, { key: String(y - 1) });
+  assert.equal(same.income, md >= '12-20' ? 6000 : 1000);
+  assert.equal(same.cats.other, 10); // no category counts as Other
+});

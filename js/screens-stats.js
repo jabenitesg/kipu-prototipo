@@ -18,17 +18,57 @@
   };
 
   // ---------------------------------------------------------------- Statistics
-  const SECTIONS = [['overview', 'Overview'], ['spending', 'Spending'], ['income', 'Income'], ['cashflow', 'Cash flow'], ['networth', 'Net worth'], ['debt', 'Debt'], ['credit', 'Credit']];
+  const SECTIONS = [['overview', 'Overview'], ['big', 'Big picture'], ['spending', 'Spending'], ['income', 'Income'], ['cashflow', 'Cash flow'], ['networth', 'Net worth'], ['debt', 'Debt'], ['credit', 'Credit']];
   function Statistics({ route }) {
     const { D, openSheet, wide } = useApp();
     const [sec, setSec] = useState(route.tab === 'spending' || route.tab === 'income' ? route.tab : route.sub || 'overview');
     if (!D.txAll.length) return html`<div class="card"><${EmptyState} icon="chart" title="No numbers yet" text="Statistics fill in as you add transactions. Importing a statement is the fastest way to bring in history." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} /></div>`;
-    const Body = { overview: SOverview, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit }[sec];
+    const Body = { overview: SOverview, big: SBig, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit }[sec];
     // Computer and tablet: every section on one page. Phone: one section at a time.
-    const BODIES = { overview: SOverview, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit };
+    const BODIES = { overview: SOverview, big: SBig, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit };
     if (wide) return html`<div class="stack" style=${{ gap: '28px' }}><${MonthNav} />${SECTIONS.map(([k, label]) => { const B = BODIES[k]; return html`<section key=${k} class="stack" style=${{ gap: '14px' }}>${k !== 'overview' && html`<h2 class="stats-h">${label}</h2>`}<${B} /></section>`; })}</div>`;
     return html`<div class="stack"><${Chips} options=${SECTIONS.map((s) => s[0])} labels=${SECTIONS.map((s) => s[1])} value=${sec} onChange=${setSec} scroll=${true} />${['overview', 'spending', 'income'].includes(sec) && html`<${MonthNav} />`}<${Body} /></div>`;
   }
+  // ---------------------------------------------------------------- Big picture: all history by month or by year, and any two periods side by side
+  function SBig() {
+    const { D, fmt, wide } = useApp();
+    const H = useMemo(() => K.history(D.txAll), [D.txAll]);
+    const [mode, setMode] = useState('month');
+    const list = mode === 'year' ? H.years : H.months;
+    const filled = list.filter((x) => x.count > 0);
+    const byKey = (k) => list.find((x) => x.key === k);
+    const latest = filled[filled.length - 1];
+    const defB = (x) => { if (!x) return null; if (mode === 'year') return byKey(String(x.year - 1)); const ly = byKey(String(x.year - 1) + x.key.slice(4)); if (ly && ly.count) return ly; const i = filled.indexOf(x); return filled[i - 1] || null; };
+    const [aKey, setA] = useState(null), [bKey, setB] = useState(null);
+    const A0 = (aKey && byKey(aKey)) || latest, B0 = (bKey && byKey(bKey)) || defB(A0);
+    // When one side is the period we're in, the other is cut to the same stretch so they compare fairly
+    const cut = A0 && B0 && (A0.current || B0.current) && !(A0.current && B0.current);
+    const A = cut && B0.current ? Object.assign({}, A0, K.sameStretch(D.txAll, A0)) : A0;
+    const B = cut && A0.current ? Object.assign({}, B0, K.sameStretch(D.txAll, B0)) : B0;
+    const change = (a, b) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
+    const pct = (v) => (v == null || !isFinite(v) ? '' : (v > 0 ? '+' : '') + v.toFixed(0) + '%');
+    const signed = (v) => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+    if (!filled.length) return null;
+    // Long histories scroll sideways and open on the most recent months
+    const bars = html`<div style=${{ overflowX: 'auto' }} ref=${(el) => { if (el && !el.dataset.end) { el.scrollLeft = el.scrollWidth; el.dataset.end = '1'; } }}><div style=${{ minWidth: list.length > 12 ? list.length * 46 + 'px' : null }}><${BarChart} groups=${list.map((x, i) => ({ label: list.length <= 12 || x === A0 || i % Math.ceil(list.length / 8) === 0 ? x.label : '', values: [x.income, x.out] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${list.indexOf(A0)} fmtY=${fmt.k} h=${200} /></div></div>`;
+    const rows = list.slice().reverse().filter((x) => x.count > 0 || x.current);
+    const opts = rows.map((x) => html`<option key=${x.key} value=${x.key}>${x.long}</option>`);
+    const cats = A && B ? Array.from(new Set(Object.keys(A.cats).concat(Object.keys(B.cats)))).map((c) => ({ c, a: A.cats[c] || 0, b: B.cats[c] || 0 })).sort((x, y) => Math.abs(y.a - y.b) - Math.abs(x.a - x.b)).slice(0, 6) : [];
+    const metric = (label, a, b, goodUp) => { const d = b == null ? null : a - b; return html`<div class="card flat stack-s" style=${{ gap: '4px', padding: '12px 14px' }}><span class="tiny muted">${label}</span><b class="num" style=${{ fontSize: '18px' }}>${fmt(a)}</b>${d != null && html`<span class="tiny num" style=${{ color: d === 0 ? 'var(--muted)' : (d > 0) === goodUp ? 'var(--pos)' : 'var(--crit)' }}>${signed(d)}${change(a, b) != null ? ' · ' + pct(change(a, b)) : ''}</span>`}</div>`; };
+    return html`<div class="stack" style=${{ gap: '14px' }}>
+      <div class="between" style=${{ flexWrap: 'wrap', gap: '10px' }}><span class="small muted" style=${{ maxWidth: '46ch', lineHeight: 1.45 }}>Everything since your first movement. Out is spending plus loan payments; transfers between your own accounts don't count.</span><div style=${{ minWidth: '200px' }}><${Seg} options=${['month', 'year']} labels=${['Months', 'Years']} value=${mode} onChange=${(m) => { setMode(m); setA(null); setB(null); }} /></div></div>
+      <${ChartBox} title=${mode === 'year' ? 'Year by year' : 'Month by month'} question="Did more come in than went out?" legend=${[['var(--c2)', 'Money in'], ['var(--c1)', 'Money out']]}>${bars}</${ChartBox}>
+      <div class=${wide ? 'grid g2' : 'stack'} style=${{ gap: '14px', alignItems: 'start' }}>
+        <div class="card tight list">${rows.map((x, i) => { const prev = rows[i + 1]; const d = prev && prev.count ? x.left - prev.left : null; return html`<div key=${x.key} class="lrow" style=${{ gap: '10px', alignItems: 'flex-start' }}><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${x.long}${x.current ? html`<span class="muted" style=${{ fontWeight: 400 }}> · so far</span>` : ''}</span><span class="tiny muted num">Money in ${fmt(x.income)}<span style=${{ padding: '0 5px' }}>·</span>Money out ${fmt(x.out)}${x.rate != null ? html`<span style=${{ padding: '0 5px' }}>·</span>${x.rate.toFixed(0) + '% kept'}` : ''}</span></span><span class="stack-s" style=${{ gap: '2px', alignItems: 'flex-end' }}><b class="num" style=${{ color: x.left >= 0 ? 'var(--pos)' : 'var(--crit)' }}>${signed(x.left)}</b>${d != null && html`<span class="tiny muted num">${(d >= 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d))}</span>`}</span></div>`; })}</div>
+        ${A && html`<div class="card stack" style=${{ gap: '12px' }}><h3 style=${{ fontSize: '16px' }}>Compare</h3>
+          <div class="grid" style=${{ gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center' }}><select class="input" aria-label="First period" value=${A0.key} onChange=${(e) => setA(e.target.value)}>${opts}</select><span class="small muted">vs</span><select class="input" aria-label="Second period" value=${B0 ? B0.key : ''} onChange=${(e) => setB(e.target.value)}>${opts}</select></div>
+          ${cut && html`<span class="tiny muted">${mode === 'year' ? 'Same stretch in both: January 1 to ' + K.fmtDate(K.iso(K.today())) + '.' : 'Same stretch in both: day 1 to ' + K.today().getDate() + '.'}</span>`}
+          <div class="grid g3" style=${{ gap: '8px' }}>${metric('Money in', A.income, B && B.income, true)}${metric('Money out', A.out, B && B.out, false)}${metric('Left over', A.left, B && B.left, true)}</div>
+          ${cats.length > 0 && html`<div class="stack-s" style=${{ gap: '0' }}><span class="eyebrow" style=${{ paddingBottom: '6px' }}>Biggest changes by category</span>${cats.map((r) => { const d = r.a - r.b; return html`<div key=${r.c} class="between small" style=${{ padding: '8px 0', borderTop: '1px solid var(--line)', gap: '8px' }}><span style=${{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${(K.CATS[r.c] || { name: r.c }).name}</span><span class="num muted" style=${{ marginLeft: 'auto' }}>${fmt(r.b)} → ${fmt(r.a)}</span><b class="num" style=${{ minWidth: '84px', textAlign: 'right', color: d === 0 ? 'var(--muted)' : d > 0 ? 'var(--crit)' : 'var(--pos)' }}>${signed(d)}</b></div>`; })}</div>`}
+        </div>`}
+      </div></div>`;
+  }
+
   // ‹ August 2026 ›: step through months; the current month is marked when it has nothing yet
   function MonthNav() {
     const { D, ctx, setCtx } = useApp();
