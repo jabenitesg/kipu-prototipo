@@ -353,9 +353,9 @@
       const SECTION = { home: 'Home', money: 'Money', plan: 'Plan', stats: 'Stats', settings: 'Settings' };
       const today = new Date().toLocaleDateString(K.loc(), { weekday: 'long', month: 'long', day: 'numeric' });
       const alerts = insights.filter((i) => i.kind === 'Priority').length;
-      const subLabel = (() => { const g = [['money', [['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']]], ['plan', [['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', [['insights', 'Insights'], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]].find((x) => x[0] === rootOf); const t = g && g[1].find((x) => x[0] === (stack[0].tab || 'overview')); return t ? t[1] : null; })();
+      const subLabel = (() => { const g = [['plan', [['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', [['insights', 'Insights'], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]].find((x) => x[0] === rootOf); const t = g && g[1].find((x) => x[0] === (stack[0].tab || 'overview')); return t ? t[1] : null; })();
       const rootTab = stack[0].tab || 'overview';
-      const SIDE = [['home', 'home', 'Home'], ['money', 'wallet', 'Money', [['overview', 'Overview'], ['accounts', 'Accounts'], ['cards', 'Cards'], ['loans', 'Loans'], ['activity', 'Activity']]], ['plan', 'plan', 'Plan', [['overview', 'Overview'], ['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', 'chart', 'Stats', [['overview', 'Statistics'], ['insights', 'Insights', insights.length || null], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]];
+      const SIDE = [['home', 'home', 'Home'], ['money', 'wallet', 'Money'], ['plan', 'plan', 'Plan', [['overview', 'Overview'], ['budget', 'Budget'], ['bills', 'Bills & recurring'], ['goals', 'Goals'], ['trips', 'Trips']]], ['stats', 'chart', 'Stats', [['overview', 'Statistics'], ['insights', 'Insights', insights.length || null], ['reviews', 'Reviews'], ['forecast', 'Forecast']]]];
       return html`<${Ctx.Provider} value=${value}><div class=${cls}><div class="d-shell">
         <aside class="rail" aria-label="Primary">
           <button class="rail-mark" aria-label="Kipu home" onClick=${() => go({ r: 'home' })}><span></span></button>

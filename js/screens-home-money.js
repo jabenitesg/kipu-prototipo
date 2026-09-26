@@ -275,13 +275,26 @@
   function MoneyWide() {
     const { D, fmt, go, openSheet, data } = useApp();
     const jump = (id) => { const el = document.getElementById('money-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    // One page with an index on top that follows your scroll, instead of sub-tabs that all lead here
+    const [seen, setSeen] = useState('accounts');
+    useEffect(() => {
+      if (typeof IntersectionObserver === 'undefined') return;
+      const ids = ['accounts', 'loans', 'cards', 'activity'];
+      const els = ids.map((id) => document.getElementById('money-' + id)).filter(Boolean);
+      const io = new IntersectionObserver((list) => { const vis = list.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]; if (vis) setSeen(vis.target.id.slice(6)); }, { rootMargin: '-170px 0px -55% 0px' });
+      els.forEach((el) => io.observe(el));
+      return () => io.disconnect();
+    }, [D.accts.length, D.cards.length, D.loans.length]);
     if (!D.accts.length && !D.cards.length && !D.loans.length) return html`<${MoneyOverview} />`;
+    const NAV = [['accounts', 'Accounts', D.accts.length], ['loans', 'Loans', D.loans.length], ['cards', 'Credit cards', D.cards.length], ['activity', 'Transactions', null]];
+    const nav = html`<nav class="mw-nav" aria-label="Sections">${NAV.map(([id, l, n]) => html`<button key=${id} class=${'mw-nav-b' + (seen === id ? ' on' : '')} aria-current=${seen === id ? 'true' : null} onClick=${() => { setSeen(id); jump(id); }}>${l}${n ? html`<span class="mw-nav-n">${n}</span>` : null}</button>`)}</nav>`;
     const Head = ({ title, total, sub, add, sheet }) => html`<div class="mw-head"><div class="stack-s" style=${{ gap: '2px', flex: 1, minWidth: 0 }}><h2>${title}</h2>${sub && html`<span class="tiny muted">${sub}</span>`}</div><span class="row" style=${{ gap: '10px', flexShrink: 0 }}>${total != null && html`<b class="num">${total}</b>`}<button class="pill-link" onClick=${() => openSheet({ k: sheet })}><${Icon} n="plus" s=${13} w=${2.4} />${add}</button></span></div>`;
     const liab = D.cardBal + D.loanBal;
     const tiles = [['Cash & savings', D.cash, 'accounts', 'wallet', 'var(--acc)'], ['Investments & property', D.invest + D.property, 'accounts', 'trend', 'color-mix(in srgb, var(--acc) 45%, var(--surface2))'], ['Credit cards', -D.cardBal, 'cards', 'card', 'var(--info2)'], ['Loans', -D.loanBal, 'loans', 'loan', 'var(--warn2)']];
     const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'].map((g) => [g, D.accts.filter((a) => a.kind === g)]).filter((x) => x[1].length);
     const paid = K.sum(D.loans, (l) => Math.max(0, (l.orig || l.bal) - l.bal)), orig = K.sum(D.loans, (l) => l.orig || l.bal);
     return html`<div class="stack" style=${{ gap: '28px' }}>
+      ${nav}
       <div class="card mw-summary">
         <div class="stack-s" style=${{ gap: '6px', minWidth: 0 }}><span class="small muted">Net position</span><span class="disp num" style=${{ fontSize: K.fitSize(fmt(D.netWorth), 42), fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>${fmt(D.netWorth)}</span><span class="small muted">What you own minus what you owe</span><div style=${{ marginTop: '8px' }}><${Stripe} parts=${tiles.map((t) => [Math.abs(t[1]), t[4]])} h=${10} /></div></div>
         <div class="mw-tiles">${tiles.map(([l, v, id, ic, c]) => html`<button key=${l} class="mw-tile" onClick=${() => jump(id)}><span class="row" style=${{ gap: '8px' }}><i class="dotk" style=${{ background: c }}></i><span class="tiny muted">${l}</span></span><b class="num">${fmt(v)}</b></button>`)}</div>
