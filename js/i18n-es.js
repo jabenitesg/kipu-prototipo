@@ -9,6 +9,7 @@
 
   const words = {
     // added with the solo and household pass
+    "latest": "el más reciente,",
     "Without an account": "Sin cuenta",
     "Black and metal": "Negro y metálicos",
     "Blues and greens": "Azules y verdes",
@@ -343,6 +344,7 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^uploaded (.+)$/, (m, t) => 'subido el ' + t(m[1])],
     [/^(\d+) statements?$/, (m) => m[1] + (m[1] === '1' ? ' estado de cuenta' : ' estados de cuenta')],
     [/^last (.+)$/, (m, t) => 'el último ' + t(m[1])],
     [/^Spent (.+)$/, (m) => 'Gastaste ' + m[1]],

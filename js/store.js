@@ -875,6 +875,14 @@
     const tagged = d.txns.filter((t) => t.imp === imp.id);
     return tagged.length ? tagged : d.txns.filter((t) => t.source === 'statement' && !t.imp && imp.where && (t.from === imp.where || t.to === imp.where));
   };
+  // The dates a statement covers: saved when it was imported, or read from its movements. Most of one month reads as the month.
+  K.importPeriod = (d, imp) => {
+    let from = imp.from, to = imp.to;
+    if (!from || !to) { const ds = d.txns.filter((t) => t.imp === imp.id && t.date).map((t) => t.date).sort(); if (!ds.length) return null; from = ds[0]; to = ds[ds.length - 1]; }
+    const a = parse(from), b = parse(to);
+    const month = a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() <= 5 && b.getDate() >= 24 ? MONTH_LONG[a.getMonth()] + ' ' + a.getFullYear() : null;
+    return { from, to, month, sameYear: a.getFullYear() === b.getFullYear() };
+  };
   // Undo an import: its movements go away, balances go back, and the file can be imported again
   K.undoImport = (d, id) => {
     const imp = (d.imports || []).find((i) => i.id === id); if (!imp) return d;

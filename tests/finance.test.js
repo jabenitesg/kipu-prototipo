@@ -999,3 +999,15 @@ test('cut ideas: eating out over groceries, repeated streaming, frequent purchas
   assert.equal(K.parseQuestion('¿puedo comprar una laptop de 3000?').kind, 'afford');
   assert.ok(K.insights(d, D).some((i) => i.id === 'cut'));
 });
+
+test('a statement is named by the dates it covers', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 1000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'A', cat: 'other', amt: 5, cur: 'CAD', from: 'acct:chq', date: '2026-08-02', imp: 'i1' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'B', cat: 'other', amt: 5, cur: 'CAD', from: 'acct:chq', date: '2026-08-29', imp: 'i1' });
+  assert.equal(K.importPeriod(d, { id: 'i1' }).month, 'August 2026');
+  const cross = K.importPeriod(d, { id: 'i2', from: '2026-08-09', to: '2026-09-08' });
+  assert.equal(cross.month, null);
+  assert.equal(cross.from, '2026-08-09');
+  assert.equal(K.importPeriod(d, { id: 'none' }), null);
+});

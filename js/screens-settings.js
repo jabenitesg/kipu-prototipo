@@ -358,11 +358,14 @@
   };
 
   // One statement import, with a two-step undo
+  // "August 2026", or "Aug 9 – Sep 8, 2026" when the statement runs across months
+  const PeriodText = ({ p }) => (p.month ? html`<span>${p.month}</span>` : html`<span>${K.fmtDate(p.from, !p.sameYear)}</span><span> – </span><span>${K.fmtDate(p.to, true)}</span>`);
   function ImportRow({ imp }) {
     const { data, commit, toast } = useApp();
     const [armed, setArmed] = useState(false);
     const n = K.importTxns(data, imp).length;
-    return html`<div class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${imp.name}</span><span class="t2">${K.fmtDate(imp.when, true)} · ${n + ' movements'}</span>${(imp.where || '').startsWith('acct:') && (imp.kind === 'card' || K.importTxns(data, imp).some((t) => /payment thank you|paiement merci/i.test(t.merchant || ''))) && html`<span class="tiny" style=${{ color: 'var(--warn)' }}>Card statement saved in a bank account: undo it and import it in the card.</span>`}</span>
+    const per = K.importPeriod(data, imp);
+    return html`<div class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '1px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${per ? html`<${PeriodText} p=${per} />` : imp.name}</span><span class="t2" style=${{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${n + ' movements'}${per ? html`<span data-raw>${' · ' + imp.name}</span>` : ''}${' · '}<span>${'uploaded ' + K.fmtDate(imp.when, true)}</span></span>${(imp.where || '').startsWith('acct:') && (imp.kind === 'card' || K.importTxns(data, imp).some((t) => /payment thank you|paiement merci/i.test(t.merchant || ''))) && html`<span class="tiny" style=${{ color: 'var(--warn)' }}>Card statement saved in a bank account: undo it and import it in the card.</span>`}</span>
       ${armed ? html`<div class="row" style=${{ gap: '6px' }}><button class="btn sec sm" onClick=${() => setArmed(false)}>Keep it</button><button class="btn dan sm" onClick=${() => { commit(K.undoImport(data, imp.id)); toast(n + ' movements removed · balances updated'); }}>Undo import</button></div>` : html`<button class="btn sec sm" disabled=${!n} onClick=${() => setArmed(true)}>Undo</button>`}</div>`;
   }
   // Uploaded statements, one folding group per account or card, in the same order as Money
@@ -374,8 +377,8 @@
     const [open, setOpen] = useState(() => new Set(groups.length === 1 ? [groups[0][0]] : []));
     const flip = (k) => { const n = new Set(open); n.has(k) ? n.delete(k) : n.add(k); setOpen(n); };
     return html`<div class="card tight list">${groups.map(([k, name, sub, icon]) => {
-      const list = byWhere[k].slice().sort((a, b) => (a.when < b.when ? 1 : a.when > b.when ? -1 : 0)), on = open.has(k);
-      return html`<div key=${k}><button class="lrow" aria-expanded=${on} onClick=${() => flip(k)} style=${{ width: '100%' }}><${Tile} icon=${icon} tone=${icon === 'card' ? 'b' : 'p'} s=${34} /><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${name}</span><span class="t2">${(sub ? sub + ' · ' : '') + list.length + (list.length === 1 ? ' statement' : ' statements') + ' · last ' + K.fmtDate(list[0].when, true)}</span></span><span style=${{ display: 'inline-flex', transform: on ? 'rotate(180deg)' : 'none', transition: 'transform .2s', color: 'var(--muted)' }}><${Icon} n="down" s=${16} w=${2.2} /></span></button>
+      const end = (i) => { const p = K.importPeriod(data, i); return (p && p.to) || i.when; }; const list = byWhere[k].slice().sort((a, b) => (end(a) < end(b) ? 1 : end(a) > end(b) ? -1 : 0)), on = open.has(k), latest = K.importPeriod(data, list[0]);
+      return html`<div key=${k}><button class="lrow" aria-expanded=${on} onClick=${() => flip(k)} style=${{ width: '100%' }}><${Tile} icon=${icon} tone=${icon === 'card' ? 'b' : 'p'} s=${34} /><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${name}</span><span class="t2">${(sub ? sub + ' · ' : '') + list.length + (list.length === 1 ? ' statement' : ' statements')}${latest ? html`<span> · </span><span>${'latest'}</span><span> </span><${PeriodText} p=${latest} />` : ''}</span></span><span style=${{ display: 'inline-flex', transform: on ? 'rotate(180deg)' : 'none', transition: 'transform .2s', color: 'var(--muted)' }}><${Icon} n="down" s=${16} w=${2.2} /></span></button>
         ${on && html`<div class="list" style=${{ background: 'var(--surface2)', borderTop: '1px solid var(--line)' }}>${list.map((imp) => html`<${ImportRow} key=${imp.id} imp=${imp} />`)}</div>`}</div>`;
     })}</div>`;
   }
