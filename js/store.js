@@ -701,6 +701,8 @@
     const reserveOn = !payBy ? null : payBy >= T ? payBy : due && due >= T ? due : T;
     return { lastClose: iso(lastClose), prevClose: iso(prevClose), nextClose: iso(nextClose), from: iso(addDays(prevClose, 1)), due: due && iso(due), payBy: payBy && iso(payBy), reserveOn: reserveOn && iso(reserveOn), late: !!(due && due < T), statement: r2(stmt), typed: typed != null, paid: r2(paid), owed: r2(Math.max(0, Math.min(Math.max(0, c.bal || 0), stmt - paid))), since: r2(since) };
   };
+  // Every number a card has had: a replaced card (lost, stolen, hacked) is the same account with a new number
+  K.cardNumbers = (c) => [c && c.last4].concat((c && c.oldLast4) || []).filter(Boolean);
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
     const inS = (x) => (scope === 'household' ? !!x.shared : true);

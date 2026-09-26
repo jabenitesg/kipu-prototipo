@@ -600,3 +600,8 @@ test('insights use the whole history, so there is something to say before this m
   assert.ok(ids.includes('cat-up'));
   assert.ok(ids.includes('shop'));
 });
+
+test('a replaced card keeps its old numbers', () => {
+  assert.deepEqual(K.cardNumbers({ last4: '7788', oldLast4: ['4011'] }), ['7788', '4011']);
+  assert.deepEqual(K.cardNumbers({ last4: '7788' }), ['7788']);
+});
