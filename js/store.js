@@ -345,10 +345,13 @@
   // Payment wording on a card statement ("PAYMENT - THANK YOU", "PAGO RECIBIDO", "ABONO")
   K.looksLikePayment = (desc) => { const m = norm(desc); return PAY.test(m) || /\b(thank you|gracias|recibido|received)\b/.test(m); };
   // On a statement most lines are purchases, so the sign most lines share is spending
+  // Bank accounts: deposits, salary and money received don't vote, and spending stays negative unless purchases are clearly positive
+  const INCOMING = /\b(deposit|deposito|transfer from|from|refund|reembolso|interest|interes|abono|credit)\b/;
   K.spendSign = (rows, isCard) => {
-    const r = rows.filter((x) => x.amt && !K.looksLikePayment(x.desc));
+    const r = rows.filter((x) => x.amt && !K.looksLikePayment(x.desc) && (isCard || (!K.isPayroll(x.desc) && !INCOMING.test(norm(x.desc)))));
     const neg = r.filter((x) => x.amt < 0).length, pos = r.length - neg;
-    return neg === pos ? (isCard ? 1 : -1) : neg > pos ? -1 : 1;
+    if (!isCard) return pos >= 3 && pos >= neg * 3 ? 1 : -1;
+    return neg === pos ? 1 : neg > pos ? -1 : 1;
   };
   // Change a movement between spending, income and transfer, keeping the account or card it belongs to
   K.changeType = (d, id, type, place) => {
@@ -363,6 +366,33 @@
   // Imported as a payment to a card, but without payment wording: most likely a purchase read with the wrong sign
   K.likelyPurchases = (d) => d.txns.filter((t) => t.source === 'statement' && t.type === 'transfer' && !t.from && (t.to || '').startsWith('card:') && K.whereItem(d, t.to) && !K.looksLikePayment(t.merchant));
   K.fixLikelyPurchases = (d) => K.likelyPurchases(d).reduce((acc, t) => K.changeType(acc, t.id, 'expense', t.to), d);
+  // Salary deposits on a bank statement ("PAYROLL", "NOMINA", "SUELDO")
+  K.isPayroll = (desc) => /\b(payroll|pay roll|nomina|sueldo|salario|salary|haberes|remuneracion|planilla)\b/.test(norm(desc));
+  // From past salary deposits: how often pay arrives, the usual amount (it varies, so the last three are averaged) and the next payday
+  K.payrollPlan = (deps) => {
+    const list = deps.filter((x) => x.date && x.amt > 0).sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (!list.length) return null;
+    const gaps = list.slice(1).map((x, i) => days(parse(list[i].date), parse(x.date))).filter((g) => g > 2).sort((a, b) => a - b);
+    const gap = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 30;
+    const doms = list.map((x) => parse(x.date).getDate());
+    // Every-two-weeks pay is always 14 days apart; twice-a-month pay drifts between 13 and 17
+    const twice = gap <= 17 && !gaps.every((g) => g === 14) && doms.every((dd) => (dd >= 13 && dd <= 17) || dd >= 27 || dd <= 2);
+    const freq = gap <= 10 ? 'Weekly' : gap <= 17 ? (twice ? 'Twice monthly' : 'Bi-weekly') : 'Monthly';
+    const last = list[list.length - 1];
+    const recent = list.slice(-3);
+    const amt = r2(sum(recent, (x) => x.amt) / recent.length);
+    return { freq, amt, last: last.date, count: list.length, next: iso(K.nextDate(last.date, freq, addDays(today(), 1))) };
+  };
+  // Salary deposits already in Kipu for one account: from statements only, so typed-in entries don't blur the pattern
+  K.payrollDeposits = (d, where) => d.txns.filter((t) => t.type === 'income' && t.from === where && (t.payroll || (t.source === 'statement' && K.isPayroll(t.merchant)))).map((t) => ({ date: t.date, amt: t.amt }));
+  // Keeps the salary income source in line with what actually arrives, so paydays and Safe to Spend follow it
+  K.syncPayroll = (d, where) => {
+    const deps = K.payrollDeposits(d, where).map((t) => ({ date: t.date, amt: t.amt }));
+    const plan = K.payrollPlan(deps); if (!plan) return d;
+    const item = K.whereItem(d, where) || {};
+    const src = d.income.find((i) => i.payroll && i.to === where) || (d.income.length === 1 && (!d.income[0].to || d.income[0].to === where) ? d.income[0] : null);
+    return K.upsert(d, 'income', Object.assign({}, src || { name: 'Salary' }, { amt: plan.amt, cur: item.cur || d.base, freq: plan.freq, next: plan.next, to: where, payroll: true, varies: true }));
+  };
   // The day a balance was typed in: movements up to then are already inside it
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {

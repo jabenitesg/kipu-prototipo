@@ -301,6 +301,8 @@ test('purchases read with the wrong sign are recognized and can become expenses'
   // Card exports that list purchases as negative
   assert.equal(K.spendSign([{ amt: -11.09, desc: 'APPLE.COM/BILL' }, { amt: -40, desc: 'SHELL' }, { amt: 300, desc: 'PAYMENT THANK YOU' }], true), -1);
   assert.equal(K.spendSign([{ amt: 11.09, desc: 'APPLE.COM/BILL' }, { amt: 40, desc: 'SHELL' }, { amt: -300, desc: 'PAYMENT THANK YOU' }], true), 1);
+  // A debit account with more deposits than purchases still spends in negative
+  assert.equal(K.spendSign([{ amt: 2310, desc: 'PAYROLL ACME' }, { amt: -80, desc: 'METRO' }, { amt: 2104, desc: 'PAYROLL ACME' }, { amt: -45, desc: 'ESSO' }, { amt: 2689, desc: 'PAYROLL ACME' }, { amt: 150, desc: 'E-TRANSFER FROM ANA' }], false), -1);
   let d = K.factory();
   d.cards = [{ id: 'visa', name: 'Visa', cur: 'CAD', bal: 0, limit: 5000 }];
   d = K.addTxn(d, { type: 'transfer', merchant: 'APPLE.COM/BILL TORONTO', amt: 11.09, cur: 'CAD', from: null, to: 'card:visa', date: '2026-08-19', source: 'statement', settled: true });
@@ -315,4 +317,26 @@ test('purchases read with the wrong sign are recognized and can become expenses'
   // Back to a transfer by hand, then to income
   d = K.changeType(d, apple.id, 'income');
   assert.equal(d.txns.find((t) => t.id === apple.id).type, 'income');
+});
+
+test('payroll deposits set the salary: how often, the usual amount and the next payday', () => {
+  assert.equal(K.isPayroll('PAYROLL DEPOSIT ACME INC'), true);
+  assert.equal(K.isPayroll('ABONO DE NOMINA'), true);
+  assert.equal(K.isPayroll('E-TRANSFER FROM ANA'), false);
+  const bi = K.payrollPlan([{ date: '2026-07-03', amt: 2100 }, { date: '2026-07-17', amt: 2300 }, { date: '2026-07-31', amt: 2000 }, { date: '2026-08-14', amt: 2600 }]);
+  assert.equal(bi.freq, 'Bi-weekly');
+  assert.equal(bi.amt, K.r2((2300 + 2000 + 2600) / 3));
+  assert.ok(bi.next > K.iso(K.today()));
+  assert.equal(K.payrollPlan([{ date: '2026-06-15', amt: 1 }, { date: '2026-06-30', amt: 1 }, { date: '2026-07-15', amt: 1 }, { date: '2026-07-31', amt: 1 }]).freq, 'Twice monthly');
+  assert.equal(K.payrollPlan([{ date: '2026-06-28', amt: 1 }, { date: '2026-07-28', amt: 1 }, { date: '2026-08-28', amt: 1 }]).freq, 'Monthly');
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 1000)];
+  [['2026-08-14', 2500], ['2026-08-28', 2700]].forEach(([date, amt]) => { d = K.addTxn(d, { type: 'income', merchant: 'PAYROLL ACME', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); });
+  d = K.syncPayroll(d, 'acct:chq');
+  assert.equal(d.income.length, 1);
+  assert.equal(d.income[0].amt, 2600);
+  assert.equal(d.income[0].freq, 'Bi-weekly');
+  assert.equal(d.income[0].to, 'acct:chq');
+  d = K.syncPayroll(d, 'acct:chq'); // again: updates, doesn't duplicate
+  assert.equal(d.income.length, 1);
 });
