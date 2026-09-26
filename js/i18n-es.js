@@ -9,6 +9,22 @@
 
   const words = {
     // added with the solo and household pass
+    "Shared money appears next to yours. What you mark Personal stays only in your own file; your partner never receives it.": "La plata compartida aparece junto a la tuya. Lo que marcas como Personal se queda solo en tu archivo; tu pareja nunca lo recibe.",
+    "Household passphrase": "Frase del hogar",
+    "Remember it on my account": "Recordarla en mi cuenta",
+    "Kept inside your own encrypted file, so unlocking your personal space opens both.": "Se guarda dentro de tu archivo cifrado, así al abrir tu espacio personal se abren los dos.",
+    "Opening…": "Abriendo…",
+    "See shared money next to yours. Your personal things stay private.": "Ve la plata compartida junto a la tuya. Lo personal sigue siendo privado.",
+    "Open next to your personal space.": "Abierto junto a tu espacio personal.",
+    "Personal is only yours · shared is for both": "Lo personal es solo tuyo · lo compartido es de los dos",
+    "Close the Household on this device": "Cerrar el hogar en este dispositivo",
+    "Household closed on this device": "Hogar cerrado en este dispositivo",
+    "Your personal data stays private. A Household is a shared encrypted file both of you open.": "Tus datos personales siguen privados. Un hogar es un archivo cifrado compartido que abren los dos.",
+    "Open next to my money": "Abrir junto a mi plata",
+    "Only the Household": "Solo el hogar",
+    "Unlock your personal space first.": "Primero abre tu espacio personal.",
+    "Recorded by your partner from their own account or card. Only they can change it.": "Lo registró tu pareja desde una cuenta o tarjeta suya. Solo esa persona puede cambiarlo.",
+    "Wait for sync first.": "Espera a que termine de sincronizar.",
     "Whose is it?": "¿De quién es?",
     "All": "Todo",
     "Only you can see it, not even your Household.": "Solo tú lo ves, ni siquiera tu hogar.",
@@ -203,6 +219,11 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Open (.+)$/, (m, t) => 'Abrir ' + t(m[1])],
+    [/^(.+) is open$/, (m) => m[1] + ' está abierto'],
+    [/^That passphrase doesn’t open (.+)\.$/, (m) => 'Esa frase no abre ' + m[1] + '.'],
+    [/^Accounts, cards, loans, bills, goals and movements marked Personal are saved only in your own encrypted file; (.+) never receives them\. Anything marked for the Household is saved in its shared file, which both of you open\.$/, (m, t) => 'Las cuentas, tarjetas, préstamos, recibos, metas y movimientos marcados como Personal se guardan solo en tu archivo cifrado; ' + t(m[1]) + ' nunca los recibe. Lo marcado para el hogar se guarda en su archivo compartido, que abren los dos.'],
+    [/^Couldn’t open (.+): (.+)$/, (m) => 'No se pudo abrir ' + m[1] + ': ' + m[2]],
     [/^Everyone in (.+) can see it and its movements\.$/, (m, t) => 'Todos en ' + t(m[1]) + ' lo ven, con sus movimientos.'],
     [/^today’s rate plus a ([\d.]+)% card fee\. Type the exact amount from your bank when you have it\.$/, (m) => 'tasa de hoy más ' + m[1] + ' % de comisión de la tarjeta. Escribe el monto exacto de tu banco cuando lo tengas.'],
     [/^Charged to (.+)$/, (m) => 'Se cobró en ' + m[1]],

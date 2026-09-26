@@ -516,5 +516,22 @@
       <span class="small muted" style=${{ lineHeight: 1.5 }}>A settle-up moves your account balance but isn’t income or spending.</span></${Form}>`;
   };
 
-  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle };
+  // Open the Household next to your personal space
+  const OpenHousehold = ({ onClose, preset }) => {
+    const { cloud, cloudOpenHousehold, toast } = useApp();
+    const h = (cloud.households || []).find((x) => x.id === (preset && preset.id)) || (cloud.households || [])[0];
+    const [pass, setPass] = useState('');
+    const [remember, setRemember] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState('');
+    if (!h) return null;
+    const go = async (e) => { e.preventDefault(); setBusy(true); setErr(''); try { await cloudOpenHousehold(h, pass, remember); toast(h.name + ' is open'); onClose(); } catch (x) { setErr(/decrypt|operation/i.test(x.message) ? 'That passphrase doesn’t open ' + h.name + '.' : x.message); } finally { setBusy(false); } };
+    return html`<${Sheet} title=${'Open ' + h.name} sub="Shared money appears next to yours. What you mark Personal stays only in your own file; your partner never receives it." onClose=${onClose}>
+      <form class="stack-s" style=${{ gap: '12px' }} onSubmit=${go}><${Field} label="Household passphrase"><input class="input" type="password" required minlength="12" autocomplete="off" value=${pass} onInput=${(e) => setPass(e.target.value)} /></${Field}>
+        <div class="card tight"><${ToggleRow} title="Remember it on my account" sub="Kept inside your own encrypted file, so unlocking your personal space opens both." on=${remember} onChange=${setRemember} icon="lock" tone="p" /></div>
+        ${err && html`<span class="small" style=${{ color: 'var(--crit)' }}>${err}</span>`}
+        <button class="btn pri block" disabled=${busy || pass.length < 12}>${busy ? 'Opening…' : 'Open'}</button></form></${Sheet}>`;
+  };
+
+  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold };
 })();

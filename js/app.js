@@ -27,11 +27,21 @@
     // Spaces already unlocked in this session (personal and each Household), so switching back needs no passphrase
     const openVaultsRef = useRef({});
     const makeVault = (household) => { const v = household ? new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }, 'household_vaults', 'household_id') : new K.CloudVault(K.cloudClient, (status, error) => { if (vaultRef.current === v) setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })); }); return v; };
-    const forgetVaults = () => { Object.values(openVaultsRef.current).forEach((v) => v !== vaultRef.current && v.clear()); openVaultsRef.current = {}; };
+    // Personal and Household open together: the Household file sits next to yours, and saves go to each by item
+    const hhVaultRef = useRef(null);
+    const hhDataRef = useRef(null);
+    const closeCombined = () => { if (hhVaultRef.current) hhVaultRef.current.clear(); hhVaultRef.current = null; hhDataRef.current = null; };
+    const forgetVaults = () => { Object.values(openVaultsRef.current).forEach((v) => v !== vaultRef.current && v.clear()); openVaultsRef.current = {}; closeCombined(); };
     const [cloud, setCloud] = useState({ status: 'checking', user: null, error: '', target: 'personal', households: [] });
     const cloudRef = useRef(cloud); cloudRef.current = cloud;
     // When another device saved first, the vault merges both and hands the result back here
-    K.onVaultMerged = (vault, merged) => { if (vault !== vaultRef.current) return; const c = cloudRef.current; const next = c.target === 'household' && c.household ? K.jointData(merged, c.household.name) : merged; dataRef.current = next; setData(next); };
+    K.onVaultMerged = (vault, merged) => {
+      const c = cloudRef.current;
+      if (c.combined && vault === hhVaultRef.current) { hhDataRef.current = merged; const next = K.combineSpaces(K.splitSpaces(dataRef.current, merged)[0], merged, c.household); dataRef.current = next; setData(next); return; }
+      if (vault !== vaultRef.current) return;
+      const next = c.combined && hhDataRef.current ? K.combineSpaces(merged, hhDataRef.current, c.household) : c.target === 'household' && c.household ? K.jointData(merged, c.household.name) : merged;
+      dataRef.current = next; setData(next);
+    };
     if (!vaultRef.current && K.cloudClient) vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })));
     useEffect(() => {
       if (!K.cloudClient) { setCloud({ status: 'guest', user: null, error: 'Cloud sign-in is unavailable.' }); return; }
@@ -52,7 +62,8 @@
           if (cloudUserRef.current !== id) return;
           let preferred = null;
           try { preferred = localStorage.getItem('kipu-cloud-space:' + id); } catch (e) {}
-          const household = households.find((h) => h.id === preferred) || (!preferred && households.length === 1 ? households[0] : null);
+          // Personal opens first (the Household joins it once unlocked); a Household alone only if you chose that before
+          const household = households.find((h) => h.id === preferred) || null;
           if (household && !spaceChoiceRef.current) {
             if (vaultRef.current) vaultRef.current.clear();
             vaultRef.current = new K.CloudVault(K.cloudClient, (status, error) => setCloud((c) => Object.assign({}, c, { sync: status, error: error || '' })), 'household_vaults', 'household_id');
@@ -79,12 +90,21 @@
 
     useEffect(() => { const on = () => setVw(window.innerWidth); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
     const commit = useCallback((next) => {
+      const cc = cloudRef.current;
+      if (cc.combined && hhVaultRef.current && vaultRef.current && vaultRef.current.key) {
+        const [mine, ours] = K.splitSpaces(next, hhDataRef.current);
+        dataRef.current = next; setData(next);
+        vaultRef.current.enqueue(mine);
+        if (JSON.stringify(ours) !== JSON.stringify(hhDataRef.current)) { hhDataRef.current = ours; hhVaultRef.current.enqueue(ours); }
+        return;
+      }
       if (cloud.target === 'household') next = K.jointData(next, cloud.household.name);
       dataRef.current = next;
       setData(next);
       if (vaultRef.current && vaultRef.current.key && vaultRef.current.revision) vaultRef.current.enqueue(next);
       else if (!K.save(next)) setToast('Storage is full. Export a backup in Settings.');
     }, [cloud.target, cloud.household]);
+    const commitRef = useRef(commit); commitRef.current = commit;
     const cloudOpen = useCallback(async (passphrase, seed) => {
       if (!cloud.user) throw new Error('Sign in first');
       setCloud((c) => Object.assign({}, c, { status: 'opening', error: '' }));
@@ -108,6 +128,7 @@
     }, []);
     // Switch spaces. A space opened earlier in this session opens straight away; otherwise it asks for its passphrase.
     const switchSpace = (household) => {
+      if (cloudRef.current.combined) { if (hhVaultRef.current && (hhVaultRef.current.latest || hhVaultRef.current.busy)) throw new Error('Wait for sync before switching spaces.'); closeCombined(); setCloud((x) => Object.assign({}, x, { combined: false })); cloudRef.current = Object.assign({}, cloudRef.current, { combined: false }); }
       const cur = vaultRef.current;
       if (cur && (cur.latest || cur.busy)) throw new Error('Wait for sync before switching spaces.');
       const from = cloudRef.current.target === 'household' && cloudRef.current.household ? cloudRef.current.household.id : 'personal';
@@ -130,6 +151,42 @@
     };
     const cloudSelectHousehold = useCallback((household) => switchSpace(household), []);
     const cloudSelectPersonal = useCallback(() => switchSpace(null), []);
+    // Open a Household next to your personal space. With `remember`, its passphrase is kept inside your own
+    // encrypted file, so next time unlocking your personal space opens both.
+    const cloudOpenHousehold = useCallback(async (household, passphrase, remember) => {
+      const c = cloudRef.current;
+      if (!c.user || c.target !== 'personal' || c.status !== 'ready') throw new Error('Unlock your personal space first.');
+      const v = new K.CloudVault(K.cloudClient, (status, error) => { if (hhVaultRef.current === v) setCloud((x) => Object.assign({}, x, { sync: status, error: error || '' })); }, 'household_vaults', 'household_id');
+      const remote = await v.open(household.id, passphrase);
+      if (!remote) { v.clear(); throw new Error('This Household is still being set up. Ask its creator to finish setup.'); }
+      closeCombined();
+      hhVaultRef.current = v; hhDataRef.current = remote;
+      let next = K.combineSpaces(dataRef.current, remote, household);
+      if (remember) next = Object.assign({}, next, { hhKeys: Object.assign({}, next.hhKeys, { [household.id]: passphrase }) });
+      cloudRef.current = Object.assign({}, c, { combined: true, household });
+      setCloud((x) => Object.assign({}, x, { combined: true, household, error: '' }));
+      setCtxRaw((x) => Object.assign({}, x, { scope: 'personal' }));
+      commitRef.current(next);
+    }, []);
+    const cloudCloseHousehold = useCallback(() => {
+      const c = cloudRef.current;
+      if (!c.combined) return;
+      if (hhVaultRef.current && (hhVaultRef.current.latest || hhVaultRef.current.busy)) throw new Error('Wait for sync first.');
+      const mine = K.splitSpaces(dataRef.current, hhDataRef.current)[0];
+      const next = Object.assign({}, mine, { household: Object.assign({}, mine.household, { enabled: false, mode: 'solo' }), hhKeys: undefined });
+      closeCombined();
+      cloudRef.current = Object.assign({}, c, { combined: false, household: null });
+      setCloud((x) => Object.assign({}, x, { combined: false, household: null }));
+      setCtxRaw((x) => Object.assign({}, x, { scope: 'personal' }));
+      commitRef.current(next);
+    }, []);
+    // A Household you asked Kipu to remember opens with your personal space
+    useEffect(() => {
+      if (cloud.status !== 'ready' || cloud.target !== 'personal' || cloud.combined || !cloud.user) return;
+      const keys = data.hhKeys || {};
+      const h = (cloud.households || []).find((x) => keys[x.id]);
+      if (h) cloudOpenHousehold(h, keys[h.id], true).catch((e) => setCloud((x) => Object.assign({}, x, { error: 'Couldn’t open ' + h.name + ': ' + e.message })));
+    }, [cloud.status, cloud.target, cloud.combined, (cloud.households || []).length]);
     const cloudStartHousehold = useCallback(() => {
       cloudSelectPersonal();
       setCloud((c) => Object.assign({}, c, { status: 'household-create' }));
@@ -148,6 +205,17 @@
         await vault.open(household.id, passphrase);
         const initial = K.jointData(Object.assign(K.factory(), { onboarded: true, base: currency, active: [currency] }), household.name);
         await vault.create(initial); created = true;
+        // From your personal space: the new Household opens next to it, and what you had marked shared moves in
+        const c = cloudRef.current;
+        if (c.target === 'personal' && vaultRef.current && vaultRef.current.key && vaultRef.current.revision) {
+          closeCombined(); hhVaultRef.current = vault; hhDataRef.current = initial;
+          const next = Object.assign({}, K.combineSpaces(dataRef.current, initial, household), { hhKeys: Object.assign({}, dataRef.current.hhKeys, { [household.id]: passphrase }) });
+          cloudRef.current = Object.assign({}, c, { combined: true, household, households: (c.households || []).concat([household]) });
+          setCloud((x) => Object.assign({}, x, { status: 'ready', combined: true, household, households: (x.households || []).concat([household]), error: '' }));
+          setStack([{ r: 'home' }]); setSheet(null);
+          commitRef.current(next);
+          return;
+        }
         if (vaultRef.current) vaultRef.current.clear();
         vaultRef.current = vault; dataRef.current = initial; setData(initial);
         spaceChoiceRef.current = true;
@@ -159,14 +227,25 @@
         throw e;
       }
     }, [cloud.user]);
-    const cloudSignOut = useCallback(async () => { if (vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) throw new Error('Wait for sync or export a backup before signing out.'); const { error } = await K.cloudClient.auth.signOut(); if (error) throw error; }, []);
+    const cloudSignOut = useCallback(async () => { if ((vaultRef.current && (vaultRef.current.latest || vaultRef.current.busy)) || (hhVaultRef.current && (hhVaultRef.current.latest || hhVaultRef.current.busy))) throw new Error('Wait for sync or export a backup before signing out.'); const { error } = await K.cloudClient.auth.signOut(); if (error) throw error; }, []);
     useEffect(() => {
       if (cloud.status !== 'ready') return;
-      const check = async () => { if (document.hidden) return; try { const fresh = await vaultRef.current.refresh(); if (fresh) { const next = cloud.target === 'household' ? K.jointData(fresh, cloud.household.name) : fresh; dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { sync: 'synced' })); } } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); } };
+      const check = async () => {
+        if (document.hidden) return;
+        try {
+          const fresh = await vaultRef.current.refresh();
+          const freshH = cloud.combined && hhVaultRef.current ? await hhVaultRef.current.refresh() : null;
+          if (freshH) hhDataRef.current = freshH;
+          if (!fresh && !freshH) return;
+          const mine = fresh || (cloud.combined ? K.splitSpaces(dataRef.current, hhDataRef.current)[0] : dataRef.current);
+          const next = cloud.combined && hhDataRef.current ? K.combineSpaces(mine, hhDataRef.current, cloud.household) : cloud.target === 'household' ? K.jointData(mine, cloud.household.name) : mine;
+          dataRef.current = next; setData(next); setCloud((c) => Object.assign({}, c, { sync: 'synced' }));
+        } catch (e) { setCloud((c) => Object.assign({}, c, { sync: 'error', error: e.message })); }
+      };
       const timer = setInterval(check, 30000);
       window.addEventListener('focus', check);
       return () => { clearInterval(timer); window.removeEventListener('focus', check); };
-    }, [cloud.status, cloud.target, cloud.household]);
+    }, [cloud.status, cloud.target, cloud.household, cloud.combined]);
     const setCtx = useCallback((o) => setCtxRaw((c) => Object.assign({}, c, o)), []);
     const setSettings = useCallback((o) => setSettingsRaw((s) => { const n = Object.assign({}, s, o); try { localStorage.setItem(SKEY, JSON.stringify(n)); } catch (e) {} return n; }), []);
     const effectiveMode = settings.mode === 'System' ? (sysDark ? 'Dark' : 'Light') : K.modeName(settings.mode);
@@ -218,6 +297,8 @@
     useEffect(() => { const on = (e) => { const msg = String((e.reason || e.error || {}).message || e.message || ''); const i = msg.indexOf('NO_RATE:'); if (i < 0) return; e.preventDefault && e.preventDefault(); toast('Kipu needs the exchange rate for ' + msg.slice(i + 8).trim() + ' first. Tap Update rates.'); }; window.addEventListener('error', on); window.addEventListener('unhandledrejection', on); return () => { window.removeEventListener('error', on); window.removeEventListener('unhandledrejection', on); }; }, []);
     const updateRates = useCallback(async () => { try { const fx = await K.refreshFx(dataRef.current); commit(K.fillPendingRates(Object.assign({}, dataRef.current, { fx }))); toast('Exchange rates updated'); return true; } catch (e) { toast('Couldn’t reach the rate service. Check your connection.'); return false; } }, []);
     const resetAll = useCallback(() => {
+      // With the Household open, only your personal things are erased; the Household is left as it is
+      if (cloudRef.current.combined && hhDataRef.current) { commit(K.combineSpaces(Object.assign(K.factory(), { onboarded: true, base: dataRef.current.base, active: [dataRef.current.base], hhKeys: dataRef.current.hhKeys }), hhDataRef.current, cloudRef.current.household)); setStack([{ r: 'home' }]); setSheet(null); return; }
       if (vaultRef.current && vaultRef.current.key) {
         const empty = cloud.target === 'household'
           ? K.jointData(Object.assign(K.factory(), { onboarded: true, base: dataRef.current.base, active: [dataRef.current.base] }), cloud.household.name)
@@ -232,7 +313,7 @@
 
     const wide = vw >= WIDE_AT;
     wideRef.current = wide;
-    const value = { data, view, updateRates, displayName, commit, cloud, cloudOpen, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
+    const value = { data, view, updateRates, displayName, commit, cloud, cloudOpen, cloudOpenHousehold, cloudCloseHousehold, cloudCreate, cloudCreateHousehold, cloudSelectHousehold, cloudSelectPersonal, cloudStartHousehold, cloudSignOut, cloudPasswordResetDone: () => setCloud((c) => Object.assign({}, c, { status: 'locked' })), cloudLogin: () => setCloud((c) => Object.assign({}, c, { status: 'login' })), cloudCancel: () => setCloud((c) => Object.assign({}, c, { status: 'guest' })), cloudRetry: () => vaultRef.current && vaultRef.current.retry(), ctx, setCtx, D, fmt, go, back, route, stack, openSheet: setSheet, closeSheet: () => setSheet(null), toast, settings: Object.assign({}, settings, { effectiveDark, effectiveMode }), setSettings, lockNow: () => { setSheet(null); setFly(null); setLocked(true); }, wide, insights, resetAll };
     const cls = 'app' + (wide ? ' wide' : '') + (settings.reduce ? ' reduce' : '');
 
     if (!['guest', 'ready'].includes(cloud.status)) return html`<${Ctx.Provider} value=${value}><div class=${cls}><${K.CloudAccess} /></div></${Ctx.Provider}>`;

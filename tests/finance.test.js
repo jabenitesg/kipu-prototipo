@@ -640,3 +640,35 @@ test('three views: only yours, only the Household, or everything', () => {
   assert.equal(view('household').plan.cashNow, 2700); assert.equal(view('household').month.spending, 300);
   assert.equal(view('personal').plan.cashNow, 3600); assert.equal(view('personal').month.spending, 400);
 });
+
+test('personal stays in your own file, shared goes to the Household file', () => {
+  const p = Object.assign(K.factory(), { onboarded: true, profile: { name: 'Jose', email: '' }, hhKeys: { h1: 'secret phrase 123' } });
+  p.accounts = [account('mine', 'CAD', 1000), Object.assign(account('old', 'CAD', 50), { shared: true })];
+  const h = Object.assign(K.factory(), { onboarded: true });
+  h.accounts = [Object.assign(account('joint', 'CAD', 3000), { shared: true })];
+  let d = K.combineSpaces(p, h, { id: 'h1', name: 'Jose & Kari' });
+  assert.deepStrictEqual(d.accounts.map((a) => a.id).sort(), ['joint', 'mine', 'old']);
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 100, cur: 'CAD', from: 'acct:mine' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 80, cur: 'CAD', from: 'acct:mine', shared: true }); // household groceries on a personal account
+  const [mine, ours] = K.splitSpaces(d, h);
+  assert.deepStrictEqual(mine.accounts.map((a) => a.id), ['mine']);
+  assert.deepStrictEqual(ours.accounts.map((a) => a.id).sort(), ['joint', 'old']); // shared before: moves to the Household
+  assert.deepStrictEqual(mine.txns.map((t) => t.merchant), ['Shoes']);
+  assert.deepStrictEqual(ours.txns.map((t) => t.merchant), ['Groceries']);
+  assert.equal(mine.accounts[0].bal, 820); // your balance lives with you
+  assert.equal(ours.hhKeys, undefined); // never shared
+  assert.equal(JSON.stringify(ours).includes('Shoes'), false);
+  // Kari opens the Household: she sees the joint account and the groceries, never Jose's account or shoes
+  const kari = K.combineSpaces(Object.assign(K.factory(), { onboarded: true }), ours, { id: 'h1', name: 'Jose & Kari' });
+  assert.deepStrictEqual(kari.accounts.map((a) => a.id).sort(), ['joint', 'old']);
+  assert.deepStrictEqual(kari.txns.map((t) => t.merchant), ['Groceries']);
+});
+
+test('movements on a shared account are shared, so both people see them', () => {
+  let d = K.factory();
+  d.accounts = [Object.assign(account('joint', 'CAD', 3000), { shared: true }), account('mine', 'CAD', 500)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Wong', cat: 'groceries', amt: 80, cur: 'CAD', from: 'acct:joint' });
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'To joint', amt: 100, cur: 'CAD', from: 'acct:mine', to: 'acct:joint' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 60, cur: 'CAD', from: 'acct:mine' });
+  assert.deepStrictEqual(d.txns.map((t) => t.shared), [true, true, false]);
+});

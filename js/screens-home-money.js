@@ -95,6 +95,14 @@
     return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="split" tone=${owed > 0.009 ? 'g' : owed < -0.009 ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Shared with ' + who}</span><span class="small muted">${text}</span></span></div>
       <div class="row" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => openSheet({ k: 'expense', preset: { shared: true } })}>Shared expense</button>${Math.abs(owed) >= 0.01 && html`<button class="btn pri sm" onClick=${() => openSheet({ k: 'settle' })}>Settle up</button>`}</div></div>`;
   };
+  // Signed in with a Household that isn't open yet
+  const HouseholdClosed = () => {
+    const { cloud, openSheet } = useApp();
+    if (cloud.status !== 'ready' || cloud.target !== 'personal' || cloud.combined || !(cloud.households || []).length) return null;
+    const h = cloud.households[0];
+    return html`<div class="card stack-s" style=${{ gap: '10px' }}><div class="row" style=${{ gap: '12px' }}><${Tile} icon="people" tone="p" /><span class="grow stack-s" style=${{ gap: '2px' }}><span style=${{ fontWeight: 700 }}>${'Open ' + h.name}</span><span class="small muted" style=${{ lineHeight: 1.45 }}>See shared money next to yours. Your personal things stay private.</span></span></div><button class="btn pri sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => openSheet({ k: 'openHousehold', id: h.id })}>Open</button></div>`;
+  };
+
   // Couples who share everything: get the other person in
   const InviteCard = () => {
     const { data, cloud, go, commit } = useApp();
@@ -199,7 +207,7 @@
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -207,7 +215,7 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${CountrySafe} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
@@ -387,7 +395,7 @@
     ${open && html`<div class="txo-body">${children}</div>`}</div>`;
 
   K.TxnDetail = function TxnDetail({ route }) {
-    const { data, commit, fmt, go, toast, back, openSheet } = useApp();
+    const { data, commit, fmt, go, toast, back, openSheet, cloud } = useApp();
     const [open, setOpen] = useState(null);
     const t = data.txns.find((x) => x.id === route.id);
     const imp = t && t.imp && (data.imports || []).find((i) => i.id === t.imp);
@@ -403,7 +411,9 @@
     const c = K.CATS[t.cat];
     const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);
     const toggle = (k) => setOpen(open === k ? null : k);
-    const editable = ['expense', 'income', 'transfer'].includes(t.type);
+    // Recorded by your partner from an account or card only they can see: changing it here would leave their balance wrong
+    const other = !!(cloud.combined && t.shared && (t.from || t.to) && !known);
+    const editable = !other && ['expense', 'income', 'transfer'].includes(t.type);
     const where = K.whereName(data, t.from || t.to);
     const setType = (type) => { if (type === t.type) return; commit(K.changeType(data, t.id, type, known ? null : place)); toast({ expense: 'Now an expense', income: 'Now income', transfer: 'Now a transfer' }[type]); };
     const setBill = (id) => { commit(K.editTxn(data, t.id, { recurring: id || null, billMatch: id ? 'manual' : 'off' })); toast(id ? 'Linked to bill' : 'Unlinked'); setOpen(null); };
@@ -429,8 +439,8 @@
       </div>`}
 
       <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
-      <div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
-      <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />
+      ${other ? html`<div class="card flat small" style=${{ lineHeight: 1.5 }}>Recorded by your partner from their own account or card. Only they can change it.</div>` : html`<div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
+      <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />`}
     </div>`;
   };
 })();

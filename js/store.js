@@ -232,6 +232,32 @@
     return K.addTxn(d, Object.assign(t, { shared: true }));
   };
 
+  // ---------------------------------------------------------------- personal and Household spaces, opened together
+  // Personal things live only in your own encrypted file; shared things live in the Household file both of you open.
+  // On screen they're one list; on save each item goes back to its own file.
+  const SPACE_COLLS = ['accounts', 'cards', 'loans', 'txns', 'bills', 'income', 'goals', 'trips'];
+  const byId = (list) => { const seen = new Set(); return list.filter((x) => (x && !seen.has(x.id) ? seen.add(x.id) : false)); };
+  K.combineSpaces = (p, h, hh) => {
+    const out = Object.assign({}, p);
+    SPACE_COLLS.forEach((k) => {
+      const shared = (h[k] || []).map((x) => (x.shared ? x : Object.assign({}, x, { shared: true })));
+      // Things marked shared in your own file (from before the Household existed) move to the Household on the next save
+      out[k] = byId((p[k] || []).filter((x) => !x.shared).concat(shared, (p[k] || []).filter((x) => x.shared)));
+    });
+    out.customCats = byId((p.customCats || []).concat(h.customCats || []));
+    out.active = [...new Set((p.active || []).concat(h.active || []))];
+    out.household = Object.assign({ partner: '', split: 50 }, p.household, { enabled: true, mode: 'mixed', name: hh.name, cloudId: hh.id });
+    return out;
+  };
+  K.splitSpaces = (d, hPrev) => {
+    const p = Object.assign({}, d), h = Object.assign(K.factory(), hPrev || {}, { onboarded: true });
+    SPACE_COLLS.forEach((k) => { p[k] = (d[k] || []).filter((x) => !x.shared); h[k] = (d[k] || []).filter((x) => x.shared); });
+    h.customCats = d.customCats || [];
+    if (!hPrev) { h.base = d.base; h.active = d.active; }
+    delete h.hhKeys; // your key to the Household never goes into the Household file
+    return [p, h];
+  };
+
   // ---------------------------------------------------------------- currency
   // Every stored transaction keeps its original amount and currency plus the base-currency amount at the rate used then.
   // A missing rate is null, never 1: amounts without a rate stay out of totals until the rate arrives
@@ -466,6 +492,8 @@
     const chargedBase = t.charged && t.charged.amt != null ? K.toBase(d, t.charged.amt, t.charged.cur) : null;
     const base = t.base != null ? t.base : chargedBase != null ? chargedBase : K.toBase(d, t.amt, cur);
     t = Object.assign({ id: uid('t'), date: iso(today()), cur, base, rate: K.rate(d, cur, d.base), source: 'manual', shared: false }, t, { base });
+    // Money moving on a shared account or card is the Household's business: both of you see it
+    if (!t.shared && [t.from, t.to].some((w) => w && (K.whereItem(d, w) || {}).shared)) t.shared = true;
     t.postings = postingsFor(d, t);
     if (t.type === 'expense' && !t.recurring && t.billMatch !== 'off') { const b = K.matchBill(d, t); if (b) { t.recurring = b.id; t.billMatch = 'auto'; } }
     if (t.type === 'expense' && !t.trip) { const trip = K.activeTrip(d, parse(t.date)); if (trip && t.autoTrip !== false && cur !== d.base) t.trip = trip.id; }
