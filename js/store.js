@@ -94,24 +94,37 @@
   // Your name for a shop: "TIM HORTONS #2445 LANGFORD" → "Tim Hortons". Renaming one movement renames the others
   // with the same original name that you haven't named yourself, and the next statements use it too.
   const rawKey = (x) => K.merchantKey(x) || String(x || '').toLowerCase().trim();
-  K.shopName = (d, desc) => {
+  // Apple, Google, PayPal and Amazon bill many subscriptions under one line: there the amount tells them apart
+  K.isBillingHub = (desc) => /apple\.com\/bill|itunes|google\s*\*|google play|paypal\s*\*|amazon digital|amzn digital|prime video|microsoft\s*\*|msft\s*\*/i.test(String(desc || ''));
+  const sameAmt = (a, b) => a != null && b != null && Math.abs(Math.abs(a) - Math.abs(b)) < 0.01;
+  // A name kept for one amount wins over the name for the whole shop
+  K.shopName = (d, desc, amt) => {
     const key = rawKey(desc);
-    const r = key && (d.shopNames || []).find((x) => sameShop(key, x.key));
+    if (!key) return desc;
+    const rules = (d.shopNames || []).filter((x) => sameShop(key, x.key));
+    const r = rules.find((x) => x.amt != null && sameAmt(x.amt, amt)) || rules.find((x) => x.amt == null);
     return r ? r.name : desc;
   };
-  // The other movements that follow a rename of `t`: same original shop and still showing the name it had
-  K.sameShopTxns = (d, t) => {
+  // The other movements that follow a rename of `t`: same original shop and still showing the name it had.
+  // scope 'amt': only those for the same amount; 'one': none.
+  K.sameShopTxns = (d, t, scope) => {
     const key = rawKey(t.raw || t.merchant);
-    if (!key) return [];
-    return (d.txns || []).filter((x) => x.id !== t.id && x.type === t.type && x.merchant === t.merchant && sameShop(rawKey(x.raw || x.merchant), key));
+    if (!key || scope === 'one') return [];
+    return (d.txns || []).filter((x) => x.id !== t.id && x.type === t.type && x.merchant === t.merchant && sameShop(rawKey(x.raw || x.merchant), key) && (scope !== 'amt' || (x.cur === t.cur && sameAmt(x.amt, t.amt))));
   };
-  K.renameShop = (d, t, name) => {
+  // What a rename covers unless you choose: the whole shop, or the same amount at a billing hub
+  K.renameScope = (t) => (K.isBillingHub(t.raw || t.merchant) ? 'amt' : 'all');
+  K.renameShop = (d, t, name, scope) => {
     name = String(name || '').trim();
+    scope = scope || K.renameScope(t);
     const key = rawKey(t.raw || t.merchant);
     if (!name || !key || name === t.merchant) return d;
-    const ids = new Set(K.sameShopTxns(d, t).map((x) => x.id).concat([t.id]));
+    const ids = new Set(K.sameShopTxns(d, t, scope).map((x) => x.id).concat([t.id]));
     const txns = d.txns.map((x) => (ids.has(x.id) ? Object.assign({}, x, { merchant: name, raw: x.raw || (x.id === t.id ? t.merchant : x.merchant) }) : x));
-    const shopNames = (d.shopNames || []).filter((x) => x.key !== key).concat([{ id: 'sn:' + key, key, name }]);
+    if (scope === 'one') return Object.assign({}, d, { txns });
+    const amt = scope === 'amt' ? Math.abs(t.amt) : null;
+    const id = 'sn:' + key + (amt != null ? ':' + amt : '');
+    const shopNames = (d.shopNames || []).filter((x) => x.id !== id).concat([amt != null ? { id, key, name, amt } : { id, key, name }]);
     return Object.assign({}, d, { txns, shopNames });
   };
   // One category for every expense at a shop, and remembered for the next ones

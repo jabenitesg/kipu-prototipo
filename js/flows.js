@@ -53,6 +53,9 @@
     const [merchant, setMerchant] = useState(src.merchant || '');
     const [cat, setCat] = useState(src.cat || '');
     const [newCat, setNewCat] = useState(false);
+    // A new name: for every movement from that shop, only the ones for this amount (Apple, Google…), or just this one
+    const [scope, setScope] = useState(item ? K.renameScope(item) : 'all');
+    const others = item ? { all: K.sameShopTxns(data, item, 'all').length, amt: K.sameShopTxns(data, item, 'amt').length } : null;
     const [date, setDate] = useState(src.date || K.iso(K.today()));
     const [from, setFrom] = useState(src.from || (places[0] || [])[0] || '');
     const [note, setNote] = useState(src.note || '');
@@ -69,8 +72,9 @@
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
       if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared });
       // A new name for the shop goes to its other movements and to the next statements
-      const renamed = item && item.merchant !== t.merchant && t.merchant !== 'Expense' ? K.sameShopTxns(data, item).length : 0;
-      if (item && item.merchant !== t.merchant && t.merchant !== 'Expense') next = K.renameShop(next, item, t.merchant);
+      const renaming = item && item.merchant !== t.merchant && t.merchant !== 'Expense';
+      const renamed = renaming ? K.sameShopTxns(data, item, scope).length : 0;
+      if (renaming) next = K.renameShop(next, item, t.merchant, scope);
       commit(next);
       const safe = K.derive(next, ctx).plan;
       toast(item ? (renamed ? 'Expense updated · ' + renamed + (renamed === 1 ? ' more renamed' : ' more renamed') : 'Expense updated') : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
@@ -82,6 +86,9 @@
       ${curs.length > 1 && html`<${Seg} options=${curs} value=${cur} onChange=${setCur} labels=${curs.map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       ${cur !== data.base && v > 0 && html`<div class="card flat" style=${{ padding: '12px 14px' }}><div class="between small"><span class="muted">In ${data.base} at today’s rate</span><b class="num">${fmt(K.toBase(data, v, cur), { dec: 2 })}</b></div><span class="tiny muted">The rate is locked when you save.</span></div>`}
       <${In} id="e-merchant" label="Merchant" value=${merchant} onInput=${(e) => setMerchant(e.target.value)} ph="Where did you spend?" />
+      ${item && others.all > 0 && merchant.trim() && merchant.trim() !== item.merchant && html`<div class="card flat stack-s" style=${{ gap: '10px', padding: '14px' }}><span class="small" style=${{ fontWeight: 600 }}>Rename which ones?</span>
+        <${Seg} options=${others.amt > 0 && others.amt < others.all ? ['all', 'amt', 'one'] : ['all', 'one']} labels=${others.amt > 0 && others.amt < others.all ? ['All (' + (others.all + 1) + ')', 'Same amount (' + (others.amt + 1) + ')', 'Only this'] : ['All (' + (others.all + 1) + ')', 'Only this']} value=${scope === 'amt' && !(others.amt > 0 && others.amt < others.all) ? 'all' : scope} onChange=${setScope} />
+        <span class="tiny muted" style=${{ lineHeight: 1.5 }}>${scope === 'one' ? 'Only this movement changes.' : scope === 'amt' && others.amt > 0 && others.amt < others.all ? 'Movements of ' + fmt.native(item.amt, item.cur) + ' from ' + (item.raw || item.merchant) + ' change, and the next ones for that amount. Useful when one line bills several subscriptions.' : 'Every movement from ' + (item.raw || item.merchant) + ' changes, and the next statements use this name.'}</span></div>`}
       <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].custom && html`<${Icon} n=${K.CATS[c].icon} s=${13} />`}${K.CATS[c].name}</button>`)}${!newCat && html`<button type="button" class="chip" style=${{ color: 'var(--acc)', background: 'var(--accbg)' }} onClick=${() => setNewCat(true)}><${Icon} n="plus" s=${13} w=${2.4} />New category</button>`}</div>
         ${newCat && html`<${K.CategoryForm} onCancel=${() => setNewCat(false)} onSave=${(c) => { const [d, id] = K.addCategory(data, c); K.syncCats(d); commit(d); setCat(id); setNewCat(false); toast(c.name + ' added'); }} />`}</div>
       ${places.length ? html`<${Field} label="Paid with"><${Select} id="e-from" value=${from} onChange=${setFrom} options=${places} /></${Field}>` : html`<${NoPlace} />`}
@@ -237,7 +244,7 @@
       return isCard ? { type: 'transfer', amt, from: null, to: where } : { type: 'income', amt, from: where, payroll: K.isPayroll(r.desc) };
     };
     const dups = K.markDuplicates(data, st.rows || [], where);
-    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], name: K.shopName(data, r.desc), cat: (() => { const nm = K.shopName(data, r.desc); let g = K.guessCat(data, nm); if (g === 'other' && nm !== r.desc) g = K.guessCat(data, r.desc); return g === 'other' && r.bankCat ? r.bankCat : g; })(), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
+    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], name: K.shopName(data, r.desc, r.amt), cat: (() => { const nm = K.shopName(data, r.desc, r.amt); let g = K.guessCat(data, nm); if (g === 'other' && nm !== r.desc) g = K.guessCat(data, r.desc); return g === 'other' && r.bankCat ? r.bankCat : g; })(), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
     // Lines up to the day the balance was typed in are already inside it: history for statistics.
     // Without that date, a statement older than 40 days is taken as already paid.

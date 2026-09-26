@@ -622,3 +622,23 @@ test('renaming a shop renames its other movements you haven’t named, and the n
   assert.equal(K.shopName(d, 'TIM HORTONS #0099 LANGFORD'), 'Tim Hortons');
   assert.equal(K.shopName(d, 'SUBWAY 59360'), 'SUBWAY 59360');
 });
+
+test('one line that bills several subscriptions (Apple) is renamed by amount', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (amt, date) => { d = K.addTxn(d, { type: 'expense', merchant: 'APPLE.COM/BILL TORONTO', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', cat: 'subs' }); };
+  add(13.43, '2026-08-03'); add(4.47, '2026-08-11'); add(13.43, '2026-09-03'); add(4.47, '2026-09-11');
+  const disney = d.txns.find((t) => t.amt === 13.43);
+  assert.equal(K.renameScope(disney), 'amt');
+  assert.equal(K.sameShopTxns(d, disney, 'amt').length, 1);
+  d = K.renameShop(d, disney, 'Disney+');
+  d = K.renameShop(d, d.txns.find((t) => t.amt === 4.47), 'iCloud storage');
+  assert.deepEqual(d.txns.map((t) => t.merchant).sort(), ['Disney+', 'Disney+', 'iCloud storage', 'iCloud storage']);
+  // Next statement: each amount keeps its name; a new amount stays as the bank wrote it
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', 13.43), 'Disney+');
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', -4.47), 'iCloud storage');
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', 19.03), 'APPLE.COM/BILL TORONTO');
+  // Only this one
+  const d2 = K.renameShop(d, d.txns.find((t) => t.merchant === 'Disney+'), 'Disney gift', 'one');
+  assert.equal(d2.txns.filter((t) => t.merchant === 'Disney+').length, 1);
+});
