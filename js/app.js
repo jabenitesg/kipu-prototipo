@@ -197,6 +197,7 @@
     useEffect(() => { window.scrollTo(0, 0); }, [stack.length, route.r, route.id, route.tab]);
 
     K.syncCats(data);
+    K.scopeNow = ctx.scope;
     // Global (everything in the main currency) or one country in its own currency. `data` stays the full record for edits.
     const view = useMemo(() => (ctx.country && ctx.country !== 'All' && K.countries(data).includes(ctx.country) ? K.countryView(data, ctx.country) : data), [data, ctx.country]);
     const D = useMemo(() => Object.assign(K.derive(view, ctx), { view: view.view || null, countries: K.countries(data) }), [view, ctx, data]);
@@ -269,6 +270,7 @@
             ${stack.length > 1 ? html`<button class="circle-btn" aria-label="Back" onClick=${back}><${Icon} n="back" s=${18} w=${2.2} /></button>` : null}
             <span class="crumb"><span class="muted">Kipu</span><${Icon} n="next" s=${13} c="var(--muted)" /><span class=${stack.length > 1 || subLabel ? 'muted' : ''}>${SECTION[rootOf] || 'Home'}</span>${subLabel && html`<${Icon} n="next" s=${13} c="var(--muted)" /><span class=${stack.length > 1 ? 'muted' : ''}>${subLabel}</span>`}${stack.length > 1 && html`<${Icon} n="next" s=${13} c="var(--muted)" /><span>${TITLES[route.r] || ''}</span>`}</span>
             <span class="grow"></span>
+            ${stack.length === 1 && ['home', 'money', 'plan', 'stats'].includes(rootOf) && html`<${K.SpaceSwitch} />`}
             ${rootOf === 'home' && stack.length === 1 && html`<${K.ContextFilter} show=${['scope', 'currency']} />`}
             <span class="pill-soft"><${Icon} n="calendar" s=${16} c="var(--muted)" />${today}</span>
             ${K.lockCfg().enabled && html`<button class="circle-btn" aria-label="Lock Kipu" title="Lock" onClick=${() => { setFly(null); setLocked(true); }}><${Icon} n="lock" s=${17} /></button>`}
@@ -281,6 +283,7 @@
     return html`<${Ctx.Provider} value=${value}><div class=${cls}>
       <div class="m-page">
         ${showTop ? html`<div class="m-top"><button class="ic n" style=${{ background: 'transparent' }} aria-label="Back" onClick=${() => { try { history.back(); } catch (e) { back(); } }}><${Icon} n="back" s=${22} w=${2} /></button><span class="t">${TITLES[route.r] && route.r !== 'settings' ? TITLES[route.r] : ''}</span></div>` : html`<div style=${{ height: '6px' }}></div>`}
+        ${!showTop && ['home', 'money', 'plan', 'stats'].includes(route.r) && html`<div class="space-bar"><${K.SpaceSwitch} /></div>`}
         ${content}
       </div>
       <nav class="bnav" aria-label="Primary">

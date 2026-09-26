@@ -618,3 +618,25 @@ test('the same card payment on the bank and the card statement counts once', () 
   e = K.mergeCardPayments(e);
   assert.equal(e.cards[0].bal, 0); assert.equal(e.accounts[0].bal, 1200);
 });
+
+test('each card’s own fee: the one you set, else what it really charged before', () => {
+  let d = K.factory();
+  d.base = 'CAD'; d.fx.usd = { USD: 1, CAD: 1.35 };
+  d.cards = [{ id: 'us', name: 'US card', cur: 'USD', bal: 0 }, { id: 'wise', name: 'No-fee card', cur: 'USD', bal: 0, fxFee: 0 }];
+  assert.equal(K.fxFeeOf(d, 'card:us'), 2.5);
+  assert.equal(K.fxFeeOf(d, 'card:wise'), 0);
+  [[103.4, 100], [51.7, 50]].forEach(([amt, market]) => { d = K.addTxn(d, { type: 'expense', merchant: 'Shop', cat: 'shopping', amt: market * 1.35, cur: 'CAD', from: 'card:us', charged: { amt, cur: 'USD', market, exact: true } }); });
+  assert.equal(K.fxFeeOf(d, 'card:us'), 3.4); // learned from two real charges
+  assert.equal(K.chargeEstimate(d, 135, 'CAD', 'card:us').amt, 103.4);
+});
+
+test('three views: only yours, only the Household, or everything', () => {
+  let d = K.setHouseholdMode(K.factory(), 'mixed', { partner: 'Kari' });
+  d.accounts = [Object.assign(account('mine', 'CAD', 1000), { shared: false }), Object.assign(account('joint', 'CAD', 3000), { shared: true })];
+  d = K.addTxn(d, { type: 'expense', merchant: 'Shoes', cat: 'shopping', amt: 100, cur: 'CAD', from: 'acct:mine' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'Groceries', cat: 'groceries', amt: 300, cur: 'CAD', from: 'acct:joint', shared: true });
+  const view = (scope) => K.derive(d, { scope, currency: 'Combined' });
+  assert.equal(view('mine').plan.cashNow, 900); assert.equal(view('mine').month.spending, 100);
+  assert.equal(view('household').plan.cashNow, 2700); assert.equal(view('household').month.spending, 300);
+  assert.equal(view('personal').plan.cashNow, 3600); assert.equal(view('personal').month.spending, 400);
+});

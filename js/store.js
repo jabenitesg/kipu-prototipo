@@ -193,6 +193,11 @@
     ['mixed', 'split', 'Some mine, some shared', 'My own money, plus shared expenses split between us.'],
   ];
   K.hhMode = (d) => { const h = (d && d.household) || {}; return h.joint ? 'together' : h.mode || (h.enabled ? 'mixed' : 'solo'); };
+  // Sharing is offered once there is someone to share with: a Household on this device or a joint one in the cloud
+  K.canShare = (d, cloud) => K.hhMode(d) !== 'solo' || !!(cloud && (cloud.households || []).length);
+  K.householdName = (d, cloud) => (cloud && cloud.household && cloud.household.name) || (cloud && (cloud.households || [])[0] && cloud.households[0].name) || (d.household && d.household.name) || 'Household';
+  // New things are shared when everything is (together) or when you're looking at the Household
+  K.isShared = (d, v) => (v != null ? !!v : K.hhMode(d) === 'together' || K.scopeNow === 'household');
   K.partnerName = (d) => ((d && d.household && d.household.partner) || '').trim();
   K.setHouseholdMode = (d, mode, opts) => {
     const o = opts || {};
@@ -383,7 +388,14 @@
   };
   // ---------------------------------------------------------------- paying in another currency
   // Card and account fees for purchases in another currency (cards usually charge about 2.5%)
-  K.fxFeeOf = (d, where) => { const it = K.whereItem(d, where); if (!it) return 0; return it.fxFee != null && it.fxFee !== '' ? Number(it.fxFee) : String(where).startsWith('card:') ? 2.5 : 0; };
+  // The fee you set wins; otherwise what this card really charged on past purchases (two or more); otherwise a typical fee
+  K.fxFeeOf = (d, where) => {
+    const it = K.whereItem(d, where); if (!it) return 0;
+    if (it.fxFee != null && it.fxFee !== '') return Number(it.fxFee);
+    const seen = K.fxCost(d, where);
+    if (seen && seen.count >= 2) return Math.max(0, seen.pct);
+    return String(where).startsWith('card:') ? 2.5 : 0;
+  };
   K.payCurrencies = (d, where) => { const it = K.whereItem(d, where); return it ? [it.cur || d.base].concat(it.cur2 ? [it.cur2] : []) : []; };
   // What the bank will likely charge for a purchase in another currency: today's rate plus the card's fee.
   // A two-currency card bills foreign purchases in dollars when it has them, as most banks do.
@@ -752,7 +764,7 @@
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
     const all = K.hhMode(d) === 'together';
-    const inS = (x) => (scope === 'household' ? all || !!x.shared : true);
+    const inS = (x) => (scope === 'household' ? all || !!x.shared : scope === 'mine' ? !all && !x.shared : true);
     const accts = d.accounts.filter((a) => !a.archived && inS(a)).map((a) => Object.assign({}, a, { baseBal: r2(a.bal * K.rate(d, a.cur, d.base)) }));
     const cash = r2(sum(accts.filter((a) => ['Everyday', 'Savings', 'Cash'].includes(a.kind)), (a) => a.baseBal));
     const invest = r2(sum(accts.filter((a) => a.kind === 'Investments'), (a) => a.baseBal));
@@ -779,7 +791,8 @@
     const T = today();
     const scope = ctx.scope;
     const together = K.hhMode(data) === 'together';
-    const inS = (x) => (scope === 'household' ? together || !!x.shared : true);
+    // household: what you share · mine: only what's yours alone · personal (default): everything you can see
+    const inS = (x) => (scope === 'household' ? together || !!x.shared : scope === 'mine' ? !together && !x.shared : true);
     // Your own view counts your part of a split expense; the Household view counts the whole thing
     const share = (t) => (scope === 'household' ? 1 : K.myShare(t));
     const monthStart = new Date(T.getFullYear(), T.getMonth(), 1), monthEnd = new Date(T.getFullYear(), T.getMonth() + 1, 0);

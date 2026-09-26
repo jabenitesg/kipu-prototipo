@@ -9,6 +9,12 @@
 
   const words = {
     // added with the solo and household pass
+    "Whose is it?": "¿De quién es?",
+    "All": "Todo",
+    "Only you can see it, not even your Household.": "Solo tú lo ves, ni siquiera tu hogar.",
+    "Only what you share.": "Solo lo que comparten.",
+    "Only what is yours alone.": "Solo lo tuyo.",
+    "Everything you can see.": "Todo lo que puedes ver.",
     "This looks like a card payment. Paying a card isn’t spending: the purchases on the card already are.": "Esto parece un pago de tarjeta. Pagar la tarjeta no es un gasto: las compras de la tarjeta ya lo son.",
     "Record as card payment": "Registrar como pago de tarjeta",
     "Fee on purchases in other currencies (%)": "Comisión por compras en otra moneda (%)",
@@ -197,6 +203,7 @@
   ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach((k, i) => (words[k] = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'][i]));
 
   const patterns = [
+    [/^Everyone in (.+) can see it and its movements\.$/, (m, t) => 'Todos en ' + t(m[1]) + ' lo ven, con sus movimientos.'],
     [/^today’s rate plus a ([\d.]+)% card fee\. Type the exact amount from your bank when you have it\.$/, (m) => 'tasa de hoy más ' + m[1] + ' % de comisión de la tarjeta. Escribe el monto exacto de tu banco cuando lo tengas.'],
     [/^Charged to (.+)$/, (m) => 'Se cobró en ' + m[1]],
     [/^Amount charged in ([A-Z]{3})$/, (m) => 'Monto cobrado en ' + m[1]],
