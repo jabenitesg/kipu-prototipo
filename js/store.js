@@ -393,6 +393,29 @@
     d = K.removeTxn(d, id);
     return K.addTxn(d, next);
   };
+  // A card added with nothing owed and whose current statements were all imported as history: it shows 0 used.
+  // Statements that were recent when imported (40 days) are the ones that should count.
+  K.stuckCard = (d, c) => {
+    if (!c || c.bal || c.bal2) return null;
+    const where = 'card:' + c.id;
+    const by = {};
+    d.txns.forEach((t) => { if (t.source === 'statement' && t.settled && t.imp && (t.from === where || t.to === where)) (by[t.imp] = by[t.imp] || []).push(t); });
+    const txns = [];
+    Object.keys(by).forEach((imp) => {
+      const rec = (d.imports || []).find((x) => x.id === imp);
+      const newest = by[imp].reduce((m, t) => (t.date > m ? t.date : m), '');
+      if (newest && K.days(parse(newest), rec && rec.when ? parse(rec.when) : today()) <= 40) txns.push(...by[imp]);
+    });
+    if (!txns.length) return null;
+    const owed = r2(K.sum(txns, (t) => (t.to === where ? -1 : t.type === 'income' ? -1 : 1) * (t.amt || 0)));
+    return owed > 0 ? { txns, owed } : null;
+  };
+  K.fixStuckCard = (d, c) => {
+    const s = K.stuckCard(d, c);
+    if (!s) return d;
+    d = s.txns.reduce((acc, t) => K.editTxn(acc, t.id, { settled: undefined }), d);
+    return Object.assign({}, d, { cards: d.cards.map((x) => (x.id === c.id ? Object.assign({}, x, { balDate: undefined }) : x)) });
+  };
   // Imported movements on one account or card, up to a date, become "already paid": their balance effect is undone
   K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
   K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
@@ -645,7 +668,9 @@
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {
     const old = d[coll].find((x) => x.id === item.id);
-    if (['accounts', 'cards'].includes(coll) && (!old || old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0))) item = Object.assign({}, item, { balDate: iso(today()) });
+    // The day a balance was typed: statement lines up to then are already inside it. A new card or account
+    // with nothing typed (0) has no such day, so its statements move the balance.
+    if (['accounts', 'cards'].includes(coll) && (old ? old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0) : item.bal || item.bal2)) item = Object.assign({}, item, { balDate: iso(today()) });
     const next = Object.assign({}, d, { [coll]: old ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) });
     if (old && ['accounts', 'cards'].includes(coll) && (old.cur || d.base) !== (item.cur || d.base)) {
       const where = (coll === 'cards' ? 'card:' : 'acct:') + item.id;

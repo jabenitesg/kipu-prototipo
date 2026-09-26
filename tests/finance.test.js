@@ -642,3 +642,24 @@ test('one line that bills several subscriptions (Apple) is renamed by amount', (
   const d2 = K.renameShop(d, d.txns.find((t) => t.merchant === 'Disney+'), 'Disney gift', 'one');
   assert.equal(d2.txns.filter((t) => t.merchant === 'Disney+').length, 1);
 });
+
+test('a card added with nothing owed: its statements move the balance, and one stuck as history can be counted', () => {
+  let d = K.factory();
+  d = K.upsert(d, 'cards', card('amex', 'CAD', 0, 4800));
+  const c0 = d.cards[0];
+  assert.equal(c0.balDate, undefined); // nothing typed, so no "balance as of" day
+  assert.equal(K.upsert(K.factory(), 'cards', card('v', 'CAD', 250)).cards[0].balDate, K.iso(K.today()));
+  // What happened before: a current statement imported as already paid
+  const imp = 'i1', recent = K.iso(K.addDays(K.today(), -10)), old = K.iso(K.addDays(K.today(), -70));
+  d = K.addTxn(d, { imp, settled: true, source: 'statement', type: 'expense', cat: 'dining', merchant: 'A', amt: 100, cur: 'CAD', from: 'card:' + c0.id, date: recent });
+  d = K.addTxn(d, { imp, settled: true, source: 'statement', type: 'transfer', cat: 'transfer', merchant: 'PAYMENT', amt: 30, cur: 'CAD', from: null, to: 'card:' + c0.id, date: recent });
+  d = K.addTxn(d, { imp: 'i0', settled: true, source: 'statement', type: 'expense', cat: 'dining', merchant: 'B', amt: 55, cur: 'CAD', from: 'card:' + c0.id, date: old });
+  d = Object.assign({}, d, { imports: [{ id: imp, when: K.iso(K.today()), where: 'card:' + c0.id }, { id: 'i0', when: K.iso(K.today()), where: 'card:' + c0.id }] });
+  const s = K.stuckCard(d, d.cards[0]);
+  assert.equal(s.owed, 70);
+  assert.equal(s.txns.length, 2);
+  d = K.fixStuckCard(d, d.cards[0]);
+  assert.equal(d.cards[0].bal, 70);
+  assert.equal(K.stuckCard(d, d.cards[0]), null);
+  assert.equal(d.txns.find((t) => t.merchant === 'B').settled, true); // the old statement stays history
+});
