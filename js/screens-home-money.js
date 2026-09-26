@@ -1,7 +1,7 @@
 /* Kipu · Home and Money */
 (function () {
   const K = window.K;
-  const { useState } = React;
+  const { useState, useEffect } = React;
   const { html, useApp, Icon, Metric, SectionHeader, Row, Tile, Bar, Stripe, TxnRow, AccountRow, CardPreview, LoanRow, UpcomingItem, InsightCard, ContextFilter, Tabs, Chips, EmptyState } = K;
 
   const initials = (n) => (n || 'K').split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -27,7 +27,7 @@
     const due = p.billsDueAmt + p.cardsDueAmt + p.loansDueAmt + p.savingsLeft;
     return html`<button class="hero" style=${{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', textAlign: 'left' }} onClick=${() => go({ r: 'plan', tab: 'overview' })}>
       <span class="between"><span class="soft" style=${{ fontSize: '13px', fontWeight: 500 }}>Safe to Spend</span><span class="soft tiny">${p.nextPay ? 'until payday · ' : 'until '}${K.fmtDate(p.nextPay || p.until)}</span></span>
-      <span class="disp num" style=${{ fontSize: '44px', lineHeight: '46px', fontWeight: 800 }}>${fmt(p.safe)}</span>
+      <span class="disp num" style=${{ fontSize: K.fitSize(fmt(p.safe), 44), lineHeight: 1.05, fontWeight: 800, whiteSpace: 'nowrap' }}>${fmt(p.safe)}</span>
       ${p.cashNow > 0 && html`<span style=${{ display: 'flex', gap: '2px', height: '8px' }}><i style=${{ width: Math.min(100, Math.max(0, (due / p.cashNow) * 100)) + '%', background: 'color-mix(in srgb, var(--hero-ink) 35%, transparent)', borderRadius: '999px 3px 3px 999px' }}></i><i style=${{ flex: 1, background: 'currentColor', borderRadius: '3px 999px 999px 3px', opacity: 0.95 }}></i></span>`}
       <span class="between small" style=${{ gap: '10px' }}><span class="soft">${neg ? 'Short by ' + fmt(-p.safe) : 'Cash ' + fmt(p.cashNow) + ' · due ' + fmt(due)}</span><span style=${{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>${neg ? 'See why' : 'About ' + fmt(p.perDay, { dec: 0 }) + '/day'}<${Icon} n="next" s=${13} w=${2.4} /></span></span>
       ${!p.hasIncome && html`<span class="soft tiny">Add your income so Kipu knows when your next payday is.</span>`}
@@ -176,7 +176,7 @@
   };
 
   K.Home = function Home() {
-    const { D, fmt, go, data, displayName, cloud, ctx, wide, insights, openSheet } = useApp();
+    const { D, fmt, go, data, displayName, cloud, ctx, setCtx, wide, insights, openSheet } = useApp();
     const m = D.month, prev = D.series[10];
     const first = displayName ? displayName.split(' ')[0] : '';
     const pal = K.hhMode(data) === 'together' && cloud.target !== 'household' ? K.partnerName(data) : '';
@@ -219,13 +219,19 @@
       const spendW = html`<${W} area="cat" title="Spending by category" action="Details" onAction=${() => go({ r: 'stats', tab: 'spending' })}>${cats.length ? html`<div class="stack-s" style=${{ gap: '12px' }}>${cats.map((c, i) => html`<div key=${c} class="stack-s" style=${{ gap: '5px' }}><div class="between small"><span class="row" style=${{ gap: '8px' }}><${Icon} n=${K.CATS[c].icon} s=${15} c="var(--muted)" />${K.CATS[c].name}</span><b class="num">${fmt(m.cats[c])}</b></div><${Bar} pct=${(m.cats[c] / catMax) * 100} color=${'var(--c' + (i + 1) + ')'} h=${6} /></div>`)}</div>` : html`<${Empty} text="No spending yet this month." action="Add expense" onAction=${() => openSheet({ k: 'expense' })} />`}</${W}>`;
       const rows = D.plan.budgetRows.slice().sort((a, b) => b.actual / b.plan - a.actual / a.plan).slice(0, 4);
       const budgetW = html`<${W} area="bud" title="Budget" action="Plan" onAction=${() => go({ r: 'plan', tab: 'budget' })}>${rows.length ? html`<div class="stack-s" style=${{ gap: '12px' }}>${rows.map((b) => { const pct = b.plan ? (b.actual / b.plan) * 100 : 0; return html`<div key=${b.cat} class="stack-s" style=${{ gap: '6px' }}><div class="between small"><span>${K.CATS[b.cat] ? K.CATS[b.cat].name : b.cat}</span><span class="num"><b>${fmt(b.actual)}</b><span class="muted"> / ${fmt(b.plan)}</span></span></div><${K.Segs} pct=${pct} n=${16} h=${6} color=${pct > 100.5 ? 'var(--warn2)' : 'var(--acc)'} /></div>`; })}<span class="tiny muted num">${fmt(D.plan.budgetActual)} of ${fmt(D.plan.budgetPlan)} planned · ${D.plan.daysLeft} days left</span></div>` : html`<${Empty} text="Set a monthly amount per category to follow your pace here." action="Create a budget" onAction=${() => go({ r: 'plan', tab: 'budget' })} />`}</${W}>`;
-      const nwW = html`<${W} area="nw" title="Net worth" action="Money" onAction=${() => go({ r: 'money' })}>${D.accts.length || D.cards.length || D.loans.length ? html`<div class="stack-s" style=${{ gap: '12px' }}><span class="disp num" style=${{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.03em' }}>${fmt(D.netWorth)}</span><${K.Stripe} h=${10} parts=${[[D.cash, 'var(--c1)'], [D.invest + D.property, 'var(--c2)'], [D.cardBal + D.loanBal, 'var(--c3)']]} />
-          <div class="list">${D.accts.slice().sort((a, b) => b.baseBal - a.baseBal).slice(0, 4).map((a) => html`<button key=${a.id} class="between small" style=${{ width: '100%', padding: '8px 0' }} onClick=${() => go({ r: 'account', id: a.id })}><span style=${{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${a.name}</span><b class="num">${a.cur === data.base ? fmt(a.bal) : fmt.native(a.bal, a.cur)}</b></button>`)}${D.cardBal + D.loanBal > 0 && html`<button class="between small" style=${{ width: '100%', padding: '8px 0' }} onClick=${() => go({ r: 'money', tab: 'loans' })}><span class="muted">Cards and loans</span><b class="num">−${fmt(D.cardBal + D.loanBal)}</b></button>`}</div></div>` : html`<${Empty} text="Add your accounts to see what you own and owe." action="Add account" onAction=${() => openSheet({ k: 'addAccount' })} />`}</${W}>`;
+      // Month by month: what came in, what went out (spending and loan payments) and what was left. Transfers between your own accounts don't count.
+      const months = D.series.filter((x) => x.count > 0 || x.current).slice(-5).reverse();
+      const outOf = (x) => (x.spending || 0) + (x.debtPaid || 0);
+      const maxFlow = Math.max(1, ...months.map((x) => Math.max(x.income || 0, outOf(x))));
+      const nwW = html`<${W} area="nw" title="Month by month" action="Statistics" onAction=${() => go({ r: 'stats', tab: 'overview' })}>${months.some((x) => x.count > 0) ? html`<div class="stack-s" style=${{ gap: '14px' }}>${months.map((x) => { const left = (x.income || 0) - outOf(x); return html`<div key=${x.key} class="stack-s" style=${{ gap: '6px' }}>
+          <div class="between"><span class="small" style=${{ fontWeight: 600 }}>${K.MONTH_LONG[x.mi]}${x.current ? html`<span class="muted" style=${{ fontWeight: 400 }}> · so far</span>` : ''}</span><b class="num small" style=${{ color: left >= 0 ? 'var(--pos)' : 'var(--crit)' }}>${left >= 0 ? '+' : '−'}${fmt(Math.abs(left))}</b></div>
+          <div class="mm-bars"><i style=${{ width: ((x.income || 0) / maxFlow) * 100 + '%', background: 'var(--c2)' }}></i><i style=${{ width: (outOf(x) / maxFlow) * 100 + '%', background: 'var(--c1)' }}></i></div>
+          <span class="tiny muted num">Money in ${fmt(x.income || 0)}<span style=${{ padding: '0 6px' }}>·</span>Money out ${fmt(outOf(x))}</span></div>`; })}</div>` : html`<${Empty} text="Each month shows what came in, what went out and what was left. Add income and expenses, or import a statement." action="Upload statement" onAction=${() => openSheet({ k: 'statement' })} />`}</${W}>`;
       const S = D.activeSeries.slice(-6);
-      const flowW = html`<${W} area="flow" title="Income and spending" action="Statistics" onAction=${() => go({ r: 'stats', tab: 'overview' })}>${S.length > 1 ? html`<${K.BarChart} groups=${S.map((x) => ({ label: x.m, values: [x.income, x.spending] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${S.length - 1} fmtY=${fmt.k} h=${190} /><div class="legend"><span><i class="dotk" style=${{ background: 'var(--c2)' }}></i>Income</span><span><i class="dotk" style=${{ background: 'var(--c1)' }}></i>Spending</span><span>Last ${S.length} months</span></div>` : html`<${Empty} text="The chart fills in after your first month of activity. Importing a statement brings in history right away." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} />`}</${W}>`;
+      const flowW = html`<${W} area="flow" title="Income and spending" action="Statistics" onAction=${() => go({ r: 'stats', tab: 'overview' })}>${S.length > 1 ? html`<${K.BarChart} groups=${S.map((x) => ({ label: x.m, full: K.MONTH_LONG[x.mi] + ' ' + x.y, values: [x.income, x.spending] }))} colors=${['var(--c2)', 'var(--c1)']} hi=${S.length - 1} fmtY=${fmt.k} h=${190} names=${['Income', 'Spending']} fmtV=${(v) => fmt(v)} extra=${(i) => [['Left over', fmt(S[i].income - S[i].spending - (S[i].debtPaid || 0))]]} onPick=${(i) => { setCtx({ period: D.series.indexOf(S[i]), periodSet: true }); go({ r: 'stats', tab: 'overview' }); }} /><div class="legend"><span><i class="dotk" style=${{ background: 'var(--c2)' }}></i>Income</span><span><i class="dotk" style=${{ background: 'var(--c1)' }}></i>Spending</span><span>Last ${S.length} months</span></div>` : html`<${Empty} text="The chart fills in after your first month of activity. Importing a statement brings in history right away." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} />`}</${W}>`;
       const goalsW = html`<${W} area="gls" title="Goals" action="All goals" onAction=${() => go({ r: 'plan', tab: 'goals' })}>${D.goals.length ? html`<div class="stack-s" style=${{ gap: '14px' }}>${D.goals.slice(0, 4).map((g) => html`<button key=${g.id} class="stack-s" style=${{ gap: '6px', width: '100%', textAlign: 'left' }} onClick=${() => go({ r: 'goal', id: g.id })}><span class="between small"><span style=${{ fontWeight: 600 }}>${g.name}</span><span class="num muted">${g.pct}%</span></span><${K.Segs} pct=${g.pct} n=${16} h=${6} color=${g.pct >= 100 ? 'var(--pos2)' : 'var(--acc)'} /><span class="tiny muted num">${fmt(g.savedNow)} of ${fmt(g.target)}</span></button>`)}</div>` : html`<${Empty} text="Save toward something: a trip, a cushion, a new laptop." action="Add goal" onAction=${() => openSheet({ k: 'addGoal' })} />`}</${W}>`;
       const recentW = html`<div class="card" style=${{ gridArea: 'rec', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Recent activity</h3><button class="pill-link" onClick=${() => go({ r: 'money', tab: 'activity' })}>See all<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.tx.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.tx.slice(0, 5).map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Expenses, income and transfers appear here." action="Add expense" onAction=${() => openSheet({ k: 'expense' })} /></div>`}</div>`;
-      const insW = html`<div class="card" style=${{ gridArea: 'ins', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Worth a look</h3><button class="pill-link" onClick=${() => go({ r: 'stats', tab: 'insights' })}>Insights<${Icon} n="next" s=${13} w=${2.2} /></button></div>${insights.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${insights.slice(0, 3).map((i) => html`<button key=${i.id} class="lrow" style=${{ alignItems: 'flex-start' }} onClick=${() => go(i.route)}><${Tile} icon=${i.icon} tone=${i.kind === 'Priority' ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '4px', textAlign: 'left' }}><span style=${{ fontSize: '14px', lineHeight: 1.4, fontWeight: 500 }}>${i.title}</span><span class="link">${i.cta}<${Icon} n="next" s=${12} w=${2.2} /></span></span></button>`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Nothing needs your attention right now." /></div>`}</div>`;
+      const insW = html`<div class="card" style=${{ gridArea: 'ins', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Worth a look</h3><button class="pill-link" onClick=${() => go({ r: 'stats', tab: 'insights' })}>Insights<${Icon} n="next" s=${13} w=${2.2} /></button></div>${insights.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${insights.slice(0, 3).map((i) => html`<button key=${i.id} class="lrow" style=${{ alignItems: 'flex-start' }} onClick=${() => (i.sheet ? openSheet(i.sheet) : go(i.route))}><${Tile} icon=${i.icon} tone=${i.kind === 'Priority' ? 'a' : 'p'} /><span class="grow stack-s" style=${{ gap: '4px', textAlign: 'left' }}><span style=${{ fontSize: '14px', lineHeight: 1.4, fontWeight: 500 }}>${i.title}</span><span class="link">${i.cta}<${Icon} n="next" s=${12} w=${2.2} /></span></span></button>`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Nothing needs your attention right now." /></div>`}</div>`;
       const dockItems = [['expense', 'plus', 'Add expense'], ['receipt', 'scan', 'Scan receipt'], ['statement', 'upload', 'Upload statement'], ['income', 'income', 'Add income']];
       const dockBtn = ([k, ic, l]) => html`<button key=${k} aria-label=${l} onClick=${() => openSheet({ k })}><${Icon} n=${ic} s=${20} w=${2.1} /><span class="tip">${l}</span></button>`;
       const dock = html`<div class="dock" role="toolbar" aria-label="Quick add"><button class="dock-add" aria-label=${dockItems[0][2]} onClick=${() => openSheet({ k: 'expense' })}><${Icon} n="plus" s=${22} w=${2.4} /><span class="tip">${dockItems[0][2]}</span></button><div class="dock-group">${dockItems.slice(1).map(dockBtn)}</div></div>`;
@@ -252,17 +258,50 @@
     const { go, wide, D } = useApp();
     const tab = route.tab || 'overview';
     const Body = { overview: MoneyOverview, accounts: Accounts, cards: Cards, loans: Loans, activity: Activity }[tab];
+    // Coming from the side menu (Money › Cards…): scroll to that section
+    useEffect(() => { if (!wide || tab === 'overview') return; const el = document.getElementById('money-' + tab); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); }, [wide, tab]);
+    const head = html`<div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>`;
+    const rate = D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`;
+    // Computer and tablet: everything on one page. Phone: one tab at a time.
+    if (wide) return html`<div class="stack" style=${{ gap: '28px' }}>${head}${rate}<${MoneyWide} /></div>`;
     return html`<div class="stack">
-      <div class="between" style=${{ paddingTop: wide ? 0 : '8px' }}><div class="stack-s" style=${{ gap: '4px' }}><span class="eyebrow">Your money</span><h1 style=${{ fontSize: '30px', fontWeight: 800 }}>Money</h1></div><${ContextFilter} show=${['scope', 'currency']} /></div>
+      ${head}
       <${Tabs} tabs=${MONEY_TABS} value=${tab} onChange=${(t) => go({ r: 'money', tab: t }, true)} />
-      ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}
+      ${rate}
       <${Body} /></div>`;
   };
+
+  // ---------------------------------------------------------------- Money on computer and tablet: one designed page
+  function MoneyWide() {
+    const { D, fmt, go, openSheet, data } = useApp();
+    const jump = (id) => { const el = document.getElementById('money-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    if (!D.accts.length && !D.cards.length && !D.loans.length) return html`<${MoneyOverview} />`;
+    const Head = ({ title, total, sub, add, sheet }) => html`<div class="mw-head"><div class="stack-s" style=${{ gap: '2px', flex: 1, minWidth: 0 }}><h2>${title}</h2>${sub && html`<span class="tiny muted">${sub}</span>`}</div><span class="row" style=${{ gap: '10px', flexShrink: 0 }}>${total != null && html`<b class="num">${total}</b>`}<button class="pill-link" onClick=${() => openSheet({ k: sheet })}><${Icon} n="plus" s=${13} w=${2.4} />${add}</button></span></div>`;
+    const liab = D.cardBal + D.loanBal;
+    const tiles = [['Cash & savings', D.cash, 'accounts', 'wallet', 'var(--acc)'], ['Investments & property', D.invest + D.property, 'accounts', 'trend', 'color-mix(in srgb, var(--acc) 45%, var(--surface2))'], ['Credit cards', -D.cardBal, 'cards', 'card', 'var(--info2)'], ['Loans', -D.loanBal, 'loans', 'loan', 'var(--warn2)']];
+    const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'].map((g) => [g, D.accts.filter((a) => a.kind === g)]).filter((x) => x[1].length);
+    const paid = K.sum(D.loans, (l) => Math.max(0, (l.orig || l.bal) - l.bal)), orig = K.sum(D.loans, (l) => l.orig || l.bal);
+    return html`<div class="stack" style=${{ gap: '28px' }}>
+      <div class="card mw-summary">
+        <div class="stack-s" style=${{ gap: '6px', minWidth: 0 }}><span class="small muted">Net position</span><span class="disp num" style=${{ fontSize: K.fitSize(fmt(D.netWorth), 42), fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>${fmt(D.netWorth)}</span><span class="small muted">What you own minus what you owe</span><div style=${{ marginTop: '8px' }}><${Stripe} parts=${tiles.map((t) => [Math.abs(t[1]), t[4]])} h=${10} /></div></div>
+        <div class="mw-tiles">${tiles.map(([l, v, id, ic, c]) => html`<button key=${l} class="mw-tile" onClick=${() => jump(id)}><span class="row" style=${{ gap: '8px' }}><i class="dotk" style=${{ background: c }}></i><span class="tiny muted">${l}</span></span><b class="num">${fmt(v)}</b></button>`)}</div>
+      </div>
+      <div class="mw-split">
+        <section id="money-accounts" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Accounts" total=${fmt(D.cash + D.invest + D.property)} add="Add" sheet="addAccount" />
+          ${groups.length ? html`<div class="card tight list">${groups.map(([g, list]) => html`<div key=${g}><div class="mw-group"><span class="eyebrow">${g}</span><span class="tiny muted num">${fmt(K.sum(list, (a) => a.baseBal))}</span></div>${list.map((a) => html`<${AccountRow} key=${a.id} a=${a} />`)}</div>`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No accounts yet.</div>`}</section>
+        <section id="money-loans" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Loans" total=${D.loans.length ? fmt(D.loanBal) : null} sub=${D.loans.length && orig ? fmt(paid) + ' paid of ' + fmt(orig) + ' borrowed' : null} add="Add" sheet="addLoan" />
+          ${D.loans.length ? html`<div class="card tight list">${D.loans.map((l) => html`<${LoanRow} key=${l.id} l=${l} />`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No loans. Car loans, mortgages or financing go here.</div>`}</section>
+      </div>
+      <section id="money-cards" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Credit cards" total=${D.cards.length ? fmt(D.cardBal) : null} sub=${D.cards.length ? D.util.toFixed(1) + '% of your limit used' : null} add="Add" sheet="addCard" />
+        ${D.cards.length ? html`<div class="mw-cards">${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '6px' }}><${CardPreview} c=${c} onClick=${() => go({ r: 'card', id: c.id })} /><span class="tiny muted" style=${{ padding: '0 4px' }}>${[c.closeDay && 'Closes the ' + K.ord(c.closeDay), c.dueDay && 'due the ' + K.ord(c.dueDay)].filter(Boolean).join(' · ')}</span></div>`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No cards yet.</div>`}</section>
+      <section id="money-activity" style=${{ paddingTop: '4px' }}><${Activity} /></section>
+    </div>`;
+  }
 
   const AddRow = ({ label, sheet }) => { const { openSheet } = useApp(); return html`<button class="lrow" style=${{ color: 'var(--acc)', fontWeight: 600 }} onClick=${() => openSheet({ k: sheet })}><span class="ic p"><${Icon} n="plus" s=${17} w=${2.2} /></span>${label}</button>`; };
   K.AddRow = AddRow;
 
-  function MoneyOverview() {
+  function MoneyOverview({ only }) {
     const { D, fmt, go, wide, openSheet } = useApp();
     if (!D.accts.length && !D.cards.length && !D.loans.length) return html`<div class="card"><${EmptyState} icon="wallet" title="Add your first account" text="Chequing, savings, cash or investments. Enter today’s balance; you can import history later." action="Add account" onAction=${() => openSheet({ k: 'addAccount' })} /></div>`;
     const liab = D.cardBal + D.loanBal;
@@ -272,13 +311,15 @@
       <div>${[['Cash & savings', D.cash, 'var(--acc)', 'accounts'], ['Investments & property', D.invest + D.property, 'color-mix(in srgb, var(--acc) 45%, var(--surface2))', 'accounts'], ['Credit card balances', -D.cardBal, 'var(--info2)', 'cards'], ['Loan balances', -D.loanBal, 'var(--info2)', 'loans']].map(([l, v, c, t]) => html`<button key=${l} class="between" style=${{ width: '100%', padding: '10px 0', borderTop: '1px solid var(--line)' }} onClick=${() => go({ r: 'money', tab: t }, true)}><span class="row" style=${{ gap: '10px' }}><span class="dotk" style=${{ background: c }}></span><span>${l}</span></span><span class="row" style=${{ gap: '6px' }}><span class="amt">${fmt(v)}</span><span class="muted"><${Icon} n="next" s=${14} /></span></span></button>`)}</div>
       <span class="tiny muted">Balances in other currencies use today’s exchange rate for this total.</span></div>`;
     const recent = html`<div class="stack-s"><${SectionHeader} title="Recent activity" action="See all" onAction=${() => go({ r: 'money', tab: 'activity' }, true)} />${D.tx.length ? html`<div class="card tight list">${D.tx.slice(0, 6).map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="history" title="No activity yet" text="Expenses, income and transfers you add will appear here." action="Add expense" onAction=${() => openSheet({ k: 'expense' })} /></div>`}</div>`;
+    if (only === 'net') return net;
     return wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${net}${recent}</div>` : html`<div class="stack">${net}${recent}</div>`;
   }
 
-  function Accounts() {
+  function Accounts({ narrow }) {
     const { D, fmt, wide } = useApp();
     const groups = ['Everyday', 'Savings', 'Cash', 'Investments', 'Property'];
-    return html`<div class=${wide ? 'grid w2' : 'stack'} style=${wide ? { alignItems: 'start' } : null}>${groups.map((g) => {
+    const two = wide && !narrow;
+    return html`<div class=${two ? 'grid w2' : 'stack'} style=${two ? { alignItems: 'start' } : null}>${groups.map((g) => {
       const list = D.accts.filter((a) => a.kind === g);
       if (!list.length) return null;
       return html`<div class="stack-s" key=${g}><div class="between"><span class="eyebrow">${g}</span><span class="small muted num">${fmt(K.sum(list, (a) => a.baseBal))}</span></div><div class="card tight list">${list.map((a) => html`<${AccountRow} key=${a.id} a=${a} />`)}</div></div>`;
@@ -340,9 +381,22 @@
   const Facts = ({ rows }) => html`<div class="card tight list">${rows.filter(Boolean).map(([k, v, tone]) => html`<div key=${k} class="between" style=${{ padding: '12px 16px' }}><span class="muted">${k}</span><span style=${{ fontWeight: 600, textAlign: 'right', color: tone ? 'var(--' + tone + ')' : null }} class="num">${v}</span></div>`)}</div>`;
   K.Facts = Facts;
   // Two-step delete, built into the page
-  const DangerButton = ({ label, onConfirm }) => {
+  // Deleting asks first in a pop-up. `typed`: something big (a card) also needs DELETE written out.
+  const DangerButton = ({ label, onConfirm, ask, note, link, typed }) => {
     const [armed, setArmed] = useState(false);
-    return armed ? html`<div class="card stack-s" style=${{ borderColor: 'var(--crit2)' }}><span style=${{ fontWeight: 600 }}>${label}?</span><span class="small muted">This can’t be undone.</span><div class="grid g2" style=${{ gap: '8px' }}><button class="btn sec sm" onClick=${() => setArmed(false)}>Keep it</button><button class="btn dan sm" onClick=${onConfirm}>${label}</button></div></div>` : html`<button class="btn dan block" style=${{ height: '44px', fontSize: '14px' }} onClick=${() => setArmed(true)}>${label}</button>`;
+    const [text, setText] = useState('');
+    const ok = !typed || text.trim().toUpperCase() === 'DELETE';
+    const cancel = () => { setArmed(false); setText(''); };
+    const go = () => { if (!ok) return; setArmed(false); setText(''); onConfirm(); };
+    const pop = armed && ReactDOM.createPortal(html`<div class="confirm-bg" onClick=${(e) => { if (e.target === e.currentTarget) cancel(); }} onKeyDown=${(e) => { if (e.key === 'Escape') cancel(); }}>
+      <div class="confirm" role="alertdialog" aria-modal="true" aria-label=${ask || label + '?'}>
+        <span class="confirm-ic"><${Icon} n="alert" s=${20} w=${2.2} /></span>
+        <b class="confirm-t">${ask || label + '?'}</b>
+        <span class="small muted" style=${{ lineHeight: 1.5 }}>${note ? note + ' ' : ''}This can’t be undone.</span>
+        ${typed && html`<label class="stack-s" style=${{ gap: '6px', width: '100%', textAlign: 'left' }}><span class="small">Type DELETE to confirm</span><input class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" value=${text} onInput=${(e) => setText(e.target.value)} onKeyDown=${(e) => { if (e.key === 'Enter') go(); }} placeholder="DELETE" data-raw autoFocus /></label>`}
+        <div class="grid g2" style=${{ gap: '8px', width: '100%' }}><button class="btn sec" autoFocus=${!typed} onClick=${cancel}>Cancel</button><button class="btn dan" disabled=${!ok} style=${{ opacity: ok ? 1 : 0.5 }} onClick=${go}>Delete</button></div>
+      </div></div>`, document.body);
+    return html`${link ? html`<button class="link" style=${{ color: 'var(--crit)', alignSelf: 'flex-start' }} onClick=${() => setArmed(true)}>${label}</button>` : html`<button class="btn dan block" style=${{ height: '44px', fontSize: '14px' }} onClick=${() => setArmed(true)}>${label}</button>`}${pop}`;
   };
   K.DangerButton = DangerButton;
   const EditBtn = ({ onClick }) => html`<button class="btn sec sm" onClick=${onClick}><${Icon} n="sliders" s=${14} />Edit</button>`;
@@ -360,8 +414,11 @@
       ${goal && html`<div class="stack-s"><${SectionHeader} title="Linked goal" /><${K.GoalProgress} g=${goal} onClick=${() => go({ r: 'goal', id: goal.id })} /></div>`}
       <${K.CardPayNote} />
       <${ImportedNote} where=${'acct:' + a.id} />
-      <${DangerButton} label="Delete account" onConfirm=${() => { commit(K.remove(data, 'accounts', a.id)); toast('Account deleted'); back(); }} /></div>`;
-    const right = html`<div class="stack-s"><${SectionHeader} title="Activity" />${tx.length ? html`<div class="card tight list">${tx.slice(0, 30).map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="history" title="No activity" text="Transactions paid from or into this account appear here." /></div>`}</div>`;
+      <${DangerButton} label="Delete account" ask="Delete this account?" onConfirm=${() => { commit(K.remove(data, 'accounts', a.id)); toast('Account deleted'); back(); }} /></div>`;
+    const acur = a.cur || data.base;
+    const spendFrom = (t) => { if (t.from !== 'acct:' + a.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === acur) return t.amt || 0; const r = K.rate(data, acur, data.base); return r && t.base != null ? t.base / r : 0; };
+    const amoney = (v) => fmt.native(v, acur);
+    const right = html`<div class="stack-s"><${SectionHeader} title="Activity by month" /><${K.MonthActivity} id=${a.id} txns=${tx} spend=${spendFrom} money=${amoney} empty=${html`<div class="card"><${EmptyState} icon="history" title="No activity" text="Transactions paid from or into this account appear here." /></div>`} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${a.name} sub=${a.cur + ' account' + (a.shared ? ' · Shared' : '')} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
 
@@ -372,18 +429,35 @@
     const used = K.cardUsed(data, c);
     const util = c.limit ? (used / c.limit) * 100 : 0;
     const tx = D.txAll.filter((t) => t.from === 'card:' + c.id || t.to === 'card:' + c.id);
+    const cyc = !c.cur2 && K.cardCycle(data, c);
+    const money = (v) => fmt.native(v, c.cur || data.base, { dec: 2 });
+    const short = (d) => K.fmtDate(d);
+    // The statement cycle: what's on the last statement (to pay) and what goes on the next one
+    const cycleCard = cyc && html`<div class="card tight list">
+      <div class="lrow" style=${{ alignItems: 'flex-start', gap: '12px' }}><span class="set-ic"><${Icon} n="doc" s=${17} /></span><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">Statement</span><span class="tiny muted">${short(cyc.from) + ' – ' + short(cyc.lastClose)}${cyc.typed ? ' · typed in' : ''}</span></span><span class="stack-s" style=${{ gap: '2px', alignItems: 'flex-end' }}><b class="num">${money(cyc.statement)}</b>${cyc.paid > 0 && html`<span class="tiny num" style=${{ color: 'var(--pos)' }}>${money(cyc.paid) + ' paid'}</span>`}</span></div>
+      ${cyc.statement > 0 && html`<div class="lrow" style=${{ gap: '12px' }}><span class="set-ic"><${Icon} n="calendar" s=${17} /></span><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">${cyc.owed > 0 ? 'Left to pay' : 'Paid'}</span><span class="tiny muted">${[cyc.due && 'due ' + short(cyc.due), cyc.payBy && cyc.payBy !== cyc.due && 'you pay ' + short(cyc.payBy)].filter(Boolean).join(' · ')}</span></span><b class="num" style=${{ color: cyc.owed > 0 ? (cyc.late ? 'var(--crit)' : null) : 'var(--pos)' }}>${cyc.owed > 0 ? money(cyc.owed) : '✓'}</b></div>`}
+      <div class="lrow" style=${{ gap: '12px' }}><span class="set-ic"><${Icon} n="card" s=${17} /></span><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">${'Since ' + short(K.iso(K.addDays(K.parse(cyc.lastClose), 1)))}</span><span class="tiny muted">${'goes on the ' + short(cyc.nextClose) + ' statement'}</span></span><b class="num">${money(cyc.since)}</b></div></div>`;
+    // Recent statements imported only as history: the card shows nothing owed. One tap makes them count.
+    const stuck = K.stuckCard(data, c);
+    const stuckNote = stuck && html`<div class="card stack-s" style=${{ gap: '10px', background: 'var(--warnbg)', borderColor: 'transparent' }}><div class="row" style=${{ gap: '10px', alignItems: 'flex-start' }}><span style=${{ color: 'var(--warn)', marginTop: '1px' }}><${Icon} n="alert" s=${18} /></span><span class="grow stack-s" style=${{ gap: '3px' }}><b class="small">Your latest statement isn’t counted</b><span class="small muted" style=${{ lineHeight: 1.45 }}>${(stuck.txns.length === 1 ? '1 recent movement was' : stuck.txns.length + ' recent movements were') + ' imported as already paid, so this card shows nothing owed and utilization stays at 0%.'}</span></span></div><button class="btn pri sm" onClick=${() => { commit(K.fixStuckCard(data, c)); toast('Statement counted · ' + fmt.native(stuck.owed, c.cur || data.base) + ' owed'); }}>${'Count it · ' + fmt.native(stuck.owed, c.cur || data.base, { dec: 2 })}</button></div>`;
     const left = html`<div class="stack">
       <${CardPreview} c=${c} selected=${true} />
+      ${stuckNote}
       <div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Balance" value=${fmt.native(c.bal, c.cur || data.base)} /><${Metric} label="Available" value=${fmt.native((c.limit || 0) - used, c.cur || data.base)} /><${Metric} label="Limit" value=${fmt.native(c.limit || 0, c.cur || data.base)} /></div>
       ${(c.cur || data.base) !== data.base && html`<span class="small muted">≈ ${fmt(K.toBase(data, c.bal, c.cur))} in ${data.base} at the current rate; totals use this conversion.</span>`}
       <div class="card stack-s"><div class="between"><span class="small muted">Utilization</span><span class="amt">${util.toFixed(1)}%</span></div><${K.Segs} pct=${util} color=${util > data.prefs.utilRef ? 'var(--warn2)' : 'var(--acc)'} mark=${data.prefs.utilRef} /><span class="tiny muted">The line is your ${data.prefs.utilRef}% reference. It’s a visual guide, not a credit score rule.</span></div>
       ${c.cur2 && html`<div class="grid g2" style=${{ gap: '8px' }}><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur || data.base}</span><b class="num">${fmt.native(c.bal, c.cur || data.base, { dec: 2 })}</b></div><div class="card flat stack-s" style=${{ gap: '2px', padding: '12px 14px' }}><span class="tiny muted">In ${c.cur2}</span><b class="num">${fmt.native(c.bal2 || 0, c.cur2, { dec: 2 })}</b></div></div>`}
-      <${Facts} rows=${[c.country && ['Country', K.countryName(c.country)], ['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 }) + (c.cur2 ? ' + ' + fmt.native(c.stmtBal2 || 0, c.cur2, { dec: 2 }) : '')], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%'], (() => { const x = K.fxCost(data, 'card:' + c.id); return x && ['Real cost in other currencies', x.pct.toFixed(1) + '% over the market rate · ' + x.count + (x.count === 1 ? ' purchase' : ' purchases')]; })()]} />
-      <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: c.stmtBal || c.bal })}>${c.cur2 ? 'Pay ' + (c.cur || data.base) : 'Pay card'}</button>${c.cur2 && html`<button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur2, amount: c.stmtBal2 || c.bal2 })}>Pay ${c.cur2}</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
+      ${cycleCard}
+      <${Facts} rows=${[c.country && ['Country', K.countryName(c.country)], !cyc && ['Statement balance', fmt.native(c.stmtBal || 0, c.cur || data.base, { dec: 2 }) + (c.cur2 ? ' + ' + fmt.native(c.stmtBal2 || 0, c.cur2, { dec: 2 }) : '')], ['Minimum payment', fmt.native(c.minPay || 0, c.cur || data.base, { dec: 2 })], ['Statement closes', c.closeDay ? 'The ' + K.ord(c.closeDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.closeDay)), 'Monthly', K.today())) : 'Not set'], ['Payment due', c.dueDay ? 'The ' + K.ord(c.dueDay) + ' · next ' + K.fmtDate(K.nextDate(K.iso(new Date(K.today().getFullYear(), K.today().getMonth(), c.dueDay)), 'Monthly', K.today())) : 'Not set'], ['Expires', (() => { const ex = K.expiryInfo(c); return ex ? ex.label + (ex.expired ? ' · expired' : ex.soon ? ' · soon' : '') : 'Not set'; })(), (() => { const ex = K.expiryInfo(c); return ex && (ex.expired || ex.soon) ? 'warn' : null; })()], ['Foreign transaction fee', (c.fxFee != null ? c.fxFee : 2.5) + '%'], (() => { const x = K.fxCost(data, 'card:' + c.id); return x && ['Real cost in other currencies', x.pct.toFixed(1) + '% over the market rate · ' + x.count + (x.count === 1 ? ' purchase' : ' purchases')]; })()]} />
+      <div class="grid g2" style=${{ gap: '8px' }}><button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur || data.base, amount: cyc ? cyc.owed || c.bal : c.stmtBal || c.bal })}>${c.cur2 ? 'Pay ' + (c.cur || data.base) : 'Pay card'}</button>${c.cur2 && html`<button class="btn pri" onClick=${() => openSheet({ k: 'transfer', toWhere: 'card:' + c.id, cur: c.cur2, amount: c.stmtBal2 || c.bal2 })}>Pay ${c.cur2}</button>`}<button class="btn sec" onClick=${() => openSheet({ k: 'addCard', item: c })}>Edit</button></div>
       <${K.PurchaseNote} card=${'card:' + c.id} />
       <${ImportedNote} where=${'card:' + c.id} />
-      <${DangerButton} label="Delete card" onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
-    const right = html`<div class="stack-s"><${SectionHeader} title="Recent charges" />${tx.length ? html`<div class="card tight list">${tx.slice(0, 30).map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`}</div>`;
+      <${DangerButton} label="Delete card" ask="Delete this card?" typed onConfirm=${() => { commit(K.remove(data, 'cards', c.id)); toast('Card deleted'); back(); }} /></div>`;
+    // What each movement cost on this card, in its own currency
+    const ccur = c.cur || data.base;
+    const spendOn = (t) => { if (t.from !== 'card:' + c.id || !['expense', 'debt'].includes(t.type)) return 0; if ((t.cur || data.base) === ccur) return t.amt || 0; const r = K.rate(data, ccur, data.base); return r && t.base != null ? t.base / r : 0; };
+    const cmoney = (v) => fmt.native(v, ccur);
+    const right = html`<div class="stack-s"><${SectionHeader} title="Charges by month" /><${K.MonthActivity} id=${c.id} txns=${tx} spend=${spendOn} money=${cmoney} empty=${html`<div class="card"><${EmptyState} icon="card" title="No charges yet" text="Expenses paid with this card appear here." /></div>`} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${c.name} sub=${c.last4 ? '•••• ' + c.last4 : c.network} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
 
@@ -405,7 +479,7 @@
       <div class="card stack" style=${{ gap: '12px' }}><div class="between"><h3 style=${{ fontSize: '16px' }}>Payoff</h3><span class="tag">Estimate</span></div><div class="grid g3" style=${{ gap: '8px' }}><${Metric} label="Paid off" value=${p.label} /><${Metric} label="Payments left" value=${isFinite(p.n) ? p.n : '—'} /><${Metric} label="Interest left" value=${isFinite(p.interest) ? '≈ ' + money(p.interest) : '—'} /></div>
         <button class="btn sec block" onClick=${() => go({ r: 'stats', tab: 'forecast', metric: 'debt', scen: { loan: 100 } })}><${Icon} n="trend" s=${16} />Try an extra payment</button></div>
       <div class="stack-s"><${SectionHeader} title="Payments" />${pays.length ? html`<div class="card tight list">${pays.map((t) => html`<${K.TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card"><${EmptyState} icon="loan" title="No payments recorded" text="Use Record payment each time you pay; Kipu splits principal and interest." /></div>`}</div>
-      <${DangerButton} label="Delete loan" onConfirm=${() => { commit(K.remove(data, 'loans', l.id)); toast('Loan deleted'); back(); }} /></div>`;
+      <${DangerButton} label="Delete loan" ask="Delete this loan?" onConfirm=${() => { commit(K.remove(data, 'loans', l.id)); toast('Loan deleted'); back(); }} /></div>`;
     return html`<div class="stack"><${DetailHead} title=${l.name} sub=${(l.kind || 'Loan') + (l.lender ? ' · ' + l.lender : '')} />${wide ? html`<div class="grid w2" style=${{ alignItems: 'start' }}>${left}${right}</div>` : html`${left}${right}`}</div>`;
   };
   const D0 = () => K.today();
@@ -431,11 +505,17 @@
     const known = t ? [t.from, t.to, imp && imp.where].find((w) => w && K.whereItem(data, w)) || null : null;
     const places = K.whereOptions(data);
     const [place, setPlace] = useState(known || (places[0] || [])[0] || '');
+    const [pickCard, setPickCard] = useState(false);
     if (!t) return html`<${EmptyState} title="Transaction not found" text="It may have been deleted." />`;
     const foreign = t.cur !== data.base;
     const liveNow = foreign ? K.toBase(data, t.amt, t.cur) : null;
     const trip = t.trip && data.trips.find((x) => x.id === t.trip);
-    const typeLabel = { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
+    // Money from an account to a card is paying the card: it isn't spending (the purchases already were)
+    const cardPay = t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:');
+    const typeLabel = cardPay ? 'Card payment' : { expense: 'Expense', income: 'Income', saving: 'Saved to goal', debt: 'Loan payment', transfer: 'Transfer' }[t.type];
+    const payable = (t.from || '').startsWith('acct:') && data.cards.length > 0;
+    const payCard = (id) => { const card = data.cards.find((x) => x.id === id); let next = K.editTxn(data, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: 'card:' + id }); const twin = K.cardPaymentTwin(next, next.txns.find((x) => x.id === t.id)); if (twin) next = K.mergeCardPaymentTwin(next, t.id); commit(next); setPickCard(false); toast(twin ? 'Payment to ' + card.name + ' · joined with the one on its statement' : 'Payment to ' + card.name + ' · not counted as spending'); };
+    const toCardPay = () => { const hit = K.cardPaymentFor(data, t.merchant); if (hit && hit.card) payCard(hit.card.id); else if (data.cards.length === 1) payCard(data.cards[0].id); else setPickCard(true); };
     const c = K.CATS[t.cat];
     const bill = t.recurring && data.bills.find((b) => b.id === t.recurring);
     const toggle = (k) => setOpen(open === k ? null : k);
@@ -448,27 +528,29 @@
     const choice = (on, label, onClick, key) => html`<button key=${key} type="button" class="txo-choice" aria-pressed=${on} onClick=${onClick}><span class="grow" style=${{ textAlign: 'left' }}>${label}</span>${on && html`<${Icon} n="check" s=${16} c="var(--acc)" w=${2.4} />`}</button>`;
     return html`<div class="stack" style=${{ maxWidth: '640px', width: '100%', margin: '0 auto', gap: '14px' }}>
       <div class="txd-hero"><${Tile} icon=${c ? c.icon : t.type === 'income' ? 'income' : 'transfer'} tone=${c ? c.tone : 'n'} s=${48} />
-        <span class="txd-name">${t.merchant || typeLabel}</span>
+        <span class="txd-name">${K.txnName(data, t) || typeLabel}</span>
         <span class="disp num txd-amt" style=${{ color: t.type === 'income' ? 'var(--pos)' : null }}>${t.type === 'income' ? '+' : ''}${foreign ? fmt.native(t.amt, t.cur, { dec: 2 }) : fmt(t.base, { dec: 2 })}</span>
         <span class="small muted">${K.fmtDate(t.date, true)}${where ? ' · ' + where : ''}</span>
-        ${(t.settled || bill) && html`<div class="row" style=${{ gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>${bill && html`<span class="pill pos"><${Icon} n="repeat" s=${12} w=${2.4} />${bill.name}</span>`}${t.settled && html`<span class="pill neu"><${Icon} n="check" s=${12} w=${2.4} />Already paid</span>`}</div>`}</div>
+        ${(t.settled || bill) && html`<div class="row" style=${{ gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>${bill && html`<span class="pill pos"><${Icon} n="repeat" s=${12} w=${2.4} />${K.txnName(data, t) === bill.name ? 'Bill' : bill.name}</span>`}${t.settled && html`<span class="pill neu"><${Icon} n="check" s=${12} w=${2.4} />Already paid</span>`}</div>`}</div>
 
       ${editable && html`<div class="card tight list">
         <${OptRow} icon="transfer" label="Type" value=${typeLabel} open=${open === 'type'} onToggle=${() => toggle('type')}>
-          <${K.Seg} options=${['expense', 'income', 'transfer']} labels=${['Expense', 'Income', 'Transfer']} value=${t.type} onChange=${setType} />
+          <${K.Seg} options=${payable ? ['expense', 'income', 'transfer', 'cardpay'] : ['expense', 'income', 'transfer']} labels=${payable ? ['Expense', 'Income', 'Transfer', 'Card payment'] : ['Expense', 'Income', 'Transfer']} value=${pickCard || cardPay ? 'cardpay' : t.type} onChange=${(v) => (v === 'cardpay' ? toCardPay() : (setPickCard(false), setType(v)))} />
+          ${(pickCard || cardPay) && payable && html`<div class="stack-s" style=${{ gap: '6px' }}><span class="tiny muted">Which card did you pay?</span><div class="txo-choices">${data.cards.map((cd) => choice(t.to === 'card:' + cd.id, cd.name + (cd.last4 ? ' ·' + cd.last4 : ''), () => payCard(cd.id), cd.id))}</div></div>`}
+          ${cardPay && html`<span class="tiny muted" style=${{ lineHeight: 1.5 }}>${t.settled ? 'Kept as history: it doesn’t change what you have or owe, and it isn’t spending.' : 'It lowers what you owe on the card and isn’t counted as spending, since the purchases already were.'}</span>`}
           ${!known && places.length > 0 && html`<label class="stack-s" style=${{ gap: '4px' }}><span class="tiny muted">Account or card it belongs to</span><select class="input" value=${place} onChange=${(e) => setPlace(e.target.value)}>${places.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select></label>`}</${OptRow}>
         ${t.type === 'expense' && html`<${OptRow} icon="tag" label="Category" value=${c ? c.name : 'Other'} open=${open === 'cat'} onToggle=${() => toggle('cat')}>
           <div class="chips">${K.CAT_ORDER.map((k) => html`<button key=${k} class=${'chip' + (t.cat === k ? ' on' : '')} onClick=${() => { commit(K.editTxn(data, t.id, { cat: k })); toast('Category updated'); }}>${K.CATS[k].name}</button>`)}</div>
-          <button class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(Object.assign({}, data, { rules: data.rules.filter((r) => r.merchant.toLowerCase() !== (t.merchant || '').toLowerCase()).concat([{ id: K.uid('r'), merchant: t.merchant, cat: t.cat }]) })); toast('New ' + t.merchant + ' purchases will use ' + K.CATS[t.cat].name); }}>Always use this category for ${t.merchant}</button></${OptRow}>`}
+          ${(() => { const key = K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim(); const same = data.txns.filter((x) => x.type === 'expense' && x.id !== t.id && (K.merchantKey(x.merchant) || String(x.merchant || '').toLowerCase().trim()) === key); const differ = same.filter((x) => x.cat !== t.cat).length; const shop = K.txnName(data, t); return html`<button class="link" style=${{ alignSelf: 'flex-start', textAlign: 'left' }} onClick=${() => { commit(K.setShopCategory(data, key, t.cat)); toast(differ ? (differ + 1) + ' expenses · ' + K.CATS[t.cat].name : 'New ' + shop + ' purchases will use ' + K.CATS[t.cat].name); }}>${differ ? 'Use ' + K.CATS[t.cat].name + ' for all ' + (same.length + 1) + ' from ' + shop : 'Always use this category for ' + shop}</button>`; })()}</${OptRow}>`}
         ${t.type === 'expense' && html`<${OptRow} icon="repeat" label="Bill" value=${bill ? bill.name : 'None'} open=${open === 'bill'} onToggle=${() => toggle('bill')}>
           <div class="txo-choices">${choice(!t.recurring, 'Not a bill', () => setBill(null), 'none')}${data.bills.map((b) => choice(t.recurring === b.id, b.name, () => setBill(b.id), b.id))}</div>
           ${!t.recurring && t.from && html`<button class="btn sec sm" style=${{ alignSelf: 'flex-start' }} onClick=${() => { commit(K.billFromTxn(data, t.id)); toast('Saved as a repeating bill'); setOpen(null); }}><${Icon} n="plus" s=${14} w=${2.2} />New bill from this payment</button>`}</${OptRow}>`}
         ${(t.from || t.to) && html`<${OptRow} icon="check" label="Already paid" right=${html`<${K.Switch} on=${!!t.settled} label="Already paid" onChange=${(v) => { commit(K.editTxn(data, t.id, { settled: v || undefined })); toast(v ? 'Marked as already paid · balance updated' : 'Balance updated'); }} />`} onToggle=${() => {}} />`}
       </div>`}
 
-      <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
+      <${Facts} rows=${[t.from && [t.type === 'income' ? 'Into' : 'From', K.whereName(data, t.from) || 'Deleted account or card'], t.to && ['To', K.whereName(data, t.to) || 'Deleted account or card'], foreign && ['Rate', '1 ' + t.cur + ' = ' + K.sym(data.base) + (t.rate || 0).toFixed(4)], foreign && ['At today’s rate', fmt(liveNow, { dec: 2 })], trip && ['Trip', trip.name], t.goal && ['Goal', (data.goals.find((g) => g.id === t.goal) || {}).name], t.principal != null && ['Principal / interest', fmt(t.principal, { dec: 2 }) + ' / ' + fmt(t.interest, { dec: 2 })], K.txnName(data, t) !== t.merchant && t.merchant && ['Bank text', t.merchant], ['Added from', { receipt: 'Receipt scan', statement: 'Statement import', manual: 'Manual entry' }[t.source] || 'Manual entry'], t.note && ['Note', t.note]]} />
       ${other ? html`<div class="card flat small" style=${{ lineHeight: 1.5 }}>Recorded by your partner from their own account or card. Only they can change it.</div>` : html`<div class=${trip ? 'grid g2' : 'grid'} style=${{ gap: '8px' }}><button class="btn sec block" onClick=${() => openSheet({ k: t.type === 'income' ? 'income' : ['transfer', 'saving'].includes(t.type) ? 'transfer' : t.type === 'debt' ? 'debt' : 'expense', item: t })}>Edit</button>${trip && html`<button class="btn sec block" onClick=${() => go({ r: 'trip', id: trip.id })}>Open trip</button>`}</div>
-      <${DangerButton} label="Delete transaction" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />`}
+      <${DangerButton} label="Delete transaction" ask="Delete this transaction?" onConfirm=${() => { commit(K.removeTxn(data, t.id)); toast('Transaction deleted · balances updated'); back(); }} />`}
     </div>`;
   };
 })();

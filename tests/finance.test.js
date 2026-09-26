@@ -689,3 +689,237 @@ test('ask Kipu: reaching month end and whether something fits', () => {
   assert.deepStrictEqual(K.parseQuestion('quiero comprar un celular de 2,500 en 12 cuotas'), { kind: 'afford', amount: 2500, installments: 12 });
   assert.equal(K.parseQuestion('¿llego a fin de mes?').kind, 'month');
 });
+
+test('e-transfers and transfers are transfers either way, never spending or income', () => {
+  assert.equal(K.isTransferText('E-TRANSFER SENT JOHN'), true);
+  assert.equal(K.isTransferText('INTERAC E-TRANSFER FROM ANA'), true);
+  assert.equal(K.isTransferText('TRANSFER TO SAVINGS 4411'), true);
+  assert.equal(K.isTransferText('Transferencia interbancaria'), true);
+  assert.equal(K.isTransferText('PAYROLL DEPOSIT ACME'), false);
+  assert.equal(K.isTransferText('METRO'), false);
+  // Imported before as spending and income: fixed, balances unchanged
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 1000)];
+  d = K.addTxn(d, { type: 'expense', merchant: 'E-TRANSFER SENT JOHN', amt: 200, cur: 'CAD', from: 'acct:chq', date: '2026-09-10', source: 'statement', cat: 'other' });
+  d = K.addTxn(d, { type: 'income', merchant: 'E-TRANSFER FROM ANA', amt: 50, cur: 'CAD', from: 'acct:chq', date: '2026-09-11', source: 'statement', cat: 'income' });
+  assert.equal(d.accounts[0].bal, 850);
+  assert.equal(K.misfiledTransfers(d).length, 2);
+  d = K.fixTransfers(d);
+  assert.equal(d.accounts[0].bal, 850);
+  assert.deepEqual(d.txns.map((t) => [t.type, t.from, t.to]), [['transfer', 'acct:chq', null], ['transfer', null, 'acct:chq']]);
+  const m = K.derive(d, { scope: 'personal', currency: 'Combined' }).month;
+  assert.equal(m.income || 0, 0);
+});
+
+test('renaming a bill or loan renames its payments and keeps recognizing the bank text', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date) => { d = K.addTxn(d, { type: 'expense', merchant: 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451', amt: 145, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); };
+  add('2026-07-12'); add('2026-08-12');
+  d = K.addRecurringBills(d, K.findRecurring(d));
+  const id = d.bills[0].id;
+  d = K.upsert(d, 'bills', Object.assign({}, d.bills[0], { name: 'Car insurance' }));
+  assert.deepEqual(d.txns.map((t) => K.txnName(d, t)), ['Car insurance', 'Car insurance']);
+  assert.equal(d.txns[0].merchant, 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451'); // the bank's text stays underneath
+  add('2026-09-12'); // a new month still pays the renamed bill
+  assert.equal(d.txns[2].recurring, id);
+  assert.equal(K.findRecurring(d).length, 0);
+});
+
+test('a new price still pays the bill: the insurance goes down and the bill follows', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date, amt) => { d = K.addTxn(d, { type: 'expense', merchant: 'PREAUTHORIZED DEBIT INTACT INSURANCE 4451', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', settled: true }); };
+  add('2026-06-12', 148.9); add('2026-07-12', 148.9);
+  d = K.addRecurringBills(d, K.findRecurring(d));
+  d = K.upsert(d, 'bills', Object.assign({}, d.bills[0], { name: 'Car insurance' }));
+  const id = d.bills[0].id;
+  add('2026-08-12', 135); // renewed at a lower price
+  assert.equal(d.txns[2].recurring, id);
+  assert.equal(d.bills[0].amt, 135);
+  add('2026-09-12', 210); // a big jump: linked, but asked before changing the bill
+  assert.equal(d.txns[3].recurring, id);
+  assert.equal(d.bills[0].amt, 135);
+  assert.equal(d.bills[0].pendingPrice.amt, 210);
+  // A shop that only shares a word with a bill still needs the same amount
+  d.bills.push({ id: 'gym', name: 'Gym membership', kind: 'Bill', amt: 49, cur: 'CAD', day: 2, cat: 'health', pay: 'acct:chq' });
+  d = K.addTxn(d, { type: 'expense', merchant: 'GYM SHARK APPAREL', amt: 80, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', source: 'statement', settled: true });
+  assert.equal(d.txns[4].recurring, undefined);
+});
+
+test('the big picture covers every month and year since the first movement', () => {
+  const t = (date, type, base, cat) => ({ date, type, base, cat });
+  const H = K.history([t('2025-08-14', 'income', 5000), t('2025-08-20', 'expense', 1200, 'groceries'), t('2025-08-25', 'debt', 400), t('2025-08-26', 'transfer', 999), t('2026-08-14', 'income', 5400), t('2026-08-20', 'expense', 1000, 'groceries')]);
+  const aug25 = H.months.find((m) => m.key === '2025-08'), aug26 = H.months.find((m) => m.key === '2026-08');
+  assert.deepEqual([aug25.income, aug25.out, aug25.left], [5000, 1600, 3400]); // transfers left out, loan payments count as out
+  assert.equal(aug25.rate, 68);
+  assert.deepEqual([aug26.income, aug26.out, aug26.left], [5400, 1000, 4400]);
+  assert.ok(H.months.find((m) => m.key === '2025-12').count === 0); // empty months are kept so gaps show
+  assert.deepEqual(H.years.map((y) => [y.key, y.left]), [['2025', 3400], ['2026', 4400]]);
+});
+
+test('comparing against the period we are in uses the same stretch of the other one', () => {
+  const T = K.today(), y = T.getFullYear();
+  const md = K.iso(T).slice(5);
+  const early = y - 1 + '-01-10', late = y - 1 + '-12-20';
+  const txns = [{ date: early, type: 'income', base: 1000 }, { date: late, type: 'income', base: 5000 }, { date: (y - 1) + '-' + md, type: 'expense', base: 10, cat: undefined }];
+  const same = K.sameStretch(txns, { key: String(y - 1) });
+  assert.equal(same.income, md >= '12-20' ? 6000 : 1000);
+  assert.equal(same.cats.other, 10); // no category counts as Other
+});
+
+test('a card with a closing day works out its statement: closes the 15th, due the 5th, paid at month end', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 3000)];
+  d.cards = [{ id: 'cibc', name: 'CIBC', cur: 'CAD', bal: 0, limit: 5000, closeDay: 15, dueDay: 5, payDay: 30 }];
+  const T = new Date(2026, 8, 25); // Sep 25
+  const buy = (date, amt) => { d = K.addTxn(d, { type: 'expense', merchant: 'SHOP', amt, cur: 'CAD', from: 'card:cibc', date, source: 'manual' }); };
+  buy('2026-08-10', 99); // previous statement
+  buy('2026-08-20', 30); buy('2026-09-10', 20); // on the Sep 15 statement: 50
+  buy('2026-09-18', 70); // after the close: next statement
+  const c = K.cardCycle(d, d.cards[0], T);
+  assert.deepEqual([c.from, c.lastClose, c.due, c.payBy, c.nextClose], ['2026-08-16', '2026-09-15', '2026-10-05', '2026-09-30', '2026-10-15']);
+  assert.deepEqual([c.statement, c.owed, c.since], [50, 50, 70]);
+  // Paying 50 after the close clears the statement
+  d = K.addTxn(d, { type: 'transfer', merchant: 'Payment', amt: 50, cur: 'CAD', from: 'acct:chq', to: 'card:cibc', date: '2026-09-24' });
+  const c2 = K.cardCycle(d, d.cards[0], T);
+  assert.deepEqual([c2.paid, c2.owed], [50, 0]);
+  // Missed the usual day: reserved for the due date; past that, today
+  const late = K.cardCycle(Object.assign({}, d, { txns: d.txns.filter((t) => t.type !== 'transfer') }), d.cards[0], new Date(2026, 9, 2));
+  assert.equal(late.reserveOn, '2026-10-05');
+});
+
+test('categories: shops are recognized without store numbers, and one choice per shop sticks', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  assert.equal(K.guessCat(d, 'POS PURCHASE FRESHCO #5521'), 'groceries');
+  assert.equal(K.guessCat(d, 'PETRO-CANADA 88213'), 'transport');
+  assert.equal(K.guessCat(d, 'SKIPTHEDISHES'), 'dining');
+  assert.equal(K.guessCat(d, 'KOODO MOBILE PAD'), 'bills');
+  assert.equal(K.guessCat(d, 'GOODLIFE CLUBS'), 'health');
+  assert.equal(K.guessCat(d, 'PLAZA VEA SURCO'), 'groceries');
+  assert.equal(K.guessCat(d, 'INKAFARMA'), 'health');
+  assert.equal(K.guessCat(d, 'OPENAI *CHATGPT SUBSCR'), 'subs');
+  // Unknown shop in Other; setting it once covers every expense there and the next ones, even with a new store number
+  const add = (m) => { d = K.addTxn(d, { type: 'expense', merchant: m, amt: 12, cur: 'CAD', from: 'acct:chq', date: '2026-09-02', cat: K.guessCat(d, m) }); };
+  add('ZIGGYS MARKET CORNER 0012'.replace('MARKET', 'MKT')); add('ZIGGYS MKT CORNER 0044');
+  assert.equal(d.txns[0].cat, 'other');
+  const g = K.categoryGroups(d).find((x) => x.key === 'ziggys mkt corner');
+  assert.equal(g.count, 2);
+  d = K.setShopCategory(d, g.key, 'groceries');
+  assert.deepEqual(d.txns.map((t) => t.cat), ['groceries', 'groceries']);
+  assert.equal(K.guessCat(d, 'ZIGGYS MKT CORNER 0099'), 'groceries');
+});
+
+test('insights use the whole history, so there is something to say before this month has data', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (date, type, amt, merchant, cat) => { d = K.addTxn(d, { type, merchant, amt, cur: 'CAD', from: 'acct:chq', date, cat, source: 'statement', settled: true }); };
+  const T = K.today(), mk = (back, day) => K.iso(new Date(T.getFullYear(), T.getMonth() - back, day));
+  add(mk(2, 14), 'income', 5000, 'PAYROLL', 'income'); add(mk(2, 18), 'expense', 400, 'METRO', 'groceries'); add(mk(2, 20), 'expense', 300, 'METRO', 'groceries');
+  add(mk(1, 14), 'income', 5000, 'PAYROLL', 'income'); add(mk(1, 18), 'expense', 900, 'METRO', 'groceries'); add(mk(1, 20), 'expense', 400, 'METRO', 'groceries');
+  const ins = K.insights(d, K.derive(d, ctx));
+  const ids = ins.map((i) => i.id);
+  assert.ok(ids.includes('month'));
+  assert.ok(ids.includes('cat-up'));
+  assert.ok(ids.includes('shop'));
+});
+
+test('a replaced card keeps its old numbers', () => {
+  assert.deepEqual(K.cardNumbers({ last4: '7788', oldLast4: ['4011'] }), ['7788', '4011']);
+  assert.deepEqual(K.cardNumbers({ last4: '7788' }), ['7788']);
+});
+
+test('renaming a shop renames its other movements you haven’t named, and the next statements use the name', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (m, date) => { d = K.addTxn(d, { type: 'expense', merchant: m, amt: 5, cur: 'CAD', from: 'acct:chq', date, source: 'statement', cat: 'dining' }); };
+  add('TIM HORTONS #2445 LANGFORD', '2026-09-01'); add('TIM HORTONS #2445 LANGFORD', '2026-09-03'); add('TIM HORTONS #2445 LANGFORD', '2026-09-05'); add('SUBWAY 59360', '2026-09-05');
+  // One already named by hand keeps its name
+  d = K.editTxn(d, d.txns.find((t) => t.date === '2026-09-05' && /TIM/.test(t.merchant)).id, { merchant: 'Coffee with Ana' });
+  const first = d.txns.find((t) => t.date === '2026-09-01');
+  assert.equal(K.sameShopTxns(d, first).length, 1);
+  d = K.renameShop(d, first, 'Tim Hortons');
+  assert.deepEqual(d.txns.map((t) => t.merchant).sort(), ['Coffee with Ana', 'SUBWAY 59360', 'Tim Hortons', 'Tim Hortons']);
+  assert.equal(d.txns.find((t) => t.date === '2026-09-01').raw, 'TIM HORTONS #2445 LANGFORD');
+  // Next statement: same shop with another store number gets the name; a re-imported line is still seen as already in Kipu
+  assert.equal(K.shopName(d, 'TIM HORTONS #0099 LANGFORD'), 'Tim Hortons');
+  assert.equal(K.shopName(d, 'SUBWAY 59360'), 'SUBWAY 59360');
+});
+
+test('one line that bills several subscriptions (Apple) is renamed by amount', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  const add = (amt, date) => { d = K.addTxn(d, { type: 'expense', merchant: 'APPLE.COM/BILL TORONTO', amt, cur: 'CAD', from: 'acct:chq', date, source: 'statement', cat: 'subs' }); };
+  add(13.43, '2026-08-03'); add(4.47, '2026-08-11'); add(13.43, '2026-09-03'); add(4.47, '2026-09-11');
+  const disney = d.txns.find((t) => t.amt === 13.43);
+  assert.equal(K.renameScope(disney), 'amt');
+  assert.equal(K.sameShopTxns(d, disney, 'amt').length, 1);
+  d = K.renameShop(d, disney, 'Disney+');
+  d = K.renameShop(d, d.txns.find((t) => t.amt === 4.47), 'iCloud storage');
+  assert.deepEqual(d.txns.map((t) => t.merchant).sort(), ['Disney+', 'Disney+', 'iCloud storage', 'iCloud storage']);
+  // Next statement: each amount keeps its name; a new amount stays as the bank wrote it
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', 13.43), 'Disney+');
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', -4.47), 'iCloud storage');
+  assert.equal(K.shopName(d, 'APPLE.COM/BILL TORONTO', 19.03), 'APPLE.COM/BILL TORONTO');
+  // Only this one
+  const d2 = K.renameShop(d, d.txns.find((t) => t.merchant === 'Disney+'), 'Disney gift', 'one');
+  assert.equal(d2.txns.filter((t) => t.merchant === 'Disney+').length, 1);
+});
+
+test('a card added with nothing owed: its statements move the balance, and one stuck as history can be counted', () => {
+  let d = K.factory();
+  d = K.upsert(d, 'cards', card('amex', 'CAD', 0, 4800));
+  const c0 = d.cards[0];
+  assert.equal(c0.balDate, undefined); // nothing typed, so no "balance as of" day
+  assert.equal(K.upsert(K.factory(), 'cards', card('v', 'CAD', 250)).cards[0].balDate, K.iso(K.today()));
+  // What happened before: a current statement imported as already paid
+  const imp = 'i1', recent = K.iso(K.addDays(K.today(), -10)), old = K.iso(K.addDays(K.today(), -70));
+  d = K.addTxn(d, { imp, settled: true, source: 'statement', type: 'expense', cat: 'dining', merchant: 'A', amt: 100, cur: 'CAD', from: 'card:' + c0.id, date: recent });
+  d = K.addTxn(d, { imp, settled: true, source: 'statement', type: 'transfer', cat: 'transfer', merchant: 'PAYMENT', amt: 30, cur: 'CAD', from: null, to: 'card:' + c0.id, date: recent });
+  d = K.addTxn(d, { imp: 'i0', settled: true, source: 'statement', type: 'expense', cat: 'dining', merchant: 'B', amt: 55, cur: 'CAD', from: 'card:' + c0.id, date: old });
+  d = Object.assign({}, d, { imports: [{ id: imp, when: K.iso(K.today()), where: 'card:' + c0.id }, { id: 'i0', when: K.iso(K.today()), where: 'card:' + c0.id }] });
+  const s = K.stuckCard(d, d.cards[0]);
+  assert.equal(s.owed, 70);
+  assert.equal(s.txns.length, 2);
+  d = K.fixStuckCard(d, d.cards[0]);
+  assert.equal(d.cards[0].bal, 70);
+  assert.equal(K.stuckCard(d, d.cards[0]), null);
+  assert.equal(d.txns.find((t) => t.merchant === 'B').settled, true); // the old statement stays history
+});
+
+test('a bank line with only the card company name ("AMERICAN EXPRESS") is a payment to that card', () => {
+  const d = Object.assign(K.factory(), { cards: [Object.assign(card('cobalt', 'CAD'), { name: 'Cobalt', network: 'Amex' }), Object.assign(card('cibc', 'CAD'), { name: 'CIBC', network: 'Visa' })] });
+  assert.equal(K.cardPaymentFor(d, 'AMERICAN EXPRESS').card.id, 'cobalt');
+  assert.equal(K.cardPaymentFor(d, 'AMEX BILL PYMT').card.id, 'cobalt');
+  assert.equal(K.cardPaymentFor(d, 'CAPITAL ONE'), null); // no such card
+  assert.equal(K.cardPaymentFor(d, 'TIM HORTONS'), null);
+});
+
+test('a card payment seen on both statements (bank and card) counts once', () => {
+  let d = K.factory();
+  d.accounts = [account('chq', 'CAD', 5000)];
+  d.cards = [Object.assign(card('cobalt', 'CAD', 800, 4800), { name: 'Cobalt', network: 'Amex' })];
+  // Card statement first: "PAYMENT RECEIVED - THANK YOU" into the card
+  d = K.addTxn(d, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT RECEIVED - THANK YOU', amt: 700, cur: 'CAD', from: null, to: 'card:cobalt', date: '2026-08-06', source: 'statement' });
+  assert.equal(d.cards[0].bal, 100);
+  // Bank statement: "AMERICAN EXPRESS" two days earlier is the same payment
+  const row = { type: 'transfer', amt: 700, from: 'acct:chq', to: 'card:cobalt', date: '2026-08-04' };
+  const twin = K.findCardPaymentIn(d, row);
+  assert.ok(twin);
+  d = K.editTxn(d, twin.id, { from: 'acct:chq' });
+  assert.equal(d.cards[0].bal, 100);
+  assert.equal(d.accounts[0].bal, 4300);
+  assert.equal(d.txns.length, 1);
+  // Already both in Kipu: joining them undoes the second payment on the card
+  let e = K.factory();
+  e.accounts = [account('chq', 'CAD', 5000)];
+  e.cards = [Object.assign(card('cobalt', 'CAD', 800, 4800), { name: 'Cobalt', network: 'Amex' })];
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'PAYMENT RECEIVED - THANK YOU', amt: 700, cur: 'CAD', from: null, to: 'card:cobalt', date: '2026-08-06', source: 'statement' });
+  e = K.addTxn(e, { type: 'transfer', cat: 'transfer', merchant: 'AMERICAN EXPRESS', amt: 700, cur: 'CAD', from: 'acct:chq', to: 'card:cobalt', date: '2026-08-04', source: 'statement' });
+  assert.equal(e.cards[0].bal, -600); // counted twice
+  e = K.mergeCardPaymentTwin(e, e.txns.find((t) => t.merchant === 'AMERICAN EXPRESS').id);
+  assert.equal(e.cards[0].bal, 100);
+  assert.equal(e.accounts[0].bal, 4300);
+  assert.equal(e.txns.length, 1);
+});

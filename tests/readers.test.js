@@ -67,6 +67,33 @@ test('opening balance and balance forward are how the statement starts, not mone
   assert.deepEqual(out.map((r) => [r.desc, r.amt, r.dir]), [['METRO', -100, 'out'], ['PAYROLL ACME', 2689, 'in']]);
 });
 
+test('card PDF: a header split over two lines, subtotals, extra cardholders, page footers and rewards pages', () => {
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const footer = () => [row([40, 'Sample Card']), row([40, 'Statement of Account'])];
+  const out = K.parseStatementRows([
+    row([40, 'Closing Date Feb 27, 2026']), row([40, 'Credit limit'], [500, '5,000.00']),
+    row([40, 'Transaction'], [100, 'Posting'], [200, 'Details'], [500, 'Amount ($)']), row([40, 'Date'], [100, 'Date']),
+    row([40, 'New Payments']),
+    row([40, 'Feb 16'], [100, 'Feb 16'], [200, 'PAYMENT RECEIVED - THANK YOU'], [500, '-100.00']),
+    row([40, 'Feb 16'], [200, 'Total of Payment Activity'], [500, '-100.00']),
+    row([40, 'New Transactions for A']),
+    row([40, 'Feb 3'], [100, 'Feb 4'], [200, 'APPLE.COM/BILL TORONTO'], [500, '13.43']),
+    ...footer(), row([40, 'Page 3 / 5']),
+    row([40, 'Transaction'], [100, 'Posting'], [200, 'Details'], [500, 'Amount ($)']),
+    row([40, 'Feb 8'], [100, 'Feb 9'], [200, 'METRO'], [500, '26.57']),
+    row([40, 'Feb 25'], [200, 'Total of New Transactions for A'], [500, '40.00']),
+    row([40, 'New Transactions for B']),
+    row([40, 'Feb 15'], [100, 'Feb 16'], [200, 'CARTERS'], [500, '51.45']),
+    row([40, 'Total of New Transactions for B'], [500, '51.45']),
+    ...footer(), row([40, 'Page 4 / 5']), row([40, 'Membership Rewards']),
+    row([40, 'Date'], [100, 'Description'], [300, 'Qualifying Purchases'], [500, 'No. of Points']),
+    row([40, 'Feb 8'], [100, 'METRO'], [300, '26.57'], [500, '133']),
+    ...footer(), row([40, 'Page 5 / 5']),
+    row([40, 'Effective Nov 5 2025 the monthly fee'], [500, '12.99']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.desc, r.amt, r.dir]), [['PAYMENT RECEIVED - THANK YOU', -100, 'in'], ['APPLE.COM/BILL TORONTO', 13.43, 'out'], ['METRO', 26.57, 'out'], ['CARTERS', 51.45, 'out']]);
+});
+
 test('dates: month names are whole words, one day/month order per file, and the statement decides the year', () => {
   const iso = (s, dmy) => { const d = K.parseDateText(s, dmy); return d ? K.iso(d) : null; };
   // "14 MARKET" is not March 14; "3 DECATHLON" is not December 3
@@ -138,4 +165,102 @@ test('each movement already in Kipu covers only one line of a new file', () => {
   const rows = [{ date: '2026-09-15', amt: -4.5, desc: 'TIM HORTONS' }, { date: '2026-09-16', amt: -4.5, desc: 'TIM HORTONS' }];
   const d = K.markDuplicates(data, rows, 'acct:chq');
   assert.deepEqual(Object.keys(d), ['0']);
+});
+
+test('CIBC credit card: CSV download and PDF statement', () => {
+  // CSV: date, description, charge, payment, card number (no header)
+  const csv = K.parseCSV('2026-09-14,AMAZON.CA AMAZON.CA ON,45.20,,4500********1234\n2026-09-15,PAYMENT THANK YOU/PAIEMENT MERCI,,500.00,4500********1234\n2026-09-16,TIM HORTONS #1234 TORONTO ON,4.75,,4500********1234', { dmy: false, card: true });
+  assert.deepEqual(csv.map((r) => [r.desc, r.amt, r.dir]), [['AMAZON.CA AMAZON.CA ON', -45.2, 'out'], ['PAYMENT THANK YOU/PAIEMENT MERCI', 500, 'in'], ['TIM HORTONS #1234 TORONTO ON', -4.75, 'out']]);
+  // PDF: trans date, post date, description, spend category, amount; summary lines around it
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 40, s }));
+  const out = K.parseStatementRows([
+    row([40, 'Statement period August 16 to September 15, 2026']),
+    row([40, 'Previous balance'], [520, '$1,234.56']),
+    row([40, 'Total balance'], [520, '$866.40']),
+    row([40, 'Minimum payment'], [520, '$10.00']),
+    row([40, 'Trans'], [80, 'Post'], [140, 'Description'], [380, 'Spend Categories'], [520, 'Amount($)']),
+    row([40, 'Aug 25'], [80, 'Aug 25'], [140, 'PAYMENT THANK YOU/PAIEMENT MERCI'], [520, '1,234.56']),
+    row([40, 'Aug 16'], [80, 'Aug 18'], [140, 'AMAZON.CA MISSISSAUGA ON'], [380, 'Retail and Grocery'], [520, '45.20']),
+    row([40, 'Aug 20'], [80, 'Aug 21'], [140, 'UBER* TRIP SAN FRANCISCO'], [380, 'Transportation']),
+    row([140, '12.34 USD @ 1.3700'], [520, '16.91']), // foreign purchase: the amount in CAD is on the next line
+    row([40, 'Sep 2'], [80, 'Sep 3'], [140, 'NETFLIX.COM'], [380, 'Hotel, Entertainment and Recreation'], [460, '16.99']),
+    row([40, 'Sep 5'], [80, 'Sep 6'], [140, 'REFUND AMAZON'], [520, '-20.00']),
+    row([40, 'Annual interest rate'], [300, 'Purchases 20.99%'], [520, '0.00']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.date, r.desc, r.amt, r.bankCat || null]), [
+    ['2026-08-25', 'PAYMENT THANK YOU/PAIEMENT MERCI', 1234.56, null],
+    ['2026-08-16', 'AMAZON.CA MISSISSAUGA ON', 45.2, 'groceries'],
+    ['2026-08-20', 'UBER* TRIP SAN FRANCISCO 12.34 USD @ 1.3700', 16.91, 'transport'],
+    ['2026-09-02', 'NETFLIX.COM', 16.99, 'entertainment'],
+    ['2026-09-05', 'REFUND AMAZON', -20, null],
+  ]);
+  // No summary line got in
+  assert.ok(!out.some((r) => /balance|minimum|interest/i.test(r.desc)));
+  assert.equal(out.find((r) => r.desc === 'AMAZON.CA MISSISSAUGA ON').bankCat, 'groceries');
+  assert.equal(out.find((r) => r.desc.startsWith('PAYMENT')).amt, 1234.56);
+  assert.equal(out.find((r) => r.desc === 'REFUND AMAZON').amt, -20);
+});
+
+test('a real card statement layout: only the transactions table is read', () => {
+  const row = (...cells) => cells.map(([x, s]) => ({ x, w: 30, s }));
+  const out = K.parseStatementRows([
+    row([418, 'Statement Date']), row([418, 'February 14, 2026']),
+    row([73, 'Your account at a glance'], [418, 'February statement period']),
+    row([418, 'January 15'], [457, 'to February 14, 2026']),
+    row([73, 'Previous'], [116, 'balance'], [346, '$635.01']),
+    row([418, 'Contact us']), row([91, 'Payments'], [249, '$635.01']),
+    row([418, 'Customer Service'], [487, '1 800 000-0000']),
+    row([91, 'Other credits'], [254, '255.00'], [418, 'Lost/Stolen'], [487, '1 800 000-0000']),
+    row([73, 'Total balance'], [307, '='], [346, '$255.00'], [383, 'CR'], [418, 'Regular purchases'], [501, '21.99%']),
+    row([419, '0.5% Cash Back'], [532, '-'], [562, '1.28']),
+    row([415, 'Total Dividend Cash Back'], [532, '-'], [556, '$'], [560, '1.28']),
+    row([72, 'Tear Off here'], [192, 'Please turn over - Transactions begin on page 2'], [527, 'Page'], [549, '1'], [556, 'of 3']),
+    row([37, 'Transactions'], [148, 'from January 15'], [227, 'to February 14, 2026']),
+    row([37, 'Your payments']), row([37, 'Trans'], [79, 'Post']),
+    row([37, 'date'], [79, 'date'], [119, 'Description'], [504, 'Amount($)']),
+    row([37, 'Jan 30'], [79, 'Feb 02'], [119, 'PAYMENT THANK YOU/PAIEMENT MERCI'], [516, '635.01']),
+    row([37, 'Total payments'], [511, '$635.01']),
+    row([37, 'Your new charges and credits']), row([37, 'Trans'], [79, 'Post']),
+    row([37, 'date'], [79, 'date'], [122, 'Description'], [325, 'Spend Categories'], [504, 'Amount($)']),
+    row([37, 'Card number 4505 XXXX XXXX 0000']),
+    row([37, 'Feb 10'], [79, 'Feb 11'], [123, 'IMMIGRATION CANADA ONLINEOTTAWA'], [278, 'ON'], [341, 'Professional and Financial Services'], [513, '-100.00']),
+    row([37, 'Feb 10'], [79, 'Feb 11'], [123, 'IMMIGRATION CANADA ONLINEOTTAWA'], [278, 'ON'], [341, 'Professional and Financial Services'], [513, '-155.00']),
+    row([37, 'Total for 4505 XXXX XXXX 0000'], [509, '-$255.00']),
+    row([482, 'Page'], [503, '2'], [511, 'of 3']),
+    row([14, 'Information about your card account']),
+    row([14, 'days of this Statement Date. If you do not, we may regard this statement'], [398, 'applicable).']),
+    row([14, 'is charged retroactively from the Transaction date. You have a minimum'], [206, 'made a payment but it has not yet been posted']),
+    row([14, 'Spend Categories'], [120, 'Transactions'], [200, 'Amount($)'], [300, 'Budget ($)']),
+    row([14, 'Professional and Financial Services'], [120, '2'], [200, '-255.00'], [300, '-'], [340, '-'], [400, '2'], [460, '-255.00']),
+    row([14, 'Total'], [120, '2'], [200, '-255.00']),
+  ], { card: true });
+  assert.deepEqual(out.map((r) => [r.date, r.desc, r.amt, r.dir]), [
+    ['2026-01-30', 'PAYMENT THANK YOU/PAIEMENT MERCI', 635.01, 'out'],
+    ['2026-02-10', 'IMMIGRATION CANADA ONLINEOTTAWA ON', -100, 'in'],
+    ['2026-02-10', 'IMMIGRATION CANADA ONLINEOTTAWA ON', -155, 'in'],
+  ]);
+});
+
+test('a credit card statement is recognized, with its last four digits', () => {
+  const k = K.statementKind('CIBC Dividend Visa Card Account number 4505 XXXX XXXX 4011\nCredit Limit $4,500.00\nMinimum Payment $0.00\nPAYMENT THANK YOU/PAIEMENT MERCI 635.01');
+  assert.deepEqual(k, { card: true, last4: '4011' });
+  assert.equal(K.statementKind('Date,Description,Withdrawals,Deposits\n2026-09-14,PAYROLL,,2689.00').card, false);
+});
+
+test('card numbers are found in Visa, Mastercard and Amex formats', () => {
+  assert.equal(K.statementKind('Account number 4505 XXXX XXXX 4011 Credit Limit Minimum Payment').last4, '4011');
+  assert.equal(K.statementKind('American Express Cobalt Card XXXX XXXXXX 71004 Minimum Payment Due New Balance').last4, '1004');
+  assert.equal(K.statementKind('The Cobalt Card from American Express. Card ending 1-23456. Minimum amount due').last4, '3456');
+  assert.equal(K.statementKind('Mastercard **** **** **** 8821 credit limit minimum payment').last4, '8821');
+});
+
+test('a movement you renamed is still found as already in Kipu when the statement comes again', () => {
+  const data = { txns: [{ id: 't1', type: 'expense', merchant: 'Tim Hortons', raw: 'TIM HORTONS #2445 LANGFORD', amt: 5, from: 'acct:chq', date: '2026-09-03', source: 'statement' }] };
+  assert.ok(K.findDuplicate(data, { desc: 'TIM HORTONS #2445 LANGFORD', amt: -5, date: '2026-09-03' }, 'acct:chq'));
+});
+
+test('the payment line on a card statement is found as the payment already brought in from the bank', () => {
+  const data = { txns: [{ id: 't1', type: 'transfer', merchant: 'AMERICAN EXPRESS', amt: 707.41, from: 'acct:chq', to: 'card:cobalt', date: '2026-02-12', source: 'statement' }] };
+  assert.ok(K.findDuplicate(data, { desc: 'PAYMENT RECEIVED - THANK YOU', amt: 707.41, date: '2026-02-16' }, 'card:cobalt'));
+  assert.equal(K.findDuplicate(data, { desc: 'UBER', amt: 707.41, date: '2026-02-16' }, 'card:cobalt'), undefined);
 });

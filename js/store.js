@@ -50,29 +50,32 @@
   // Fallback rates per 1 USD, used until live rates arrive
   const USD_RATES = { USD: 1, CAD: 1.364, PEN: 3.72, EUR: 0.92, GBP: 0.79, MXN: 18.1, COP: 4150, CLP: 940, ARS: 980, BRL: 5.6, JPY: 148, AUD: 1.52, CHF: 0.88 };
   // Words that suggest a category when a merchant has no rule yet
+  // Shops and services by category (Canada, Peru and common online). Checked in order; the first match wins.
   const KEYWORDS = [
-    [/insur|seguro|assurance|intact|belair|aviva|desjardins ins|rimac|pacifico|la positiva|mapfre/i, 'bills'],
-    // Peru and Latin America
-    [/mercado ?libre|aliexpress|temu|shein|saga falabella|falabella|ripley|oechsle|sodimac|promart|real plaza|jockey plaza|megaplaza|linio/i, 'shopping'],
-    [/rappi|pedidos ?ya|kfc|bembos|norky|pardos|chifa|poller[ií]a|cevicher[ií]a|juan valdez|papa john|domino|popeyes|la lucha|chilis|tanta|pasteler[ií]a|panader[ií]a/i, 'dining'],
-    [/vivanda|makro|\bmass\b|tambo|oxxo|mayorsa|minimarket|bodega|supermercado|mercado central/i, 'groceries'],
-    [/indrive|\bdidi\b|grifo|repsol|primax|pecsa|petroper[uú]|peaje|metropolitano|l[ií]nea 1|estacionamiento|combustible/i, 'transport'],
-    [/movistar|\bclaro\b|entel|bitel|luz del sur|\benel\b|sedapal|c[aá]lidda|win internet|internet|mantenimiento/i, 'bills'],
-    [/inkafarma|mifarma|botica|farmacia|cl[ií]nica|sanna|oncosalud|laboratorio|m[eé]dic|dentista|oftalmo/i, 'health'],
-    [/sky airline|jetsmart|despegar|cruz del sur|oltursa|civa|hostal/i, 'travel'],
-    [/cineplanet|cinemark|teleticket|joinnus|ticketmaster|\buvk\b|concierto/i, 'entertainment'],
-    [/universidad|\bupc\b|pucp|ulima|instituto|colegio|academia|udemy|coursera|platzi|matr[ií]cula|pensi[oó]n escolar/i, 'education'],
-    [/smart ?fit|bodytech|chatgpt|openai|\bdgo\b|claro video|\bmax\b|paramount/i, 'subs'],
-    [/costco|walmart|loblaw|metro|sobeys|no frills|superstore|tottus|plaza vea|wong|whole foods|safeway|kroger|grocer|market|mercado/i, 'groceries'],
-    [/uber(?! ?eats)|lyft|shell|esso|petro|chevron|gas|presto|transit|parking|taxi|cabify|rail|toll/i, 'transport'],
-    [/uber ?eats|doordash|skip|restaurant|cafe|café|coffee|starbucks|tim hortons|mcdonald|pizza|sushi|bar |grill|bistro/i, 'dining'],
-    [/netflix|spotify|crave|disney|prime|icloud|apple\.com|adobe|youtube|audible|hbo|gym|fitness/i, 'subs'],
-    [/amazon|uniqlo|zara|h&m|best buy|ikea|shop|store|mall/i, 'shopping'],
-    [/rent|mortgage|condo|strata/i, 'housing'],
-    [/hydro|internet|rogers|bell|telus|fido|phone|water|electric|utility/i, 'bills'],
-    [/pharmacy|shoppers|drug|clinic|dental|doctor|hospital/i, 'health'],
-    [/airbnb|hotel|airline|air canada|westjet|latam|expedia|booking/i, 'travel'],
-    [/cinema|cineplex|theatre|concert|ticket|steam|playstation|xbox/i, 'entertainment'],
+    [/\b(insur\w*|seguros?|assurance|intact|belair|aviva|desjardins ins|td insurance|rimac|pacifico seguros|la positiva|mapfre|sura)\b/i, 'bills'],
+    [/\b(uber ?eats|doordash|skip ?the ?dishes|skipthedishes|rappi|pedidos ?ya|glovo|ritual|fantuan)\b/i, 'dining'],
+    [/\b(costco|walmart|wal-mart|loblaws?|no ?frills|superstore|real canadian|sobeys|freshco|food ?basics|farm ?boy|metro inc|metro #?\d*|t ?& ?t|longo'?s|fortinos|zehrs|save[- ]on|iga|provigo|maxi|safeway|whole ?foods|kroger|trader joe|aldi|lidl|nations fresh|grocer\w*|supermarket|supermercado|tottus|plaza ?vea|wong|vivanda|makro|mass|tambo|oxxo|minimarket|bodega|market|mercado)\b/i, 'groceries'],
+    [/\b(petro[- ]?canada|husky|pioneer|ultramar|circle ?k|shell|esso|chevron|mobil|sunoco|irving|primax|repsol|pecsa|gas ?station|gasolin\w*|grifo|ttc|presto|go ?transit|compass|oc ?transpo|stm|metrolinx|via ?rail|uber(?! ?eats)|lyft|taxi|cabify|beat|didi|indriver|parking|impark|green ?p|toll|407 etr|peaje|car ?wash|jiffy|midas|canadian tire gas)\b/i, 'transport'],
+    [/\b(restaurant\w*|restaurante|cafe|café|coffee|starbucks|tim ?hortons|second ?cup|mcdonald'?s|mcdo|a ?& ?w|wendy'?s|burger ?king|kfc|popeyes|subway|chipotle|harvey'?s|swiss ?chalet|boston ?pizza|pizza ?pizza|pizza ?hut|domino'?s|little ?caesars|sushi|ramen|grill|bistro|pub|bar|diner|bakery|panaderia|chifa|pollos? a la brasa|norky'?s|bembos|pardos|la lucha|starbuck|freshii|mary ?brown'?s|dairy ?queen|five ?guys|osmow'?s|pita|shawarma|taco)\b/i, 'dining'],
+    [/\b(netflix|spotify|crave|disney\+?|prime ?video|amazon ?prime|primevideo|icloud|apple\.com\/bill|apple ?music|apple ?tv|google ?(one|storage|play)|youtube ?premium|microsoft ?365|office ?365|adobe|openai|chatgpt|paramount|audible|patreon|dropbox|canva|duolingo|hbo|max\.com|nintendo online|xbox game pass|playstation plus)\b/i, 'subs'],
+    [/\b(hydro( one)?|toronto hydro|bc hydro|hydro-?qu[eé]bec|enbridge|fortis\w*|epcor|atco|rogers|bell( canada| mobility)?|telus|fido|koodo|virgin ?(plus|mobile)|freedom ?mobile|chatr|public ?mobile|lucky ?mobile|shaw|videotron|cogeco|teksavvy|movistar|claro|entel|bitel|luz del sur|enel|sedapal|c[aá]lidda|internet|phone|water|electric\w*|utility|utilities)\b/i, 'bills'],
+    [/\b(shoppers ?drug|shoppers|rexall|london ?drugs|jean ?coutu|pharmasave|guardian|pharmacy|farmacia|inkafarma|mifarma|boticas?|drug ?mart|clinic|clinica|dental|dentist|doctor|hospital|physio\w*|optometr\w*|lenscrafters|goodlife|planet ?fitness|fit4less|anytime ?fitness|equinox|ymca|gym|gimnasio|smart ?fit|bodytech)\b/i, 'health'],
+    [/\b(airbnb|hotel|marriott|hilton|hyatt|air ?canada|westjet|porter|flair|swoop|latam|sky ?airline|jetsmart|avianca|expedia|booking\.com|hotels\.com|trip\.com|kayak|air ?transat|sunwing|flighthub)\b/i, 'travel'],
+    [/\b(cineplex|cineplanet|cinemark|cinepolis|landmark cinemas|theatre|teatro|concert|ticketmaster|eventbrite|teleticket|joinnus|steam|playstation|xbox|nintendo|bowling|museum)\b/i, 'entertainment'],
+    [/\b(tuition|school|colegio|university|universidad|college|udemy|coursera|skillshare|pearson|bookstore|libreria)\b/i, 'education'],
+    [/\b(daycare|childcare|guarderia|toys ?r ?us|babies)\b/i, 'family'],
+    [/\b(rent|alquiler|mortgage|hipoteca|condo fees?|strata|property ?tax)\b/i, 'housing'],
+    [/\b(amazon|amzn|canadian ?tire|winners|marshalls|homesense|dollarama|dollar ?tree|staples|indigo|chapters|sport ?chek|lululemon|apple ?store|best ?buy|home ?depot|lowe'?s|rona|ikea|structube|wayfair|shein|temu|aliexpress|ebay|etsy|uniqlo|zara|h ?& ?m|old ?navy|gap|simons|hudson'?s bay|the bay|ripley|saga ?falabella|falabella|oechsle|promart|sodimac|real ?plaza|mall|shop|store|tienda)\b/i, 'shopping'],
+    // More Peru and Latin America
+    [/\b(vivanda|makro|mass|tambo|oxxo|mayorsa|minimarket|bodega|mercado central)\b/i, 'groceries'],
+    [/\b(luz del sur|enel|sedapal|c[aá]lidda|entel|bitel|win internet)\b/i, 'bills'],
+    [/\b(saga falabella|falabella|ripley|oechsle|sodimac|promart|real plaza|jockey plaza|megaplaza|mercado ?libre|linio)\b/i, 'shopping'],
+    [/\b(smart ?fit|bodytech|dgo|claro video)\b/i, 'subs'],
+    [/\b(upc|pucp|ulima|instituto|academia|platzi|matr[ií]cula|pensi[oó]n escolar)\b/i, 'education'],
+    [/\b(bembos|norky'?s|pardos|chifa|poller[ií]a|cevicher[ií]a|juan valdez|la lucha|tanta|pasteler[ií]a|panader[ií]a)\b/i, 'dining'],
+    [/\b(indrive|peaje|metropolitano|l[ií]nea 1|estacionamiento|combustible|petroper[uú])\b/i, 'transport'],
+    [/\b(cl[ií]nica|sanna|oncosalud|laboratorio|oftalmo\w*)\b/i, 'health'],
+    [/\b(cruz del sur|oltursa|civa|despegar|hostal)\b/i, 'travel'],
   ];
   // Bank lines for Yape and Plin transfers read as "Yape · Name", without phone numbers and reference codes
   const nameCase = (x) => x.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
@@ -111,15 +114,73 @@
   };
   // Where a quick expense is paid from: the account or card you used last, else your first everyday account
   K.lastPaidFrom = (data) => { const t = data.txns.slice().reverse().find((x) => x.type === 'expense' && x.from && x.source === 'manual'); const ok = (w) => w && K.whereItem(data, w); return (t && ok(t.from) && t.from) || ((K.whereOptions(data)[0] || [])[0] || ''); };
+  // Rules and what you chose before are matched by shop, without store numbers or bank prefixes
+  const sameShop = (a, b) => !!a && !!b && (a === b || a.startsWith(b + ' ') || b.startsWith(a + ' '));
   K.guessCat = (data, merchant) => {
     const m = (merchant || '').toLowerCase();
-    const rule = (data.rules || []).find((r) => m.includes(r.merchant.toLowerCase()));
+    const key = K.merchantKey(merchant);
+    const rule = (data.rules || []).find((r) => (r.key ? sameShop(key, r.key) : m.includes(String(r.merchant || '').toLowerCase())));
     if (rule) return rule.cat;
-    const prev = data.txns.find((t) => t.type === 'expense' && t.merchant && t.merchant.toLowerCase() === m);
+    const prev = (data.txns || []).slice().reverse().find((t) => t.type === 'expense' && t.cat && t.cat !== 'other' && t.merchant && (t.merchant.toLowerCase() === m || sameShop(K.merchantKey(t.merchant), key)));
     if (prev) return prev.cat;
     for (const [re, c] of KEYWORDS) if (re.test(merchant || '')) return c;
     return 'other';
   };
+  // Expenses grouped by shop, to review categories once per shop instead of once per movement
+  K.categoryGroups = (d) => {
+    const g = {};
+    (d.txns || []).forEach((t) => {
+      if (t.type !== 'expense') return;
+      const key = K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim() || '—';
+      const x = (g[key] = g[key] || { key, name: '', count: 0, total: 0, cats: {} });
+      x.count++; x.total = r2(x.total + (t.base || 0)); x.cats[t.cat || 'other'] = (x.cats[t.cat || 'other'] || 0) + 1;
+      if (!x.name) x.name = K.txnName(d, t);
+    });
+    return Object.values(g).map((x) => { const cat = Object.keys(x.cats).sort((a, b) => x.cats[b] - x.cats[a])[0]; return Object.assign(x, { cat, mixed: Object.keys(x.cats).length > 1 }); }).sort((a, b) => b.total - a.total);
+  };
+  // Your name for a shop: "TIM HORTONS #2445 LANGFORD" → "Tim Hortons". Renaming one movement renames the others
+  // with the same original name that you haven't named yourself, and the next statements use it too.
+  const rawKey = (x) => K.merchantKey(x) || String(x || '').toLowerCase().trim();
+  // Apple, Google, PayPal and Amazon bill many subscriptions under one line: there the amount tells them apart
+  K.isBillingHub = (desc) => /apple\.com\/bill|itunes|google\s*\*|google play|paypal\s*\*|amazon digital|amzn digital|prime video|microsoft\s*\*|msft\s*\*/i.test(String(desc || ''));
+  const sameAmt = (a, b) => a != null && b != null && Math.abs(Math.abs(a) - Math.abs(b)) < 0.01;
+  // A name kept for one amount wins over the name for the whole shop
+  K.shopName = (d, desc, amt) => {
+    const key = rawKey(desc);
+    if (!key) return desc;
+    const rules = (d.shopNames || []).filter((x) => sameShop(key, x.key));
+    const r = rules.find((x) => x.amt != null && sameAmt(x.amt, amt)) || rules.find((x) => x.amt == null);
+    return r ? r.name : desc;
+  };
+  // The other movements that follow a rename of `t`: same original shop and still showing the name it had.
+  // scope 'amt': only those for the same amount; 'one': none.
+  K.sameShopTxns = (d, t, scope) => {
+    const key = rawKey(t.raw || t.merchant);
+    if (!key || scope === 'one') return [];
+    return (d.txns || []).filter((x) => x.id !== t.id && x.type === t.type && x.merchant === t.merchant && sameShop(rawKey(x.raw || x.merchant), key) && (scope !== 'amt' || (x.cur === t.cur && sameAmt(x.amt, t.amt))));
+  };
+  // What a rename covers unless you choose: the whole shop, or the same amount at a billing hub
+  K.renameScope = (t) => (K.isBillingHub(t.raw || t.merchant) ? 'amt' : 'all');
+  K.renameShop = (d, t, name, scope) => {
+    name = String(name || '').trim();
+    scope = scope || K.renameScope(t);
+    const key = rawKey(t.raw || t.merchant);
+    if (!name || !key || name === t.merchant) return d;
+    const ids = new Set(K.sameShopTxns(d, t, scope).map((x) => x.id).concat([t.id]));
+    const txns = d.txns.map((x) => (ids.has(x.id) ? Object.assign({}, x, { merchant: name, raw: x.raw || (x.id === t.id ? t.merchant : x.merchant) }) : x));
+    if (scope === 'one') return Object.assign({}, d, { txns });
+    const amt = scope === 'amt' ? Math.abs(t.amt) : null;
+    const id = 'sn:' + key + (amt != null ? ':' + amt : '');
+    const shopNames = (d.shopNames || []).filter((x) => x.id !== id).concat([amt != null ? { id, key, name, amt } : { id, key, name }]);
+    return Object.assign({}, d, { txns, shopNames });
+  };
+  // One category for every expense at a shop, and remembered for the next ones
+  K.setShopCategory = (d, key, cat) => {
+    const txns = d.txns.map((t) => (t.type === 'expense' && (K.merchantKey(t.merchant) || String(t.merchant || '').toLowerCase().trim()) === key ? Object.assign({}, t, { cat }) : t));
+    const rules = (d.rules || []).filter((r) => r.key !== key).concat([{ id: uid('r'), key, merchant: key, cat }]);
+    return Object.assign({}, d, { txns, rules });
+  };
+
 
   // ---------------------------------------------------------------- factory state
 
@@ -474,10 +535,14 @@
     const words = m.split(' ').filter((w) => w.length >= 4);
     const hits = (d.bills || []).filter((b) => {
       const n = norm(b.name); if (!n) return false;
-      const named = m.includes(n) || n.includes(m) || words.some((w) => n.split(' ').includes(w));
+      // A renamed bill still knows the bank's text it was made from
+      const strong = (b.match && (m.includes(b.match) || K.merchantKey(t.merchant) === b.match)) || (n.length >= 4 && m.includes(n));
+      const named = strong || n.includes(m) || words.some((w) => n.split(' ').includes(w));
       if (!named) return false;
       const amt = K.toBase(d, b.amt, b.cur || d.base); if (amt == null) return false;
-      if (Math.abs(amt - t.base) > Math.max(1, amt * 0.03)) return false;
+      // Prices change (insurance renewal, a new plan): when the shop clearly matches, a different amount still pays the bill
+      // and the bill then follows it. A loose name match needs the same amount.
+      if (Math.abs(amt - t.base) > Math.max(1, amt * (strong ? 0.6 : 0.03))) return false;
       const due = b.kind === 'Annual' ? new Date(when.getFullYear(), (b.month || 1) - 1, b.day || 1) : new Date(when.getFullYear(), when.getMonth(), b.day || 1);
       const near = [addMonths(due, -1), due, addMonths(due, 1)].some((x) => Math.abs(days(x, when)) <= 7);
       if (!near) return false;
@@ -514,22 +579,50 @@
     d = K.removeTxn(d, id);
     return K.addTxn(d, next);
   };
+  // A card added with nothing owed and whose current statements were all imported as history: it shows 0 used.
+  // Statements that were recent when imported (40 days) are the ones that should count.
+  K.stuckCard = (d, c) => {
+    if (!c || c.bal || c.bal2) return null;
+    const where = 'card:' + c.id;
+    const by = {};
+    d.txns.forEach((t) => { if (t.source === 'statement' && t.settled && t.imp && (t.from === where || t.to === where)) (by[t.imp] = by[t.imp] || []).push(t); });
+    const txns = [];
+    Object.keys(by).forEach((imp) => {
+      const rec = (d.imports || []).find((x) => x.id === imp);
+      const newest = by[imp].reduce((m, t) => (t.date > m ? t.date : m), '');
+      if (newest && K.days(parse(newest), rec && rec.when ? parse(rec.when) : today()) <= 40) txns.push(...by[imp]);
+    });
+    if (!txns.length) return null;
+    const owed = r2(K.sum(txns, (t) => (t.to === where ? -1 : t.type === 'income' ? -1 : 1) * (t.amt || 0)));
+    return owed > 0 ? { txns, owed } : null;
+  };
+  K.fixStuckCard = (d, c) => {
+    const s = K.stuckCard(d, c);
+    if (!s) return d;
+    d = s.txns.reduce((acc, t) => K.editTxn(acc, t.id, { settled: undefined }), d);
+    return Object.assign({}, d, { cards: d.cards.map((x) => (x.id === c.id ? Object.assign({}, x, { balDate: undefined }) : x)) });
+  };
   // Imported movements on one account or card, up to a date, become "already paid": their balance effect is undone
   K.importedOn = (d, where, before) => !where ? [] : d.txns.filter((t) => t.source === 'statement' && !t.settled && (t.from === where || t.to === where) && (!before || t.date <= before));
   K.settleImported = (d, where, before) => K.importedOn(d, where, before).reduce((acc, t) => K.editTxn(acc, t.id, { settled: true }), d);
   // A card-payment line on a bank statement ("PAGO TARJETA VISA", "CIBC VISA PAYMENT"): which card it pays, or null
   const PAY = /\b(pago|pagos|pmt|pymt|payment|paiement|abono|autopay|epayment|epay|preauth|pay)\b/;
   const CARDWORD = /\b(visa|mastercard|master|mc|amex|american express|tarjeta|tarj|tc|card|crd|credit|credito|cr)\b/;
-  // Card issuers: a bank withdrawal to one of them is a card payment even without the word "payment"
-  const ISSUER = /\b(amex|american express|capital one|discover|citi ?cards?|chase card|chase credit|synchrony|barclaycard|ctfs|triangle|pc financial|rogers bank|mbna|diners)\b/;
+  // Card companies whose name alone on a bank line is a payment to their card ("AMERICAN EXPRESS", "CAPITAL ONE")
+  const ISSUER = /\b(american express|amex|capital one|mbna|rogers bank|brim|neo financial|home trust|diners club|discover|ctfs|triangle|pc financial|synchrony|barclaycard|citi ?cards?|chase card|chase credit)\b/;
+  // Paying with a phone wallet is a purchase, not a card payment
   const WALLET = /\b(apple|google|samsung) pay\b/g;
   K.cardPaymentFor = (d, desc) => {
     const m = norm(desc).replace(WALLET, ' ').replace(/\s+/g, ' ').trim();
-    const issuer = ISSUER.exec(m);
-    if (!m || (!PAY.test(m) && !issuer)) return null;
+    if (!m) return null;
+    if (!PAY.test(m)) {
+      if (!ISSUER.test(m)) return null;
+      const byName = (d.cards || []).filter((c) => [c.network, c.name, c.issuer].some((x) => x && ISSUER.test(norm(x)) && m.match(ISSUER)[0] === norm(x).match(ISSUER)[0]) || (c.network && /amex|american express/.test(norm(c.network)) && /amex|american express/.test(m)));
+      // A card that isn't in Kipu stays as spending: its payment is the only record of what was bought on it
+      return byName.length === 1 ? { card: byName[0] } : null;
+    }
     const named = (d.cards || []).filter((c) => (c.last4 && m.includes(c.last4)) || norm(c.name).split(' ').filter((w) => w.length >= 4 && !['card', 'visa', 'credit'].includes(w)).some((w) => m.split(' ').includes(w)));
     if (named.length === 1) return { card: named[0] };
-    if (issuer) { const byIssuer = (d.cards || []).filter((c) => norm(c.name + ' ' + (c.network || '')).includes(issuer[1].split(' ')[0])); return { card: byIssuer.length === 1 ? byIssuer[0] : null }; }
     if (!CARDWORD.test(m)) return null;
     const byNet = (d.cards || []).filter((c) => c.network && m.includes(norm(c.network)));
     return { card: byNet.length === 1 ? byNet[0] : (d.cards || []).length === 1 ? d.cards[0] : null };
@@ -551,14 +644,30 @@
     return pairs;
   };
   // One payment, one effect: the bank line stops being spending and stops crediting the card, since the card's own line already does
+  // One payment, one movement (same rule as the exact twins below): the bank line stays as the payment into the card, the card's copy goes
   K.mergeCardPayments = (d) => K.cardPaymentPairs(d).reduce((acc, [b, c]) => {
-    acc = K.editTxn(acc, b.id, { type: 'transfer', cat: 'transfer', to: null, recurring: null, pays: c.to, pair: c.id });
-    return K.editTxn(acc, c.id, { pair: b.id });
+    acc = K.editTxn(acc, b.id, { type: 'transfer', cat: 'transfer', to: c.to, recurring: null });
+    acc = K.removeTxn(acc, c.id);
+    return !!c.settled !== !!b.settled ? K.editTxn(acc, b.id, { settled: c.settled || undefined }) : acc;
   }, d);
-  // Card payments imported from a bank before Kipu recognized them: they count as spending twice
   K.misfiledCardPayments = (d) => { const paired = new Set(K.cardPaymentPairs(d).map(([b]) => b.id)); return d.txns.filter((t) => t.type === 'expense' && (t.from || '').startsWith('acct:') && ((t.source === 'statement' && K.cardPaymentFor(d, t.merchant)) || paired.has(t.id))); };
   // Becomes a transfer; balances stay exactly as they are (the card balance was entered by hand)
-  K.fixCardPayments = (d) => K.mergeCardPayments(K.misfiledCardPayments(d).filter((t) => t.source === 'statement' && K.cardPaymentFor(d, t.merchant)).reduce((acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant); return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); }, d));
+  const fixOne = (acc, t) => { const hit = K.cardPaymentFor(acc, t.merchant) || {}; return K.editTxn(acc, t.id, { type: 'transfer', cat: 'transfer', recurring: null, to: t.settled && hit.card ? 'card:' + hit.card.id : null }); };
+  K.fixCardPayments = (d) => K.mergeCardPayments(K.misfiledCardPayments(d).reduce((acc, t) => K.mergeCardPaymentTwin(fixOne(acc, t), t.id), d));
+  // A card payment out of the bank and the same payment read from the card's statement (into the card from nowhere):
+  // one movement counted twice. The bank one stays (it says where the money came from); the card's copy goes.
+  K.cardPaymentTwin = (d, t) => t && t.type === 'transfer' && (t.from || '').startsWith('acct:') && (t.to || '').startsWith('card:') ? d.txns.filter((x) => x.id !== t.id && x.type === 'transfer' && x.to === t.to && !x.from && Math.abs(Math.abs(x.amt) - Math.abs(t.amt)) < 0.01 && Math.abs(K.days(parse(x.date), parse(t.date))) <= 7).sort((a, b) => Math.abs(K.days(parse(a.date), parse(t.date))) - Math.abs(K.days(parse(b.date), parse(t.date))))[0] || null : null;
+  // The other way round: a card payment out of the bank, when the card's statement already brought in that payment
+  // (a transfer into the card from nowhere). They're one movement: the bank side fills in where the money came from.
+  K.findCardPaymentIn = (data, row, used) => data.txns.filter((t) => !(used && used.has(t.id)) && t.type === 'transfer' && t.to === row.to && !t.from && Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) < 0.01 && Math.abs(K.days(K.parse(t.date), K.parse(row.date))) <= 7)
+    .sort((a, b) => Math.abs(K.days(K.parse(a.date), K.parse(row.date))) - Math.abs(K.days(K.parse(b.date), K.parse(row.date))))[0];
+  K.mergeCardPaymentTwin = (d, id) => {
+    const t = d.txns.find((x) => x.id === id), twin = K.cardPaymentTwin(d, t);
+    if (!twin) return d;
+    // Keep what the card side knew: if it was counted (lowered the debt), the bank one is counted too
+    d = K.removeTxn(d, twin.id);
+    return !!twin.settled !== !!t.settled ? K.editTxn(d, id, { settled: twin.settled || undefined }) : d;
+  };
   // Payment wording on a card statement ("PAYMENT - THANK YOU", "PAGO RECIBIDO", "ABONO")
   K.looksLikePayment = (desc) => { const m = norm(desc); return PAY.test(m) || /\b(thank you|gracias|recibido|received)\b/.test(m); };
   // On a statement most lines are purchases, so the sign most lines share is spending
@@ -620,7 +729,7 @@
       .concat((extra || []).filter((r) => r.type === 'expense' && r.date));
     const groups = {};
     items.forEach((x) => { const k = K.merchantKey(x.desc); if (k.length >= 3) (groups[x.where + '|' + k] = groups[x.where + '|' + k] || []).push(x); });
-    const billKeys = (d.bills || []).map((b) => K.merchantKey(b.name)).filter(Boolean);
+    const billKeys = (d.bills || []).map((b) => K.merchantKey(b.name)).concat((d.bills || []).map((b) => b.match)).filter(Boolean);
     const out = [];
     Object.keys(groups).forEach((g) => {
       const list = groups[g].sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -653,6 +762,60 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // ---------------------------------------------------------------- the big picture: every month and year since the first movement
+  // In = income; out = spending plus loan payments; left = what stayed. Transfers between your own accounts don't count.
+  K.totalsOf = (list) => {
+    const cats = {};
+    let income = 0, spending = 0, debtPaid = 0, saved = 0, count = 0;
+    list.forEach((t) => {
+      const v = t.base || 0; count++;
+      if (t.type === 'saving') saved += v;
+      if (t.type === 'income') income += v;
+      else if (t.type === 'expense') { const c = t.cat || 'other'; spending += v; cats[c] = r2((cats[c] || 0) + v); }
+      else if (t.type === 'debt') debtPaid += v;
+    });
+    const out = spending + debtPaid, left = income - out;
+    return { income: r2(income), spending: r2(spending), debtPaid: r2(debtPaid), saved: r2(saved), savedRate: income ? r2((saved / income) * 100) : 0, out: r2(out), left: r2(left), rate: income ? r2((left / income) * 100) : null, cats, count };
+  };
+  // A period cut to the same stretch as today's: Jan 1 – Sep 25 of another year, or the 1st – 25th of another month
+  K.sameStretch = (txns, p) => {
+    const T = today(), md = iso(T).slice(5);
+    const inP = (t) => t.date && t.date.startsWith(p.key);
+    const upTo = p.key.length === 4 ? (t) => t.date.slice(5) <= md : (t) => t.date.slice(8) <= md.slice(3);
+    return K.totalsOf((txns || []).filter((t) => inP(t) && upTo(t)));
+  };
+  K.history = (txns) => {
+    const list = (txns || []).filter((t) => t.date);
+    if (!list.length) return { months: [], years: [] };
+    const first = list.reduce((a, t) => (t.date < a ? t.date : a), list[0].date);
+    const byMonth = {}, byYear = {};
+    list.forEach((t) => { (byMonth[t.date.slice(0, 7)] = byMonth[t.date.slice(0, 7)] || []).push(t); (byYear[t.date.slice(0, 4)] = byYear[t.date.slice(0, 4)] || []).push(t); });
+    const months = [];
+    const T = today();
+    for (let d = new Date(+first.slice(0, 4), +first.slice(5, 7) - 1, 1); d <= T; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      const key = monthKey(d);
+      months.push(Object.assign({ key, label: MON[d.getMonth()] + ' ’' + String(d.getFullYear()).slice(2), long: MONTH_LONG[d.getMonth()] + ' ' + d.getFullYear(), year: d.getFullYear(), current: key === monthKey(T) }, K.totalsOf(byMonth[key] || [])));
+    }
+    const years = [];
+    for (let y = +first.slice(0, 4); y <= T.getFullYear(); y++) years.push(Object.assign({ key: String(y), label: String(y), long: String(y), year: y, current: y === T.getFullYear() }, K.totalsOf(byYear[String(y)] || [])));
+    return { months, years };
+  };
+  // Which month Statistics shows. Until the person picks one, the current month, or the latest with movements
+  // when this one has none yet (statements usually arrive after the month ends).
+  K.statIdx = (D, ctx) => {
+    if (ctx.period === 'ytd') return null;
+    if (ctx.periodSet && ctx.period != null) return ctx.period;
+    const S = D.series || [];
+    if (!S.length || (S[11] && S[11].count > 0)) return 11;
+    for (let i = S.length - 1; i >= 0; i--) if (S[i].count > 0) return i;
+    return 11;
+  };
+  // What a movement is called on screen: the bill or loan it pays (renaming them renames every payment); otherwise the bank's text
+  K.txnName = (d, t) => {
+    if (t.recurring) { const b = (d.bills || []).find((x) => x.id === t.recurring); if (b && b.name) return b.name; }
+    if (t.loan) { const l = (d.loans || []).find((x) => x.id === t.loan); if (l && l.name) return l.name; }
+    return t.merchant;
+  };
   // ---------------------------------------------------------------- bills whose price changes (insurance renewal, a new internet plan)
   // The bill follows its latest payment. Up to 25% it updates and says so; a bigger jump waits for the person, it may be a one-off charge.
   K.applyBillPrice = (d, billId) => {
@@ -681,7 +844,7 @@
     const m = norm(desc);
     const live = (d.loans || []).filter((l) => l.bal > 0);
     const near = (l) => !l.pay || Math.abs(amt - l.pay) <= Math.max(1, l.pay * 0.15);
-    const named = live.filter((l) => [l.name, l.lender].map(norm).join(' ').split(' ').filter((w) => w.length >= 3 && !GENERIC.has(w)).some((w) => m.split(' ').includes(w)));
+    const named = live.filter((l) => (l.match && (m.includes(l.match) || K.merchantKey(desc) === l.match)) || [l.name, l.lender].map(norm).join(' ').split(' ').filter((w) => w.length >= 3 && !GENERIC.has(w)).some((w) => m.split(' ').includes(w)));
     const byName = named.filter(near);
     if (byName.length === 1) return byName[0];
     if (K.LOAN_WORDS.test(m)) { const byAmt = live.filter((l) => l.pay && near(l)); if (byAmt.length === 1) return byAmt[0]; }
@@ -700,6 +863,13 @@
   // Become loan payments; balances stay as they are
   K.fixLoanPayments = (d) => K.misfiledLoanPayments(d).reduce((acc, t) => { const l = K.loanPaymentFor(acc, t.merchant, t.amt); return l ? K.editTxn(acc, t.id, Object.assign(K.loanPayment(acc, l, t.amt, t.date), { recurring: null, keepLoanBal: true })) : acc; }, d);
 
+  // ---------------------------------------------------------------- transfers ("E-TRANSFER", "TRANSFER TO SAVINGS", "TRANSFERENCIA")
+  // Money moving in or out by transfer isn't spending or income; the direction stays as the statement says
+  K.isTransferText = (desc) => /\b(e ?transfers?|etransfers?|interac transfer|transfers?|transferred|transferencias?|transf|trf|tfr|xfer|wire)\b/.test(norm(desc)) && !K.isPayroll(desc);
+  K.misfiledTransfers = (d) => d.txns.filter((t) => t.source === 'statement' && (t.type === 'expense' || t.type === 'income') && K.isTransferText(t.merchant));
+  // Become transfers with the same account on the same side, so no balance moves
+  K.fixTransfers = (d) => K.misfiledTransfers(d).reduce((acc, t) => K.editTxn(acc, t.id, t.type === 'expense' ? { type: 'transfer', cat: 'transfer', from: t.from, to: null, recurring: null } : { type: 'transfer', cat: 'transfer', from: null, to: t.from, recurring: null }), d);
+
   // The movements one statement import added. Imports from before they were tagged: everything imported on that account or card
   K.importTxns = (d, imp) => {
     const tagged = d.txns.filter((t) => t.imp === imp.id);
@@ -717,21 +887,23 @@
   K.removeBill = (d, id) => {
     const b = d.bills.find((x) => x.id === id); if (!b) return d;
     d = Object.assign({}, d, { txns: d.txns.map((t) => (t.recurring === id ? Object.assign({}, t, { recurring: null, billMatch: 'off' }) : t)) });
-    if (b.auto && b.pay) d = K.dismissRecurring(d, [{ where: b.pay, key: K.merchantKey(b.name) }]);
+    if (b.auto && b.pay) d = K.dismissRecurring(d, [{ where: b.pay, key: b.match || K.merchantKey(b.name) }]);
     return K.remove(d, 'bills', id);
   };
   // Saves them as bills and links the payments already recorded, so Safe to Spend reserves the next one and doesn't count paid ones
   K.addRecurringBills = (d, list) => list.reduce((acc, r) => {
     const item = K.whereItem(acc, r.where) || {};
     const id = uid('b');
-    acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true });
+    acc = K.upsert(acc, 'bills', { id, name: r.name, kind: r.kind, amt: r.amt, cur: item.cur || acc.base, day: r.day, cat: r.cat, pay: r.where, since: iso(today()), auto: true, match: r.key });
     return Object.assign({}, acc, { txns: acc.txns.map((t) => (t.type === 'expense' && !t.recurring && t.from === r.where && K.merchantKey(t.merchant) === r.key ? Object.assign({}, t, { recurring: id, billMatch: 'auto' }) : t)) });
   }, d);
   // The day a balance was typed in: movements up to then are already inside it
   K.balDate = (d, where) => (K.whereItem(d, where) || {}).balDate || null;
   K.upsert = (d, coll, item) => {
     const old = d[coll].find((x) => x.id === item.id);
-    if (['accounts', 'cards'].includes(coll) && (!old || old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0))) item = Object.assign({}, item, { balDate: iso(today()) });
+    // The day a balance was typed: statement lines up to then are already inside it. A new card or account
+    // with nothing typed (0) has no such day, so its statements move the balance.
+    if (['accounts', 'cards'].includes(coll) && (old ? old.bal !== item.bal || (old.bal2 || 0) !== (item.bal2 || 0) : item.bal || item.bal2)) item = Object.assign({}, item, { balDate: iso(today()) });
     const next = Object.assign({}, d, { [coll]: old ? upd(d[coll], item.id, () => item) : d[coll].concat([Object.assign({ id: uid(coll[0]) }, item)]) });
     if (old && ['accounts', 'cards'].includes(coll) && (old.cur || d.base) !== (item.cur || d.base)) {
       const where = (coll === 'cards' ? 'card:' : 'acct:') + item.id;
@@ -789,6 +961,42 @@
     return Object.assign(v, { view: { country: cc, cur } });
   };
   // What a card has used of its limit, in the card's main currency (second-currency balance converted)
+  // ---------------------------------------------------------------- card statement cycle
+  // With a closing day, the statement is worked out from the movements: charges between the last two closing dates,
+  // less payments made since the last close. Purchases after the close go to the next statement.
+  const dayIn = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+  const nextDay = (from, day) => { let d = dayIn(from.getFullYear(), from.getMonth(), day); if (d <= from) d = dayIn(from.getFullYear(), from.getMonth() + 1, day); return d; };
+  K.cardCycle = (d, c, T) => {
+    if (!c || !c.closeDay) return null;
+    T = T || today();
+    let lastClose = dayIn(T.getFullYear(), T.getMonth(), c.closeDay);
+    if (lastClose > T) lastClose = dayIn(T.getFullYear(), T.getMonth() - 1, c.closeDay);
+    const prevClose = dayIn(lastClose.getFullYear(), lastClose.getMonth() - 1, c.closeDay);
+    const nextClose = dayIn(lastClose.getFullYear(), lastClose.getMonth() + 1, c.closeDay);
+    const due = c.dueDay ? nextDay(lastClose, c.dueDay) : null;
+    // The day the person usually pays, if earlier than the due date
+    let payBy = due;
+    if (c.payDay) { const p = nextDay(lastClose, c.payDay); if (!due || p <= due) payBy = p; }
+    const where = 'card:' + c.id, cur = c.cur || d.base;
+    const inCur = (t) => { if (c.cur2 && t.cur === c.cur2) return 0; if ((t.cur || d.base) === cur) return t.amt || 0; const k = K.rate(d, cur, d.base); return k && t.base != null ? t.base / k : 0; };
+    let charges = 0, refunds = 0, paid = 0, since = 0;
+    (d.txns || []).forEach((t) => {
+      if (t.settled || !t.date) return;
+      const dt = parse(t.date);
+      if (t.from === where && (t.type === 'expense' || t.type === 'debt' || t.type === 'transfer')) { if (dt > prevClose && dt <= lastClose) charges += inCur(t); else if (dt > lastClose) since += inCur(t); }
+      if (t.from === where && t.type === 'income' && dt > prevClose && dt <= lastClose) refunds += inCur(t);
+      if (t.to === where && dt > lastClose && dt <= T) paid += inCur(t);
+    });
+    const statement = r2(Math.max(0, charges - refunds));
+    // A statement balance typed in after the last close is the bank's own number: it wins
+    const typed = c.stmtBal > 0 && c.stmtDate && c.stmtDate > iso(lastClose) ? c.stmtBal : null;
+    const stmt = typed != null ? typed : statement;
+    // If the usual day has passed and it's still owed, the due date; past that too, today (it's late)
+    const reserveOn = !payBy ? null : payBy >= T ? payBy : due && due >= T ? due : T;
+    return { lastClose: iso(lastClose), prevClose: iso(prevClose), nextClose: iso(nextClose), from: iso(addDays(prevClose, 1)), due: due && iso(due), payBy: payBy && iso(payBy), reserveOn: reserveOn && iso(reserveOn), late: !!(due && due < T), statement: r2(stmt), typed: typed != null, paid: r2(paid), owed: r2(Math.max(0, Math.min(Math.max(0, c.bal || 0), stmt - paid))), since: r2(since) };
+  };
+  // Every number a card has had: a replaced card (lost, stolen, hacked) is the same account with a new number
+  K.cardNumbers = (c) => [c && c.last4].concat((c && c.oldLast4) || []).filter(Boolean);
   K.cardUsed = (d, c) => r2((c.bal || 0) + (c.cur2 ? (K.rate(d, c.cur2, c.cur || d.base) || 0) * (c.bal2 || 0) : 0));
   K.balances = (d, scope) => {
     const all = K.hhMode(d) === 'together';
@@ -881,6 +1089,9 @@
     const billsDue = bills.map((b) => ({ b, n: unpaidDates(b, occurrences(iso(billAnchor(b)), billFreq(b), T, until)).length })).filter((x) => x.n && !(x.b.pay || '').startsWith('card:'));
     const billsDueAmt = r2(sum(billsDue, (x) => x.n * K.toBase(data, x.b.amt, x.b.cur || data.base)));
     const cardsDue = B.cards.map((c) => {
+      // With a closing day: the statement Kipu works out, reserved for the day it's usually paid (or due)
+      const cyc = !c.cur2 && K.cardCycle(data, c, T);
+      if (cyc && cyc.reserveOn) { const by = parse(cyc.reserveOn); return cyc.owed > 0 && inWin(by) ? Object.assign({}, c, { dueAmount: cyc.owed, dueAmount2: 0, payBy: cyc.reserveOn }) : null; }
       // Without a statement balance typed in, reserve what's owed on the card
       if (!(c.stmtBal > 0 || c.stmtBal2 > 0)) c = Object.assign({}, c, { stmtBal: Math.max(0, c.bal || 0), stmtBal2: Math.max(0, c.bal2 || 0) });
       if (!c.dueDay || !(c.stmtBal > 0 || c.stmtBal2 > 0)) return null;
@@ -936,7 +1147,7 @@
     const horizon = addDays(T, 45), upcoming = [];
     bills.forEach((b) => occurrences(iso(billAnchor(b)), billFreq(b), addDays(T, 1), horizon).forEach((d) => upcoming.push({ date: iso(d), name: b.name, amt: K.toBase(data, b.amt, b.cur || data.base), kind: b.kind, route: { r: 'plan', tab: 'bills' }, billId: b.id })));
     B.loans.filter((l) => l.bal > 0 && l.pay).forEach((l) => futureOccurrences(l.next || iso(T), l.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: l.name, amt: l.pay, kind: 'Loan payment', route: { r: 'loan', id: l.id } })));
-    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
+    B.cards.filter((c) => c.dueDay && (c.stmtBal || c.bal) > 0).forEach((c) => { const cyc = !c.cur2 && K.cardCycle(data, c, T); if (cyc && cyc.reserveOn) { if (cyc.owed > 0 && parse(cyc.reserveOn) <= horizon) upcoming.push({ date: cyc.reserveOn, name: c.name + ' payment', amt: K.toBase(data, cyc.owed, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); return; } const d = K.nextDate(iso(new Date(T.getFullYear(), T.getMonth(), c.dueDay)), 'Monthly', T); if (d <= horizon) upcoming.push({ date: iso(d), name: c.name + ' payment', amt: K.toBase(data, c.stmtBal || c.bal, c.cur || data.base), kind: 'Card due', route: { r: 'card', id: c.id } }); });
     incomeSrc.forEach((s) => occurrences(s.next || iso(T), s.freq, T, horizon).forEach((d) => upcoming.push({ date: iso(d), name: s.name, amt: K.toBase(data, s.amt, s.cur || data.base), kind: 'Income', income: true, route: { r: 'plan', tab: 'overview' } })));
     upcoming.sort((a, b) => (a.date < b.date ? -1 : 1));
     // Due in the next three days and not paid yet: what reminders talk about. Card-charged bills pay themselves.
@@ -1080,6 +1291,52 @@
     D.goals.filter((g) => !g.targetDate && g.left > 0).forEach((g) => out.push({ id: 'goal-' + g.id, kind: 'Goals', icon: 'target', title: g.name + ' has no target date, so Kipu can’t tell whether the monthly amount is enough.', why: g.monthly ? 'At the current pace it’s done in ' + g.etaLabel + '.' : 'It has no monthly amount yet.', cta: 'Open goal', route: { r: 'goal', id: g.id } }));
     (D.cards || []).forEach((c) => { const ex = K.expiryInfo && K.expiryInfo(c); if (!ex) return; if (ex.expired) out.push({ id: 'exp-' + c.id, kind: 'Priority', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expired in ' + K.fmtMonth(ex.end) + '.', why: 'Add the new expiry date once the replacement card arrives.', cta: 'Open card', route: { r: 'card', id: c.id } }); else if (ex.soon) out.push({ id: 'exp-' + c.id, kind: 'Credit', icon: 'card', title: c.name + (c.last4 ? ' ending ' + c.last4 : '') + ' expires at the end of ' + K.fmtMonth(ex.end) + '.', why: 'Watch for the replacement and update subscriptions that use this card.', cta: 'Open card', route: { r: 'card', id: c.id } }); });
     if (D.unpaid.length) out.push({ id: 'unpaid', kind: 'Priority', icon: 'calendar', title: D.unpaid.length === 1 ? D.unpaid[0].name + ' was due and isn’t marked as paid.' : D.unpaid.length + ' bills were due and aren’t marked as paid.', why: 'Marking them paid keeps Safe to Spend accurate.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
+    // ---- From your whole history, so there's something useful even before this month's statement arrives
+    const H = K.history(D.txAll || []);
+    const done = H.months.filter((m) => !m.current && m.count > 0);
+    const L = done[done.length - 1], P = done[done.length - 2];
+    const mname = (m) => MONTH_LONG[+m.key.slice(5) - 1];
+    if (L && L.income > 0) {
+      const more = P ? L.left - P.left : null;
+      out.push({ id: 'month', kind: 'Savings', icon: L.left >= 0 ? 'trend' : 'alert', title: (L.left >= 0 ? 'In ' + mname(L) + ' you kept ' + f(L.left) : 'In ' + mname(L) + ' you spent ' + f(-L.left) + ' more than came in') + ' (' + Math.round(L.rate) + '% of income).', why: P && more != null ? (more >= 0 ? f(more) + ' more than ' + mname(P) + '.' : f(-more) + ' less than ' + mname(P) + '.') : 'Money in ' + f(L.income) + ', money out ' + f(L.out) + '.', cta: 'Big picture', route: { r: 'stats', tab: 'overview' } });
+    }
+    if (L && P) {
+      const cats = Array.from(new Set(Object.keys(L.cats).concat(Object.keys(P.cats)))).map((c) => [c, (L.cats[c] || 0) - (P.cats[c] || 0), P.cats[c] || 0]).filter((x) => K.CATS[x[0]]);
+      const up = cats.slice().sort((a, b) => b[1] - a[1])[0], down = cats.slice().sort((a, b) => a[1] - b[1])[0];
+      if (up && up[1] > Math.max(50, up[2] * 0.2)) out.push({ id: 'cat-up', kind: 'Spending', icon: 'trend', title: K.CATS[up[0]].name + ' went up ' + f(up[1]) + ' in ' + mname(L) + '.', why: 'Compared with ' + mname(P) + ': ' + f(up[2]) + ' → ' + f(up[2] + up[1]) + '.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+      if (down && down[1] < -Math.max(50, down[2] * 0.2)) out.push({ id: 'cat-down', kind: 'Savings', icon: 'check', title: K.CATS[down[0]].name + ' went down ' + f(-down[1]) + ' in ' + mname(L) + '.', why: 'Compared with ' + mname(P) + ': ' + f(down[2]) + ' → ' + f(down[2] + down[1]) + '.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+    }
+    if (L) {
+      const inL = (D.txAll || []).filter((t) => t.type === 'expense' && t.date && t.date.startsWith(L.key));
+      const shops = {};
+      inL.forEach((t) => { const k = K.merchantKey(t.merchant) || t.merchant; const x = (shops[k] = shops[k] || { name: K.txnName(data, t), total: 0, n: 0, bill: !!t.recurring }); x.total += t.base || 0; x.n++; });
+      const top = Object.values(shops).filter((x) => !x.bill).sort((a, b) => b.total - a.total)[0];
+      if (top && top.n > 1 && top.total > 50) out.push({ id: 'shop', kind: 'Spending', icon: 'bag', title: top.name + ' was where you spent the most in ' + mname(L) + ': ' + f(top.total) + '.', why: top.n + ' purchases, about ' + f(top.total / top.n) + ' each.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+      // A purchase far above what that category usually costs
+      const since = iso(addMonths(today(), -4));
+      const byCat = {}; (D.txAll || []).forEach((t) => { if (t.type === 'expense' && t.date >= since && !t.recurring) (byCat[t.cat] = byCat[t.cat] || []).push(t.base || 0); });
+      const med = (a) => { const x = a.slice().sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : 0; };
+      const odd = inL.filter((t) => !t.recurring && (byCat[t.cat] || []).length >= 5 && (t.base || 0) > 100 && (t.base || 0) > 4 * med(byCat[t.cat])).sort((a, b) => b.base - a.base)[0];
+      if (odd) out.push({ id: 'odd-' + odd.id, kind: 'Spending', icon: 'alert', title: K.txnName(data, odd) + ' (' + f(odd.base) + ') was much bigger than your usual ' + (K.CATS[odd.cat] || { name: 'purchase' }).name.toLowerCase() + '.', why: 'Usually about ' + f(med(byCat[odd.cat])) + ' per purchase.', cta: 'Open it', route: { r: 'txn', id: odd.id } });
+    }
+    if (done.length >= 4) {
+      const last3 = done.slice(-3), before = done.slice(-6, -3);
+      const avg = (a) => a.reduce((x, m) => x + m.left, 0) / a.length;
+      if (before.length === 3) { const d = avg(last3) - avg(before); if (Math.abs(d) > 50) out.push({ id: 'avg3', kind: 'Savings', icon: 'chart', title: 'Over the last 3 months you kept ' + f(avg(last3)) + ' a month on average.', why: (d >= 0 ? f(d) + ' more a month' : f(-d) + ' less a month') + ' than the 3 months before.', cta: 'Big picture', route: { r: 'stats', tab: 'overview' } }); }
+    }
+    // This month so far against the same days of last month
+    const curM = H.months.find((m) => m.current), prevM = H.months[H.months.length - 2];
+    if (curM && curM.count >= 5 && prevM && prevM.count) {
+      const same = K.sameStretch(D.txAll, prevM), d = curM.spending - same.spending;
+      if (Math.abs(d) > 50) out.push({ id: 'pace', kind: 'Spending', icon: d > 0 ? 'trend' : 'check', title: 'So far this month you spent ' + f(curM.spending) + '.', why: (d > 0 ? f(d) + ' more' : f(-d) + ' less') + ' than by this day last month.', cta: 'See spending', route: { r: 'stats', tab: 'spending' } });
+    }
+    // Card statements coming due
+    (data.cards || []).forEach((c) => { const cyc = K.cardCycle(data, c); if (cyc && cyc.owed > 0 && cyc.reserveOn && days(today(), parse(cyc.reserveOn)) <= 10) out.push({ id: 'stmt-' + c.id, kind: cyc.late ? 'Priority' : 'Credit', icon: 'card', title: c.name + ': ' + f(K.toBase(data, cyc.owed, c.cur || data.base)) + ' from the statement to pay by ' + K.fmtDate(cyc.reserveOn) + '.', why: 'Charges from ' + K.fmtDate(cyc.from) + ' to ' + K.fmtDate(cyc.lastClose) + ', less what you already paid.', cta: 'Open card', route: { r: 'card', id: c.id } }); });
+    const rec = K.findRecurring(data);
+    if (rec.length) out.push({ id: 'rec', kind: 'Recurring', icon: 'repeat', title: rec.length === 1 ? rec[0].name + ' repeats every month.' : rec.length + ' payments repeat every month and aren’t bills yet.', why: 'As bills, Safe to Spend sets money aside for them.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } });
+    const otherN = (data.txns || []).filter((t) => t.type === 'expense' && (!t.cat || t.cat === 'other')).length;
+    if (otherN >= 3) out.push({ id: 'other', kind: 'Spending', icon: 'tag', title: otherN + ' expenses are in Other.', why: 'Sorting them shop by shop makes every chart more accurate.', cta: 'Review categories', sheet: { k: 'reviewCats' } });
+    (data.bills || []).filter((b) => b.lastChange && !b.lastChange.seen).forEach((b) => out.push({ id: 'price-' + b.id, kind: 'Recurring', icon: b.lastChange.to < b.lastChange.from ? 'down' : 'up', title: b.name + (b.lastChange.to < b.lastChange.from ? ' went down' : ' went up') + ': ' + f(b.lastChange.from) + ' → ' + f(b.lastChange.to) + '.', why: 'The bill follows your latest payment.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } }));
     const order = { Priority: 0, Credit: 1, Debt: 2, Spending: 3, Savings: 4, Goals: 5, Recurring: 6 };
     return out.sort((a, b) => order[a.kind] - order[b.kind]);
   };

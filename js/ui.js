@@ -132,7 +132,7 @@
     const label = t.cat === 'settle' ? 'Settle up' : t.type === 'saving' ? 'Saved to goal' : t.type === 'debt' ? 'Loan payment' : t.type === 'transfer' ? 'Transfer' : isIn ? 'Income' : cat ? cat.name : '';
     const part = t.split && t.type === 'expense' ? ' · your part ' + fmt(t.base * K.myShare(t), { dec: 2 }) : '';
     const main = (isIn ? '+' : '') + (t.cur === fmt.base ? fmt(t.base) : fmt.native(t.amt, t.cur));
-    return html`<${Row} icon=${icon} tone=${tone} title=${t.merchant} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + part + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
+    return html`<${Row} icon=${icon} tone=${tone} title=${K.txnName(data, t)} sub=${label + ' · ' + K.fmtDate(t.date) + (src ? ' · ' + src : '') + part + (t.trip ? ' · Trip' : '')} right=${html`<span style=${{ color: isIn ? 'var(--pos)' : null }}>${main}</span>`} rightSub=${t.cur !== fmt.base ? fmt(t.base) + (t.estimate ? ' est.' : '') : null} onClick=${() => go({ r: 'txn', id: t.id })} />`;
   };
   K.TxnRow = TxnRow;
 
@@ -210,9 +210,9 @@
   K.UpcomingItem = UpcomingItem;
 
   const InsightCard = ({ i, compact }) => {
-    const { go } = useApp();
+    const { go, openSheet } = useApp();
     const tone = { Priority: 'a', Spending: 'a', Savings: 'g', Debt: 'b', Credit: 'b', Goals: 'p', Recurring: 'p' }[i.kind] || 'p';
-    return html`<button class="card" style=${{ display: 'flex', gap: '12px', alignItems: 'flex-start', width: '100%', borderColor: i.kind === 'Priority' ? 'color-mix(in srgb, var(--warn2) 45%, var(--line))' : null }} onClick=${() => go(i.route)}>
+    return html`<button class="card" style=${{ display: 'flex', gap: '12px', alignItems: 'flex-start', width: '100%', borderColor: i.kind === 'Priority' ? 'color-mix(in srgb, var(--warn2) 45%, var(--line))' : null }} onClick=${() => (i.sheet ? openSheet(i.sheet) : go(i.route))}>
       <${Tile} icon=${i.icon} tone=${tone} />
       <span class="grow stack-s" style=${{ gap: '6px' }}><span class="row" style=${{ gap: '6px' }}><span class="tag" style=${{ background: 'var(--surface2)', color: 'var(--muted)' }}>${i.kind}</span></span><span style=${{ fontSize: '15px', lineHeight: 1.45, fontWeight: 500 }}>${i.title}</span>${!compact && i.why && html`<span class="small muted" style=${{ lineHeight: 1.5 }}>${i.why}</span>`}<span class="link">${i.cta}<${Icon} n="next" s=${13} w=${2.2} /></span></span></button>`;
   };
@@ -255,29 +255,42 @@
   K.LineChart = LineChart;
 
   // groups: [{ label, values:[v1, v2...] }], colors per value index; stacked or side by side
-  const BarChart = ({ groups, colors, h = 160, stacked, fmtY, hi, ref, labelTop }) => {
+  const canHover = () => { try { return window.matchMedia('(hover: hover)').matches; } catch (e) { return true; } };
+  // Bars per month (or day). Hover or tap a column to light it up and see its numbers; `onPick` makes a click choose it.
+  const BarChart = ({ groups, colors, h = 160, stacked, fmtY, hi, ref, labelTop, names, fmtV, extra, onPick }) => {
+    const [hov, setHov] = useState(null);
     const W = 600, pl = 44, pr = 8, pt = 18, pb = 24;
     const tot = groups.map((g) => (stacked ? g.values.reduce((s, v) => s + Math.max(0, v), 0) : Math.max(...g.values)));
     const mx = niceMax(Math.max(...tot, ref ? ref.value : 0));
     const Y = (v) => pt + (1 - v / mx) * (h - pt - pb);
     const slot = (W - pl - pr) / groups.length, bw = Math.min(34, slot * (stacked ? 0.56 : 0.72));
-    return html`<svg class="chart" viewBox=${'0 0 ' + W + ' ' + h} width="100%" role="img" style=${{ display: 'block' }}>
+    const on = hov != null ? hov : hi;
+    const fv = fmtV || fmtY || ((v) => Math.round(v).toLocaleString('en-US'));
+    const tipX = hov != null ? ((pl + slot * hov + slot / 2) / W) * 100 : 0;
+    const g0 = hov != null ? groups[hov] : null;
+    const rows = g0 ? g0.values.map((v, j) => [names ? names[j] : null, fv(v), (g0.colors || colors)[j]]).concat(extra ? extra(hov) || [] : []) : [];
+    return html`<div class="bar-chart" style=${{ position: 'relative' }} onMouseLeave=${() => setHov(null)}>
+      <svg class="chart" viewBox=${'0 0 ' + W + ' ' + h} width="100%" role="img" style=${{ display: 'block' }}>
       ${[0, 0.5, 1].map((t, i) => html`<g key=${i}><line x1=${pl} x2=${W - pr} y1=${Y(t * mx)} y2=${Y(t * mx)} stroke="var(--line)"></line><text x=${pl - 8} y=${Y(t * mx) + 3} text-anchor="end">${fmtY ? fmtY(t * mx) : Math.round(t * mx)}</text></g>`)}
       ${ref && html`<line x1=${pl} x2=${W - pr} y1=${Y(ref.value)} y2=${Y(ref.value)} stroke=${ref.color || 'var(--warn2)'} stroke-dasharray="5 5" stroke-width="1.5"></line>`}
       ${groups.map((g, i) => {
         const cx = pl + slot * i + slot / 2;
         let acc = 0;
         const n = g.values.length;
-        return html`<g key=${i} opacity=${hi != null && hi !== i ? 0.55 : 1}>
+        return html`<g key=${i} opacity=${on != null && on !== i ? 0.4 : 1} style=${{ transition: 'opacity 0.15s' }}>
+          ${hov === i && html`<rect x=${cx - slot / 2 + 2} y=${pt - 8} width=${slot - 4} height=${h - pt - pb + 8} rx="8" fill="var(--surface2)"></rect>`}
           ${g.values.map((v, j) => {
             if (stacked) { const y0 = Y(acc), y1 = Y(acc + Math.max(0, v)); acc += Math.max(0, v); return html`<rect key=${j} x=${cx - bw / 2} y=${y1} width=${bw} height=${Math.max(0, y0 - y1)} rx="3" fill=${(g.colors || colors)[j]}></rect>`; }
             const w = bw / n, x = cx - bw / 2 + j * w;
             return html`<rect key=${j} x=${x + 1} y=${Y(Math.max(0, v))} width=${w - 2} height=${Math.max(0, Y(0) - Y(Math.max(0, v)))} rx="3" fill=${(g.colors || colors)[j]} opacity=${g.dash && j === n - 1 ? 0.45 : 1}></rect>`;
           })}
-          ${labelTop && hi === i && html`<text class="lbl" x=${cx} y=${Y(tot[i]) - 6} text-anchor="middle">${labelTop(tot[i])}</text>`}
-          <text x=${cx} y=${h - 6} text-anchor="middle" style=${hi === i ? { fill: 'var(--ink)', fontWeight: 700 } : null}>${g.label}</text></g>`;
+          ${labelTop && on === i && html`<text class="lbl" x=${cx} y=${Y(tot[i]) - 6} text-anchor="middle">${labelTop(tot[i])}</text>`}
+          <text x=${cx} y=${h - 6} text-anchor="middle" style=${on === i ? { fill: 'var(--ink)', fontWeight: 700 } : null}>${g.label}</text>
+          <rect x=${cx - slot / 2} y="0" width=${slot} height=${h} fill="transparent" style=${{ cursor: onPick ? 'pointer' : 'default' }} onMouseEnter=${() => setHov(i)} onClick=${() => { setHov(i); onPick && onPick(i); }}></rect></g>`;
       })}
-    </svg>`;
+      </svg>
+      ${g0 && html`<div class="chart-tip" style=${{ left: tipX + '%', transform: tipX < 22 ? 'translateX(-10%)' : tipX > 78 ? 'translateX(-90%)' : 'translateX(-50%)' }}><b>${g0.full || g0.label}</b>${rows.map(([n, v, c], k) => html`<span key=${k} class="row" style=${{ gap: '6px', justifyContent: 'space-between' }}><span class="row" style=${{ gap: '6px' }}>${c && html`<i class="dotk" style=${{ background: c }}></i>`}${n}</span><b class="num">${v}</b></span>`)}${onPick && canHover() && html`<span class="tiny muted">Click to open</span>`}</div>`}
+    </div>`;
   };
   K.BarChart = BarChart;
 
@@ -319,7 +332,7 @@
     const cc = ctx.country && ctx.country !== 'All' ? ctx.country : null;
     if (cc) parts.push(K.countryName(cc));
     else if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
-    if (show.includes('period')) { const S = D.series; parts.push(ctx.period === 'ytd' ? 'Last 12 months' : S[ctx.period].m + ' ' + S[ctx.period].y); }
+    if (show.includes('period')) { const S = D.series; const i = K.statIdx(D, ctx); parts.push(i == null ? 'Last 12 months' : S[i].m + ' ' + S[i].y); }
     return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change country, scope, currency or period">${cc && html`<${K.CountryFlag} cc=${cc} s=${16} />`}<${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
   };
   K.ContextFilter = ContextFilter;
@@ -383,6 +396,60 @@
     if (!list.length) return null;
     const total = list.reduce((a, t) => a + (t.base || 0), 0);
     return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 loan payment (' + fmt(total) + ') counts as spending.' : list.length + ' loan payments (' + fmt(total) + ') count as spending.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixLoanPayments(data)); toast(list.length === 1 ? '1 loan payment fixed' : list.length + ' loan payments fixed'); }}>Fix</button></div>`;
+  };
+  // Transfers imported earlier as spending or income
+  K.TransferNote = function TransferNote() {
+    const { data, commit, toast } = useApp();
+    const list = K.misfiledTransfers(data);
+    if (!list.length) return null;
+    return html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }} role="status"><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${list.length === 1 ? '1 transfer counts as spending or income.' : list.length + ' transfers count as spending or income.'}</span><button class="btn sec sm" onClick=${() => { commit(K.fixTransfers(data)); toast(list.length === 1 ? '1 transfer fixed' : list.length + ' transfers fixed'); }}>Fix</button></div>`;
+  };
+  // Expenses still in Other: one tap to review them shop by shop
+  K.CatNote = function CatNote() {
+    const { data, openSheet } = useApp();
+    const n = data.txns.filter((t) => t.type === 'expense' && (!t.cat || t.cat === 'other')).length;
+    if (!n) return null;
+    return html`<button class="card lrow" style=${{ gap: '12px', textAlign: 'left' }} onClick=${() => openSheet({ k: 'reviewCats' })}><${Tile} icon="tag" tone="p" s=${34} /><span class="grow stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="t1">Review categories</span><span class="tiny muted">${n === 1 ? '1 expense is in Other.' : n + ' expenses are in Other.'} Sort them shop by shop.</span></span><${Icon} n="next" s=${15} c="var(--muted)" /></button>`;
+  };
+  // A big number that shrinks on narrow screens and when it has many digits, so it never runs past its card
+  K.fitSize = (text, max) => { const n = String(text || '').length; const cap = n > 12 ? max * 0.7 : n > 10 ? max * 0.8 : n > 8 ? max * 0.9 : max; return 'clamp(26px, ' + (cap / 3.9).toFixed(1) + 'vw, ' + Math.round(cap) + 'px)'; };
+  // ---------------------------------------------------------------- a month of spending, day by day, and the full list of charges
+  // `spend(t)` is what a movement cost in the card's or account's currency (0 when it isn't spending)
+  // A month on one card or account: a calendar of what was spent each day, and that month's movements below.
+  // The calendar picks the month; tapping a day narrows the list to it.
+  // The month (and day) last looked at, per card or account: opening a movement and coming back keeps you there
+  const monthSeen = {};
+  K.MonthActivity = function MonthActivity({ id, txns, spend, money, empty, wide }) {
+    const T = K.today();
+    const latest = txns.filter((t) => spend(t) > 0).reduce((m, t) => (t.date > m ? t.date : m), '');
+    const start = latest && latest.slice(0, 7) < K.monthKey(T) && !txns.some((t) => t.date && t.date.slice(0, 7) === K.monthKey(T)) ? K.parse(latest.slice(0, 7) + '-01') : new Date(T.getFullYear(), T.getMonth(), 1);
+    const kept = id && monthSeen[id];
+    const [month, setMonthRaw] = useState(kept ? kept.month : start);
+    const [day, setDayRaw] = useState(kept ? kept.day : null);
+    const setMonth = (m) => { setMonthRaw(m); if (id) monthSeen[id] = { month: m, day: null }; };
+    const setDay = (d) => { setDayRaw(d); if (id) monthSeen[id] = { month, day: d }; };
+    if (!txns.length) return empty;
+    const key = K.monthKey(month);
+    const inMonth = txns.filter((t) => t.date && t.date.startsWith(key));
+    const byDay = {};
+    inMonth.forEach((t) => { const d = +t.date.slice(8, 10); const v = spend(t); if (v > 0) byDay[d] = (byDay[d] || 0) + v; });
+    const total = Object.values(byDay).reduce((a, b) => a + b, 0);
+    const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const lead = (new Date(month.getFullYear(), month.getMonth(), 1).getDay() + 6) % 7; // weeks start on Monday
+    const cells = Array.from({ length: lead }, () => null).concat(Array.from({ length: days }, (_, i) => i + 1));
+    const move = (n) => { setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1)); setDayRaw(null); };
+    const isNow = key === K.monthKey(T);
+    const first = txns.reduce((m, t) => (t.date && t.date < m ? t.date : m), '9999');
+    const dayKey = day ? key + '-' + String(day).padStart(2, '0') : null;
+    const list = day ? inMonth.filter((t) => t.date === dayKey) : inMonth;
+    const title = K.MONTH_LONG[month.getMonth()] + ' ' + month.getFullYear();
+    const calendar = html`<div class="card stack" style=${{ gap: '12px' }}>
+      <div class="between"><button class="ic n" aria-label="Previous month" disabled=${key <= first.slice(0, 7)} onClick=${() => move(-1)}><${Icon} n="back" s=${18} w=${2.2} /></button><span class="stack-s" style=${{ alignItems: 'center', gap: '1px' }}><b>${title}</b><span class="tiny muted num">${money(total)}</span></span><button class="ic n" aria-label="Next month" disabled=${isNow} onClick=${() => move(1)}><${Icon} n="next" s=${18} w=${2.2} /></button></div>
+      <div class="mcal">${['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((w) => html`<span key=${w} class="mcal-wd">${w}</span>`)}${cells.map((d, i) => d == null ? html`<span key=${'e' + i}></span>` : html`<button key=${d} type="button" class=${'mcal-day' + (day === d ? ' on' : '') + (byDay[d] ? ' has' : '') + (isNow && d === T.getDate() ? ' today' : '')} aria-label=${d + (byDay[d] ? ': ' + money(byDay[d]) : '')} aria-pressed=${day === d} onClick=${() => setDay(day === d ? null : d)}><span class="d">${d}</span><i class="dot"></i></button>`)}</div></div>`;
+    const movements = html`<div class="stack-s" style=${{ gap: '8px' }}>
+      <div class="between" style=${{ padding: '0 4px', gap: '8px' }}><span class="eyebrow">${day ? K.fmtDate(dayKey, true) : title}</span>${day ? html`<button class="link" onClick=${() => setDay(null)}>See the whole month</button>` : html`<span class="tiny muted num">${money(total)}</span>`}</div>
+      ${list.length ? html`<div class="card tight list">${list.map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card flat small muted" style=${{ textAlign: 'center', padding: '18px' }}>${day ? 'Nothing that day.' : 'Nothing this month.'}</div>`}</div>`;
+    return html`<div class="stack" style=${{ gap: '16px' }}>${calendar}${movements}</div>`;
   };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();

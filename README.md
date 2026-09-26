@@ -16,6 +16,7 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Escanear recibo:** lee comercio, total, fecha y moneda con OCR dentro del navegador. La primera vez descarga unos 10 MB.
 - **Subir estado de cuenta:** CSV o PDF; detecta duplicados y sugiere categorías
 - Presupuesto, facturas y suscripciones, metas, viajes
+- **Panorama:** todo el historial por meses o por años (entró, salió, te quedó y % ahorrado) y la comparación de cualquier par de periodos, total y por categoría; si uno es el periodo actual, se compara el mismo tramo del otro.
 - Estadísticas, insights, revisiones mensuales y forecast con escenarios
 - Settings: 4 fondos (Light blanco, Graphite, Dark negro, Midnight azul) más System, y 7 temas de color (Kipu, Ocean, Forest, Sand, Ember, Coral, Dusk, Mono) y uno Custom con tus propios colores que combinan con cualquier fondo; foto de perfil; ocultar montos; reglas de categorías; copia de seguridad (JSON), exportar CSV, restaurar y borrar todo
 - Actividad con calendario semanal de fechas individuales y detalle de gastos e ingresos del día
@@ -28,6 +29,7 @@ Kipu es una app de finanzas personales tranquila. Empieza vacía, como recién i
 - **Pagos de tarjeta en el banco:** una línea como "PAGO TARJETA VISA" en un estado de cuenta del banco se importa como transferencia a esa tarjeta, no como gasto, para no contar las compras dos veces. Si ya se importaron como gasto, Estadísticas ofrece corregirlas sin cambiar saldos.
 - **Estados de cuenta chequing:** lee las columnas Withdrawal/Deposit (o Debit/Credit, Retiro/Depósito) en CSV y PDF; en PDF ubica cada monto en su columna o usa el saldo acumulado. Si todo viene en positivo, usa las palabras de cada línea.
 - **Fechas de los estados de cuenta:** los meses solo cuentan como palabras completas ("14 MARKET" no es marzo), el orden día/mes se decide una vez por archivo (un día mayor que 12 lo define; si no, el orden cronológico y el país de la cuenta), y las fechas sin año toman el año del periodo del estado de cuenta. En Ajustes → Datos se puede deshacer una importación para volver a subirla.
+- **Transferencias:** las líneas con "e-transfer" o "transfer" se importan como transferencia, entrando o saliendo según el estado de cuenta, y no cuentan como gasto ni ingreso. Las importadas antes como gasto o ingreso se corrigen desde Estadísticas.
 - **Sueldo:** las líneas PAYROLL, NOMINA o SUELDO se importan como sueldo y ajustan tu ingreso esperado (frecuencia, promedio de los últimos tres y próximo pago).
 - **Pagos recurrentes:** al importar, los pagos que se repiten cada mes por un monto parecido (seguro, teléfono, gimnasio) se proponen como recibos; también en Plan → Recibos para lo ya importado.
 - **Préstamos con débito automático:** al importar, la cuota de un préstamo registrado (auto, financiamiento, hipoteca) se reconoce por el nombre del préstamo o del prestamista y un monto parecido a la cuota, y se registra como pago del préstamo. Un pago recurrente que parece préstamo ofrece "Es un préstamo"; los pagos ya importados como gasto se pueden corregir sin mover saldos.

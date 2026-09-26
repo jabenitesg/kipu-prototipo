@@ -38,7 +38,7 @@
       ${(K.hhMode(data) === 'mixed' || cloud.combined) && cloud.target !== 'household' && show.includes('scope') && html`<div class="stack-s"><span class="eyebrow">Scope</span><${Seg} options=${['mine', 'household', 'personal']} labels=${['Personal', 'Household', 'All']} value=${ctx.scope} onChange=${(v) => setCtx({ scope: v })} /><span class="tiny muted">${ctx.scope === 'household' ? 'Only what you share.' : ctx.scope === 'mine' ? 'Only what is yours alone.' : 'Everything you can see.'}</span></div>`}
       ${D.countries && D.countries.length > 1 && html`<div class="stack-s"><span class="eyebrow">Country</span><${Chips} options=${['All'].concat(D.countries)} value=${ctx.country || 'All'} onChange=${(v) => setCtx({ country: v })} labels=${['All'].concat(D.countries).map((c) => (c === 'All' ? html`<${Icon} n="globe" s=${16} />Global · ${K.sym(data.base)}` : html`<${K.CountryFlag} cc=${c} s=${18} />${K.countryName(c)} · ${K.sym(K.countryCur(data, c))}`))} /><span class="tiny muted">${(ctx.country || 'All') === 'All' ? 'Everything, converted to ' + data.base + ' at today’s rates.' : 'Only ' + K.countryName(ctx.country) + ', in its own currency.'}</span></div>`}
       ${show.includes('currency') && curs.length > 2 && html`<div class="stack-s"><span class="eyebrow">Currency</span><${Chips} options=${curs} value=${ctx.currency} onChange=${(v) => setCtx({ currency: v })} labels=${curs.map((c) => (c === 'Combined' ? html`<${Icon} n="globe" s=${16} />All · ${K.sym(data.base)}` : html`<${K.Flag} cur=${c} s=${18} />${c} only`))} /></div>`}
-      ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${ctx.period == null ? 11 : ctx.period} onChange=${(v) => setCtx({ period: v })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
+      ${show.includes('period') && html`<div class="stack-s"><span class="eyebrow">Period</span><${Chips} options=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 'ytd']} value=${K.statIdx(D, ctx) == null ? 'ytd' : K.statIdx(D, ctx)} onChange=${(v) => setCtx({ period: v, periodSet: true })} labels=${[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((i) => D.series[i].m + ' ' + String(D.series[i].y).slice(2)).concat(['12 months'])} /></div>`}
       <button class="btn pri block" onClick=${onClose}>Done</button></${Sheet}>`;
   };
 
@@ -53,6 +53,9 @@
     const [merchant, setMerchant] = useState(src.merchant || '');
     const [cat, setCat] = useState(src.cat || '');
     const [newCat, setNewCat] = useState(false);
+    // A new name: for every movement from that shop, only the ones for this amount (Apple, Google…), or just this one
+    const [scope, setScope] = useState(item ? K.renameScope(item) : 'all');
+    const others = item ? { all: K.sameShopTxns(data, item, 'all').length, amt: K.sameShopTxns(data, item, 'amt').length } : null;
     const [date, setDate] = useState(src.date || K.iso(K.today()));
     const [from, setFrom] = useState(src.from || (places[0] || [])[0] || '');
     const [note, setNote] = useState(src.note || '');
@@ -79,9 +82,13 @@
       const t = { type: 'expense', merchant: merchant.trim() || 'Expense', cat: category, amt: v, cur, from: byPartner ? '' : from, date, note, trip: trip || null, autoTrip: false, charged, shared: mode === 'together' || shared, split: splitting ? { by: paidBy, mine } : null, source: preset.source || (item && item.source) || 'manual' };
       let next = item ? K.editTxn(data, item.id, t) : K.addTxn(data, t);
       if (item && (item.merchant !== t.merchant || item.cat !== t.cat || item.date !== t.date || item.note !== t.note || item.trip !== t.trip)) next = K.editTxn(next, item.id, { merchant: t.merchant, cat: t.cat, date: t.date, note: t.note, trip: t.trip, shared: t.shared, split: t.split });
+      // A new name for the shop goes to its other movements and to the next statements
+      const renaming = item && item.merchant !== t.merchant && t.merchant !== 'Expense';
+      const renamed = renaming ? K.sameShopTxns(data, item, scope).length : 0;
+      if (renaming) next = K.renameShop(next, item, t.merchant, scope);
       commit(next);
       const safe = K.derive(next, ctx).plan;
-      toast(item ? 'Expense updated' : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
+      toast(item ? (renamed ? 'Expense updated · ' + renamed + (renamed === 1 ? ' more renamed' : ' more renamed') : 'Expense updated') : 'Expense added' + (safe.hasIncome ? ' · Safe to Spend ' + fmt(safe.safe) : ''));
       onClose();
     };
     return html`<${Sheet} title=${item ? 'Edit expense' : preset.source === 'receipt' ? 'Check the receipt' : 'Add expense'} sub=${preset.source === 'receipt' ? 'Kipu read these from the photo. Fix anything that looks wrong.' : null} onClose=${onClose}>
@@ -90,6 +97,9 @@
       ${curs.length > 1 && html`<${Seg} options=${curs} value=${cur} onChange=${setCur} labels=${curs.map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       ${cur !== data.base && v > 0 && html`<div class="card flat" style=${{ padding: '12px 14px' }}><div class="between small"><span class="muted">In ${data.base} at today’s rate</span><b class="num">${fmt(K.toBase(data, v, cur), { dec: 2 })}</b></div><span class="tiny muted">The rate is locked when you save.</span></div>`}
       <${In} id="e-merchant" label="Merchant" value=${merchant} onInput=${(e) => setMerchant(e.target.value)} ph="Where did you spend?" />
+      ${item && others.all > 0 && merchant.trim() && merchant.trim() !== item.merchant && html`<div class="card flat stack-s" style=${{ gap: '10px', padding: '14px' }}><span class="small" style=${{ fontWeight: 600 }}>Rename which ones?</span>
+        <${Seg} options=${others.amt > 0 && others.amt < others.all ? ['all', 'amt', 'one'] : ['all', 'one']} labels=${others.amt > 0 && others.amt < others.all ? ['All (' + (others.all + 1) + ')', 'Same amount (' + (others.amt + 1) + ')', 'Only this'] : ['All (' + (others.all + 1) + ')', 'Only this']} value=${scope === 'amt' && !(others.amt > 0 && others.amt < others.all) ? 'all' : scope} onChange=${setScope} />
+        <span class="tiny muted" style=${{ lineHeight: 1.5 }}>${scope === 'one' ? 'Only this movement changes.' : scope === 'amt' && others.amt > 0 && others.amt < others.all ? 'Movements of ' + fmt.native(item.amt, item.cur) + ' from ' + (item.raw || item.merchant) + ' change, and the next ones for that amount. Useful when one line bills several subscriptions.' : 'Every movement from ' + (item.raw || item.merchant) + ' changes, and the next statements use this name.'}</span></div>`}
       <div class="stack-s"><span class="small muted" style=${{ fontWeight: 600 }}>Category${guessed && !cat ? ' · suggested' : ''}</span><div class="chips">${K.CAT_ORDER.map((c) => html`<button key=${c} class=${'chip' + (c === category ? ' on' : '')} onClick=${() => setCat(c)}>${K.CATS[c].custom && html`<${Icon} n=${K.CATS[c].icon} s=${13} />`}${K.CATS[c].name}</button>`)}${!newCat && html`<button type="button" class="chip" style=${{ color: 'var(--acc)', background: 'var(--accbg)' }} onClick=${() => setNewCat(true)}><${Icon} n="plus" s=${13} w=${2.4} />New category</button>`}</div>
         ${newCat && html`<${K.CategoryForm} onCancel=${() => setNewCat(false)} onSave=${(c) => { const [d, id] = K.addCategory(data, c); K.syncCats(d); commit(d); setCat(id); setNewCat(false); toast(c.name + ' added'); }} />`}</div>
       ${mode === 'mixed' && html`<div class="card tight stack-s" style=${{ gap: '10px' }}><${ToggleRow} title=${'Shared with ' + who} sub=${shared ? null : 'Only yours'} on=${shared} onChange=${setShared} icon="people" tone="p" />
@@ -113,7 +123,7 @@
     const places = K.whereOptions(data, { cashOnly: true, noCards: true });
     const [f, on] = useForm({ amt: item ? String(item.amt) : '', cur: item ? item.cur : data.base, merchant: item ? item.merchant : '', from: item ? item.from : (places[0] || [])[0] || '', date: item ? item.date : K.iso(K.today()) });
     const v = numv(f.amt);
-    const save = () => { const t = { type: 'income', cat: 'income', merchant: f.merchant || 'Income', amt: v, cur: f.cur, from: f.from, date: f.date }; commit(item ? K.editTxn(K.editTxn(data, item.id, t), item.id, { merchant: t.merchant, date: t.date }) : K.addTxn(data, t)); toast(item ? 'Income updated' : 'Income added'); onClose(); };
+    const save = () => { const t = { type: 'income', cat: 'income', merchant: f.merchant || 'Income', amt: v, cur: f.cur, from: f.from, date: f.date }; const renamed = item && f.merchant && item.merchant !== t.merchant ? K.sameShopTxns(data, item).length : 0; let next = item ? K.editTxn(K.editTxn(data, item.id, t), item.id, { merchant: t.merchant, date: t.date }) : K.addTxn(data, t); if (item && f.merchant && item.merchant !== t.merchant) next = K.renameShop(next, item, t.merchant); commit(next); toast(item ? (renamed ? 'Income updated · ' + renamed + ' more renamed' : 'Income updated') : 'Income added'); onClose(); };
     return html`<${Sheet} title=${item ? 'Edit income' : 'Add income'} sub="For a one-off payment. Regular pay goes in Plan › income sources." onClose=${onClose}>
       <${Amount} value=${f.amt} onChange=${on('amt')} cur=${f.cur} />${curOptions(data).length > 1 && html`<${Seg} options=${curOptions(data)} value=${f.cur} onChange=${on('cur')} labels=${curOptions(data).map((c) => html`<span class="row" style=${{ gap: '6px', justifyContent: 'center' }}><${K.Flag} cur=${c} s=${18} />${c}</span>`)} />`}
       <${In} id="i-src" label="From" value=${f.merchant} onInput=${on('merchant')} ph="Employer, client or refund" />
@@ -202,7 +212,7 @@
 
   // ---------------------------------------------------------------- statement import (real parsing)
   const StatementSheet = ({ onClose }) => {
-    const { data, commit, fmt, toast } = useApp();
+    const { data, commit, fmt, toast, openSheet } = useApp();
     const places = K.whereOptions(data);
     const [where, setWhere] = useState((places[0] || [])[0] || '');
     const [st, setSt] = useState({ step: 'pick' });
@@ -217,10 +227,19 @@
       if (!file) return;
       setSt({ step: 'reading', name: file.name });
       try {
-        const acc = K.whereItem(data, where) || {};
-        const rows = await K.readStatement(file, { dmy: !['CAD', 'USD'].includes(acc.cur || data.base) });
+        const read = (w) => { const acc = K.whereItem(data, w) || {}; return K.readStatement(file, { dmy: !['CAD', 'USD'].includes(acc.cur || data.base), card: w.startsWith('card:') }); };
+        let target = where, rows = await read(where), note = null;
+        // A credit card statement picked for a bank account: move it to the card it belongs to
+        if (rows.kind && rows.kind.card && !where.startsWith('card:')) {
+          const cards = data.cards || [];
+          const card = (rows.kind.last4 && cards.find((c) => K.cardNumbers(c).includes(rows.kind.last4))) || (cards.length === 1 ? cards[0] : null);
+          if (card) { target = 'card:' + card.id; rows = await read(target); note = { moved: card.name }; }
+          else note = { noCard: rows.kind.last4 || true };
+        }
+        if (target !== where) setWhere(target);
+        if (rows.kind && rows.kind.last4 && target.startsWith('card:')) { const c = K.whereItem(data, target); if (c && !K.cardNumbers(c).includes(rows.kind.last4)) note = Object.assign({}, note, { otherNumber: rows.kind.last4, card: c.name }); }
         if (!rows.length) { setSt({ step: 'fail', name: file.name }); return; }
-        setSt({ step: 'review', name: file.name, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) });
+        setSt({ step: 'review', name: file.name, file, kind: rows.kind, note, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) });
       } catch (e) { setSt({ step: 'fail', name: file.name, err: String(e.message || e) }); }
     };
     // Which sign is spending: cards list charges as positive; banks as negative
@@ -230,20 +249,25 @@
     const allPositive = !isCard && (st.rows || []).length > 0 && (st.rows || []).every((r) => r.amt > 0 && !r.dir);
     const classify = (r) => {
       const amt = Math.abs(r.amt);
+      // On a card statement, "PAYMENT THANK YOU / PAIEMENT MERCI" is your payment, whatever sign the bank prints
+      if (isCard && K.looksLikePayment(r.desc)) return { type: 'transfer', amt, from: null, to: where };
       const spend = sign === 'auto' && r.dir ? r.dir === 'out' : sign === 'auto' && allPositive ? K.moneyDir(r.desc) !== 'in' && !K.isPayroll(r.desc) : negIsSpend ? r.amt < 0 : r.amt > 0;
-      // On a card, a credit without payment wording is a refund: it lowers what you owe, it isn't a payment
-      if (isCard && !spend && !K.looksLikePayment(r.desc)) return { type: 'income', amt, from: where, refund: true };
       // On a bank statement, paying a card moves money between your own accounts: it isn't spending
       const pays = spend && !isCard ? K.cardPaymentFor(data, r.desc) : null;
       if (pays) return { type: 'transfer', amt, from: where, to: pays.card ? 'card:' + pays.card.id : null, cardPay: pays.card ? pays.card.name : true };
+      // "E-TRANSFER", "TRANSFER TO SAVINGS": a transfer, in or out as the statement says; not spending or income
+      if (K.isTransferText(r.desc)) return spend ? { type: 'transfer', amt, from: where, to: null, xfer: 'out' } : { type: 'transfer', amt, from: null, to: where, xfer: 'in' };
+      // On a card, a credit without payment wording is a refund: it lowers what you owe, it isn't a payment
+      if (isCard && !spend && !K.looksLikePayment(r.desc)) return { type: 'income', amt, from: where, refund: true };
       // A loan taken by automatic debit (car, financing, mortgage): a loan payment, not spending
       const loan = spend ? K.loanPaymentFor(data, r.desc, amt) : null;
       if (loan) return { type: 'debt', amt, from: where, loan: loan.id, loanName: loan.name };
       if (spend) return { type: 'expense', amt, from: where };
+      if (!isCard && K.looksLikePayment(r.desc) && /thank you|merci|gracias/i.test(r.desc)) return { type: 'transfer', amt, from: null, to: where, xfer: 'in' };
       return isCard ? { type: 'transfer', amt, from: null, to: where } : { type: 'income', amt, from: where, payroll: K.isPayroll(r.desc) };
     };
     const dups = K.markDuplicates(data, st.rows || [], where);
-    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], cat: K.guessCat(data, r.desc), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
+    const rows = (st.rows || []).map((r, ri) => { const c = classify(r); const base = K.toBase(data, c.amt, cur); return Object.assign({}, r, c, { dup: !r.force && !!dups[ri], name: K.shopName(data, r.desc, r.amt), cat: (() => { const nm = K.shopName(data, r.desc, r.amt); let g = K.guessCat(data, nm); if (g === 'other' && nm !== r.desc) g = K.guessCat(data, r.desc); return g === 'other' && r.bankCat ? r.bankCat : g; })(), bill: c.type === 'expense' ? K.matchBill(data, { type: 'expense', merchant: r.desc, base, date: r.date }) : null }); });
     const chosen = rows.filter((r) => r.keep && !r.dup);
     // Lines up to the day the balance was typed in are already inside it: history for statistics.
     // Without that date, a statement older than 40 days is taken as already paid.
@@ -263,18 +287,28 @@
     const doImport = () => {
       let d = data;
       const imp = K.uid('i');
-      chosen.forEach((r) => { const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } // A line that shows the original purchase ("CAD 45.00 T/C 0.7412") keeps it, with the amount charged here
+      const linked = new Set();
+      chosen.forEach((r) => { if (r.type === 'transfer' && r.from === where && (r.to || '').startsWith('card:')) { const t = K.findCardPaymentIn(d, r, linked); if (t) { linked.add(t.id); d = K.editTxn(d, t.id, { from: where }); return; } } const l = r.type === 'debt' && d.loans.find((x) => x.id === r.loan); if (l) { d = K.addTxn(d, Object.assign(K.loanPayment(d, l, r.amt, r.date), { imp, settled: isPaid(r) || undefined, merchant: r.desc, amt: r.amt, cur, from: r.from, date: r.date, source: 'statement' })); return; } // A line that shows the original purchase ("CAD 45.00 T/C 0.7412") keeps it, with the amount charged here
         const fx = r.type === 'expense' ? K.parseFxInfo(r.desc, cur) : null;
         const k = fx && K.rate(d, fx.cur, cur);
-        const orig = fx ? { merchant: fx.desc || r.desc, amt: fx.amt, cur: fx.cur, charged: { amt: r.amt, cur, market: k ? K.r2(fx.amt * k) : null, rate: fx.rate, exact: true } } : {};
-        d = K.addTxn(d, Object.assign({ imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.desc, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined, shared: impShared }, orig)); });
-      // A card payment seen on both statements (bank and card) counts once
+        const orig = fx ? { merchant: fx.desc || r.name || r.desc, amt: fx.amt, cur: fx.cur, charged: { amt: r.amt, cur, market: k ? K.r2(fx.amt * k) : null, rate: fx.rate, exact: true } } : {};
+        d = K.addTxn(d, Object.assign({ imp, settled: isPaid(r) || undefined, type: r.type, cat: r.type === 'expense' ? r.cat : r.type === 'income' ? 'income' : 'transfer', merchant: r.name || r.desc, raw: r.name && r.name !== r.desc ? r.desc : undefined, amt: r.amt, cur, from: r.from, to: r.to || null, date: r.date, source: 'statement', payroll: r.payroll || undefined, shared: impShared }, orig)); });
+      // A card payment seen on both statements (bank and card) counts once, even without payment wording or across currencies
       d = K.mergeCardPayments(d);
       if (salary && useSalary) d = K.syncPayroll(d, where);
       if (newBills.length) d = K.addRecurringBills(d, newBills);
       if (recurring.length > newBills.length) d = K.dismissRecurring(d, recurring.filter((r) => skipBills.includes(r.key)));
-      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidCount }].concat(d.imports) });
+      d = Object.assign({}, d, { imports: [{ id: imp, name: st.name, when: K.iso(K.today()), count: chosen.length, where, settled: paidCount, kind: st.kind && st.kind.card ? 'card' : undefined }].concat(d.imports) });
       commit(d); toast(newBills.length ? chosen.length + ' transactions imported · ' + newBills.length + (newBills.length === 1 ? ' bill added' : ' bills added') : salary && useSalary ? chosen.length + ' transactions imported · salary updated' : paidCount === chosen.length ? chosen.length + ' transactions imported · balances unchanged' : chosen.length + ' transactions imported'); onClose();
+    };
+    // "Which card is it?": re-read the file for that card and remember the number on it
+    const pickCard = async (id) => {
+      const c = data.cards.find((x) => x.id === id); if (!c || !st.file) return;
+      const w = 'card:' + id, n = st.kind && st.kind.last4;
+      if (n && !K.cardNumbers(c).includes(n)) commit(K.upsert(data, 'cards', Object.assign({}, c, c.last4 ? { oldLast4: (c.oldLast4 || []).concat([n]) } : { last4: n })));
+      const rows = await K.readStatement(st.file, { dmy: !['CAD', 'USD'].includes(c.cur || data.base), card: true });
+      setWhere(w);
+      setSt(Object.assign({}, st, { note: { moved: c.name }, rows: rows.map((r, i) => Object.assign({ i, keep: true }, r)) }));
     };
     const toggle = (i) => setSt(Object.assign({}, st, { rows: st.rows.map((r) => (r.i === i ? Object.assign({}, r, { keep: !r.keep, force: r.keep ? false : r.force }) : r)) }));
     // "Already in Kipu" is a guess: tapping it imports the line anyway
@@ -286,16 +320,33 @@
       ${st.step === 'reading' && html`<div class="card flat stack-s" style=${{ alignItems: 'center', padding: '28px' }}><${Tile} icon="doc" tone="b" /><span style=${{ fontWeight: 600 }}>Reading ${st.name}…</span><div style=${{ width: '100%' }}><${Bar} pct=${60} color="var(--info)" /></div></div>`}
       ${st.step === 'fail' && html`<div class="card flat stack-s"><span style=${{ fontWeight: 600 }}>No transactions found in ${st.name}</span><span class="small muted">${st.err ? 'The file couldn’t be read.' : 'Kipu looks for a date, a description and an amount on each line. Try the CSV export from your bank.'}</span><button class="btn sec" onClick=${() => setSt({ step: 'pick' })}>Choose another file</button></div>`}
       ${st.step === 'review' && html`
+        ${st.note && st.note.moved && html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--accbg)', alignItems: 'center' }}><${Icon} n="card" s=${16} /><span class="grow" style=${{ lineHeight: 1.45 }}>${'This is a credit card statement, so it goes to ' + st.note.moved + '.'}</span></div>`}
+        ${st.note && st.note.otherNumber && html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--accbg)', alignItems: 'center', flexWrap: 'wrap' }}><${Icon} n="card" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${st.note.remembered ? 'Card ending ' + st.note.otherNumber + ' now counts as ' + st.note.card + '.' : 'This statement is for the card ending ' + st.note.otherNumber + '. Same account as ' + st.note.card + ' with another number?'}</span>${!st.note.remembered && html`<button class="btn sec sm" onClick=${() => { const c = K.whereItem(data, where); if (c) commit(K.upsert(data, 'cards', Object.assign({}, c, { oldLast4: K.cardNumbers(c).filter((n) => n !== c.last4).concat([st.note.otherNumber]) }))); setSt(Object.assign({}, st, { note: Object.assign({}, st.note, { remembered: true }) })); }}>Yes, remember it</button>`}</div>`}
+        ${st.note && st.note.noCard && html`<div class="row small" style=${{ gap: '10px', padding: '12px 14px', borderRadius: '14px', background: 'var(--warnbg)', color: 'var(--warn)', alignItems: 'center', flexWrap: 'wrap' }}><${Icon} n="alert" s=${16} /><span class="grow" style=${{ lineHeight: 1.45, minWidth: '180px' }}>${'This looks like a credit card statement' + (st.note.noCard !== true ? ' (card ending ' + st.note.noCard + ')' : '') + (data.cards.length ? '. Pick the card it belongs to so payments and credits are read right.' : '. Add the card first and import it there, so payments and credits are read right.')}</span>${data.cards.length ? html`<select class="input cat-pick" aria-label="Which card is it?" value="" onChange=${(e) => e.target.value && pickCard(e.target.value)}><option value="">Which card is it?</option>${data.cards.map((c) => html`<option key=${c.id} value=${c.id}>${c.name}${c.last4 ? ' ·' + c.last4 : ''}</option>`)}</select>` : html`<button class="btn sec sm" onClick=${() => openSheet({ k: 'addCard' })}>Add card</button>`}</div>`}
         <div class="grid g3" style=${{ gap: '8px' }}><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Found" value=${String(rows.length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="Already in Kipu" value=${String(rows.filter((r) => r.dup).length)} /></div><div class="card flat" style=${{ padding: '12px' }}><${Metric} label="To import" value=${String(chosen.length)} tone="pos" /></div></div>
         <div class="grid g2" style=${{ gap: '8px' }}><${Field} label="Spending shows as"><${Select} id="s-sign" value=${sign} onChange=${setSign} options=${[['auto', (st.rows || []).some((r) => r.dir) ? 'Automatic · by column' : allPositive ? 'Automatic · by description' : 'Automatic · ' + (autoSign < 0 ? 'negative' : 'positive')], ['pos', 'Positive amounts'], ['neg', 'Negative amounts']]} /></${Field}><${Field} label="Currency"><${Select} id="s-cur" value=${cur} onChange=${setCur} options=${curOptions(data).map((c) => [c, c])} /></${Field}></div>
-        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => (r.dup ? force(r.i) : toggle(r.i))}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu · tap to import anyway' : r.bill ? 'Pays ' + r.bill.name : r.cardPay ? (r.cardPay === true ? 'Card payment · not spending' : 'Pays ' + r.cardPay + ' · not spending') : r.type === 'expense' ? K.CATS[r.cat].name : r.refund ? 'Refund' : r.payroll ? 'Salary' : r.loanName ? 'Pays ' + r.loanName + ' · loan payment' : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
+        <div class="card tight list" style=${{ maxHeight: '320px', overflowY: 'auto' }}>${rows.map((r) => html`<button key=${r.i} class="lrow" style=${{ opacity: r.dup || !r.keep ? 0.45 : 1 }} onClick=${() => (r.dup ? force(r.i) : toggle(r.i))}><span class=${'ic ' + (r.dup ? 'n' : r.keep ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${r.dup ? 'copy' : r.keep ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${r.desc}</span><span class="t2">${K.fmtDate(r.date, true)} · ${r.dup ? 'Already in Kipu · tap to import anyway' : r.bill ? 'Pays ' + r.bill.name : r.cardPay ? (r.cardPay === true ? 'Card payment · not spending' : 'Pays ' + r.cardPay + ' · not spending') : r.type === 'expense' ? K.CATS[r.cat].name : r.refund ? 'Refund' : r.payroll ? 'Salary' : r.loanName ? 'Pays ' + r.loanName + ' · loan payment' : r.xfer ? (r.xfer === 'out' ? 'Transfer out · not spending' : 'Transfer in · not income') : r.type === 'income' ? 'Income' : 'Payment'}</span></span><span class="amt" style=${{ color: r.type === 'income' ? 'var(--pos)' : null }}>${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`)}</div>
         ${salary && html`<div class="card tight"><${ToggleRow} title="Use as my salary" sub=${payroll.length + ' payroll deposits · usually ' + fmt.native(salary.amt, cur) + ' · ' + { Weekly: 'weekly', 'Bi-weekly': 'every two weeks', 'Twice monthly': 'twice a month', Monthly: 'monthly' }[salary.freq] + ' · next ' + K.fmtDate(salary.next)} on=${useSalary} onChange=${setUseSalary} icon="income" tone="g" /></div>`}
         ${recurring.length > 0 && html`<div class="card stack-s" style=${{ gap: '8px' }}><span style=${{ fontWeight: 600 }}>Payments that repeat</span><span class="small muted" style=${{ lineHeight: 1.45 }}>These come back every month. Saved as bills, Safe to Spend sets money aside for the next one. Tap one that isn’t a bill to leave it out.</span>
           <div class="list">${recurring.map((r) => { const on = !skipBills.includes(r.key); return html`<button key=${r.key} class="lrow" style=${{ gap: '10px', opacity: on ? 1 : 0.5 }} onClick=${() => setSkipBills(on ? skipBills.concat([r.key]) : skipBills.filter((k) => k !== r.key))}><span class=${'ic ' + (on ? 'p' : 'n')} style=${{ width: '26px', height: '26px', borderRadius: '8px' }}><${Icon} n=${on ? 'check' : 'x'} s=${13} w=${2.4} /></span><span class="grow stack-s" style=${{ gap: '1px', textAlign: 'left', minWidth: 0 }}><span class="t1" style=${{ fontSize: '14px' }}>${r.name}</span><span class="t2">${K.ord(r.day) + ' of the month'} · ${r.count + ' times'}</span></span><span class="amt">${fmt.native(r.amt, cur, { dec: 2 })}</span></button>`; })}</div></div>`}
         <div class="card stack-s" style=${{ gap: '10px' }}><span style=${{ fontWeight: 600 }}>Already paid?</span><${Seg} options=${['auto', 'all', 'none']} labels=${['Automatic', 'All', 'None']} value=${paidMode} onChange=${setPaidMode} />
-          <span class="small muted" style=${{ lineHeight: 1.5 }}>${paidMode === 'auto' ? (balDate ? 'Up to ' + K.fmtDate(balDate, true) + ', when you typed this balance, movements are already inside it.' : oldFile ? 'This statement is more than 40 days old, so it’s taken as already paid.' : 'This looks like a current statement.') + ' ' : ''}${paidCount ? paidCount + ' only for statistics' : ''}${paidCount && paidCount < chosen.length ? ' · ' : ''}${paidCount < chosen.length ? (chosen.length - paidCount) + (isCard ? ' added to what you owe' : ' change the balance') : ''}.</span></div>
+          <span class="small muted" style=${{ lineHeight: 1.5 }}>${paidMode === 'auto' ? (balDate ? 'Up to ' + K.fmtDate(balDate, true) + ', when you typed this balance, movements are already inside it.' : oldFile ? 'This statement is more than 40 days old, so it’s taken as already paid.' : 'This looks like a current statement.') + ' ' : ''}${paidCount ? paidCount + ' only for statistics' : ''}${paidCount && paidCount < chosen.length ? ' · ' : ''}${paidCount < chosen.length ? (chosen.length - paidCount) + (isCard ? ' change what you owe' : ' change the balance') : ''}.</span></div>
         <${Owner} value=${impShared} onChange=${setMineOrOurs} />
         <button class="btn pri block" disabled=${!chosen.length} onClick=${doImport}>Import ${chosen.length} transactions</button>`}</${Sheet}>`;
+  };
+
+  // ---------------------------------------------------------------- categories reviewed once per shop
+  const ReviewCats = ({ onClose }) => {
+    const { data, commit, toast, fmt } = useApp();
+    const [view, setView] = useState('todo');
+    const groups = K.categoryGroups(data);
+    const todo = groups.filter((g) => g.cat === 'other' || g.mixed);
+    const list = view === 'todo' ? todo : groups;
+    const set = (g, cat) => { commit(K.setShopCategory(data, g.key, cat)); toast(g.name + ' · ' + K.CATS[cat].name); };
+    return html`<${Sheet} title="Review categories" sub="One choice per shop: it applies to all its expenses and to the next ones." onClose=${onClose}>
+      <${Seg} options=${['todo', 'all']} labels=${['To review (' + todo.length + ')', 'All shops']} value=${view} onChange=${setView} />
+      ${list.length ? html`<div class="card tight list">${list.slice(0, 150).map((g) => html`<div key=${g.key} class="lrow" style=${{ gap: '10px', flexWrap: 'wrap' }}><span class="grow stack-s" style=${{ gap: '2px', minWidth: '150px' }}><span class="t1" style=${{ fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${g.name}</span><span class="tiny muted num">${(g.count === 1 ? '1 expense' : g.count + ' expenses') + ' · ' + fmt(g.total)}${g.mixed ? html`<span style=${{ color: 'var(--warn)' }}>${' · mixed'}</span>` : ''}</span></span><select class="input cat-pick" aria-label=${'Category for ' + g.name} value=${g.mixed ? '' : g.cat} onChange=${(e) => e.target.value && set(g, e.target.value)}>${g.mixed && html`<option value="">Choose…</option>`}${K.CAT_ORDER.map((c) => html`<option key=${c} value=${c}>${K.CATS[c].name}</option>`)}</select></div>`)}</div>` : html`<div class="card flat stack-s" style=${{ alignItems: 'center', textAlign: 'center', padding: '24px' }}><${Icon} n="check" s=${22} c="var(--pos)" w=${2.4} /><span style=${{ fontWeight: 600 }}>All sorted</span><span class="small muted">Every shop has a category.</span></div>`}
+    </${Sheet}>`;
   };
 
   // ---------------------------------------------------------------- imported statements that were already paid
@@ -314,7 +365,7 @@
   };
 
   // ---------------------------------------------------------------- create and edit
-  const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<button class="btn sec block" style=${{ color: 'var(--crit)' }} onClick=${onDelete}>Delete</button>`}</${Sheet}>`;
+  const Form = ({ title, sub, onClose, children, onSave, cta, disabled, onDelete }) => html`<${Sheet} title=${title} sub=${sub} onClose=${onClose}>${children}<button class="btn pri block" disabled=${disabled} onClick=${onSave}>${cta}</button>${onDelete && html`<${K.DangerButton} label="Delete" ask=${'Delete ' + (title || '').replace(/^Edit /, '') + '?'} onConfirm=${onDelete} />`}</${Sheet}>`;
 
   // Whose is it: only you, or everyone in your Household (they see it and its movements)
   const Owner = ({ value, onChange }) => {
@@ -351,13 +402,13 @@
 
   const AddCard = ({ onClose, item }) => {
     const { data, commit, toast } = useApp();
-    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, cur2: item.cur2 || '', bal2: String(item.bal2 || ''), stmtBal2: String(item.stmtBal2 || ''), fxFee: item.fxFee != null ? String(item.fxFee) : '', limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
+    const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, cur2: item.cur2 || '', bal2: String(item.bal2 || ''), stmtBal2: String(item.stmtBal2 || ''), fxFee: item.fxFee != null ? String(item.fxFee) : '', limit: String(item.limit || ''), bal: String(item.bal || ''), stmtBal: String(item.stmtBal || ''), dueDay: String(item.dueDay || ''), closeDay: String(item.closeDay || ''), payDay: String(item.payDay || ''), oldLast4: (item.oldLast4 || []).join(', '), minPay: String(item.minPay || ''), expiry: item.expiry || '' }) : { name: '', network: 'Visa', cur: data.base, last4: '', limit: '', bal: '', stmtBal: '', dueDay: '', closeDay: '', minPay: '', expiry: '', look: null });
     const country = f.country || K.countryOfCur(f.cur) || null;
     const two = !!f.cur2;
     // A new card starts at zero and fills from expenses and imported statements; balances are only a later correction
     const [showBal, setShowBal] = useState(false);
     const preview = { name: f.name || f.network + ' card', network: f.network, cur: f.cur, cur2: f.cur2 || null, bal2: numv(f.bal2), last4: f.last4, limit: numv(f.limit), bal: numv(f.bal), expiry: f.expiry, look: f.look, style: item ? item.style : data.cards.length };
-    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { fxFee: f.fxFee !== '' && f.fxFee != null ? numv(f.fxFee) : null, name: f.name || f.network + ' card', network: f.network, cur: f.cur, country, cur2: two ? f.cur2 : null, bal2: two ? numv(f.bal2) : 0, stmtBal2: two ? numv(f.stmtBal2) : 0, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: K.isShared(data, f.shared) }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
+    const save = () => { commit(K.upsert(K.useCurrency(data, f.cur), 'cards', Object.assign({}, item || { style: data.cards.length }, { fxFee: f.fxFee !== '' && f.fxFee != null ? numv(f.fxFee) : null, name: f.name || f.network + ' card', network: f.network, cur: f.cur, country, cur2: two ? f.cur2 : null, bal2: two ? numv(f.bal2) : 0, stmtBal2: two ? numv(f.stmtBal2) : 0, last4: String(f.last4 || '').replace(/\D/g, '').slice(-4), oldLast4: String(f.oldLast4 || '').split(/[\s,]+/).map((x) => x.replace(/\D/g, '').slice(-4)).filter((x) => x.length === 4), limit: numv(f.limit), bal: numv(f.bal), stmtBal: numv(f.stmtBal), closeDay: parseInt(f.closeDay) || null, dueDay: parseInt(f.dueDay) || null, payDay: parseInt(f.payDay) || null, stmtDate: item && numv(f.stmtBal) !== (item.stmtBal || 0) ? K.iso(K.today()) : (item && item.stmtDate) || null, minPay: numv(f.minPay), expiry: f.expiry || null, look: f.look || null, shared: K.isShared(data, f.shared) }))); toast(item ? 'Card updated' : 'Card added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit card' : 'Add credit card'} sub="Only the last four digits are stored." onClose=${onClose} cta=${item ? 'Save' : 'Add card'} onSave=${save}>
       <div style=${{ maxWidth: '300px', width: '100%', alignSelf: 'center' }}><${K.CardPreview} c=${preview} /></div>
       <${Chips} options=${['Visa', 'Mastercard', 'Amex', 'Other']} value=${f.network} onChange=${on('network')} />
@@ -366,6 +417,7 @@
       <div class="card tight"><${ToggleRow} title="Two-currency card" sub=${'Common in Peru and Latin America: charges in ' + (f.cur2 || 'US dollars') + ' keep their own balance, sharing one limit.'} on=${two} onChange=${(v) => on('cur2')(v ? (f.cur === 'USD' ? data.base : 'USD') : '')} /></div>
       ${two && html`<${K.CurrencySelect} label="Second currency" value=${f.cur2} onChange=${on('cur2')} />`}
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Travel Visa" /><${In} id="ac-last4" label="Last four" value=${f.last4} onInput=${(e) => on('last4')(e.target.value.replace(/\D/g, '').slice(0, 4))} mode="numeric" ph="1234" /></div>
+      ${item && html`<${In} id="ac-old4" label="Previous numbers" value=${f.oldLast4 || ''} onInput=${(e) => on('oldLast4')(e.target.value.replace(/[^\d, ]/g, ''))} mode="numeric" ph="e.g. 4011" hint="If the bank replaced the card (lost, stolen, hacked): its old last four, so old statements still land here." />`}
       <${In} id="ac-limit" label="Credit limit" value=${f.limit} onInput=${on('limit')} mode="decimal" ph="0" />
       <${In} id="ac-fxfee" label="Fee on purchases in other currencies (%)" value=${f.fxFee || ''} onInput=${on('fxFee')} mode="decimal" ph="2.5" hint="Most cards charge 2.5–3%. Kipu adds it to its estimate when you pay in another currency." />
       ${item && !showBal && html`<button type="button" class="link" style=${{ alignSelf: 'flex-start' }} onClick=${() => setShowBal(true)}>Balances (optional)</button>`}
@@ -374,7 +426,8 @@
         ${two && html`<div class="grid g2" style=${{ gap: '10px' }}><${In} id="ac-bal2" label=${'Balance in ' + f.cur2} value=${f.bal2} onInput=${on('bal2')} mode="decimal" ph="0" /><${In} id="ac-stmt2" label=${'Statement in ' + f.cur2} value=${f.stmtBal2} onInput=${on('stmtBal2')} mode="decimal" ph="0" /></div>`}
         <${In} id="ac-min" label="Minimum payment" value=${f.minPay} onInput=${on('minPay')} mode="decimal" ph="0" /></div>`}
       <${K.DayInput} label="Statement closing day" value=${f.closeDay} onChange=${on('closeDay')} optional=${true} hint="The day your statement is cut. Purchases after it go on the next statement." />
-      <${K.DayInput} label="Payment due day" value=${f.dueDay} onChange=${on('dueDay')} optional=${true} hint="Usually about three weeks after the closing day. Kipu counts it in Safe to Spend." />
+      <${K.DayInput} label="Payment due day" value=${f.dueDay} onChange=${on('dueDay')} optional=${true} hint="Usually about three weeks after the closing day." />
+      <${K.DayInput} label="You usually pay on" value=${f.payDay} onChange=${on('payDay')} optional=${true} hint="If you pay before the due date. Safe to Spend sets the statement aside for that day." />
       <${K.MonthInput} label="Expiry date" value=${f.expiry} onChange=${on('expiry')} optional=${true} placeholder="MM / YY" fromYear=${K.today().getFullYear() - 1} hint="Kipu reminds you two months before it expires." />
       <${K.LookPicker} label="Card color" value=${f.look} onChange=${on('look')} fallback=${['var(--grad)', 'var(--solid)', 'linear-gradient(140deg, #1C1C1E 0%, #48484C 100%)'][(item ? item.style || 0 : data.cards.length) % 3]} />
       <${Owner} value=${K.isShared(data, f.shared)} onChange=${on('shared')} /></${Form}>`;
@@ -386,7 +439,7 @@
     const [f, on] = useForm(item ? Object.assign({}, item, { cur: item.cur || data.base, orig: String(item.orig || ''), bal: String(item.bal), rate: String(item.rate || ''), pay: String(item.pay || ''), from: item.from || '' }) : { name: from ? from.name : '', kind: from ? 'Other' : 'Vehicle', lender: '', orig: '', bal: '', rate: '', pay: from ? String(from.amt) : '', freq: 'Monthly', next: from ? K.iso(K.nextDate(from.last, 'Monthly', K.addDays(K.today(), 1))) : K.iso(K.addDays(K.today(), 7)), from: from ? from.where : '' });
     const loan = { bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next };
     const p = loan.bal && loan.pay ? K.payoffDate(loan) : null;
-    const save = () => { let d = K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, cur: f.cur || data.base, country: f.country || K.countryOfCur(f.cur || data.base) || null, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, from: f.from || null, shared: K.isShared(data, f.shared) })); if (from) { d = K.dismissRecurring(d, [from]); d = K.fixLoanPayments(d); } commit(d); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
+    const save = () => { let d = K.upsert(data, 'loans', Object.assign({}, item || {}, { name: f.name || f.kind + ' loan', kind: f.kind, lender: f.lender, cur: f.cur || data.base, country: f.country || K.countryOfCur(f.cur || data.base) || null, orig: numv(f.orig) || numv(f.bal), bal: numv(f.bal), rate: numv(f.rate), pay: numv(f.pay), freq: f.freq, next: f.next, from: f.from || null, match: (item && item.match) || (from && from.key) || undefined, shared: K.isShared(data, f.shared) })); if (from) { d = K.dismissRecurring(d, [from]); d = K.fixLoanPayments(d); } commit(d); toast(item ? 'Loan updated' : 'Loan added'); onClose(); };
     return html`<${Form} title=${item ? 'Edit loan' : 'Add loan'} sub="Track what you owe and when it’s paid off." onClose=${onClose} cta=${item ? 'Save' : 'Add loan'} onSave=${save} disabled=${!numv(f.bal)}>
       <${Chips} options=${['Vehicle', 'Personal', 'Student', 'Mortgage', 'Line of credit', 'Other']} value=${f.kind} onChange=${on('kind')} />
       <div class="grid g2" style=${{ gap: '10px' }}><${In} id="al-name" label="Name" value=${f.name} onInput=${on('name')} ph="e.g. Car loan" /><${In} id="al-lender" label="Lender" value=${f.lender} onInput=${on('lender')} ph="Optional" /></div>
@@ -578,5 +631,5 @@
       ${answer && html`<div class="card stack-s">${answer}</div>`}</${Sheet}>`;
   };
 
-  K.SHEETS = { settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold, ask: AskKipu };
+  K.SHEETS = { reviewCats: ReviewCats, settleImports: SettleImports, quickAdd: QuickAdd, context: ContextSheet, expense: ExpenseSheet, income: IncomeSheet, transfer: TransferSheet, debt: DebtSheet, receipt: ReceiptSheet, statement: StatementSheet, addAccount: AddAccount, adjust: AdjustSheet, addCard: AddCard, addLoan: AddLoan, payLoan: PayLoan, addGoal: AddGoal, addBill: AddBill, addIncomeSource: AddIncomeSource, addTrip: AddTrip, createHousehold: HouseholdMode, householdMode: HouseholdMode, settle: Settle, openHousehold: OpenHousehold, ask: AskKipu };
 })();

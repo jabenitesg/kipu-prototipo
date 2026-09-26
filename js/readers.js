@@ -95,7 +95,7 @@
   const stripDates = (text) => {
     let t = String(text || '').replace(/,/g, ' ').split(/\s+/).filter(Boolean);
     for (let n = 0; n < 2 && t.length; n++) {
-      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}([-/.]\d{2,4})?$|^20\d{6}$/.test(t[0])) t = t.slice(1);
+      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}$|^\d{1,2}[-/]\d{1,2}$|^20\d{6}$/.test(t[0])) t = t.slice(1);
       else if (monthOf(t[0]) != null && /^\d{1,2}$/.test(t[1] || '')) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
       else if (/^\d{1,2}$/.test(t[0]) && monthOf(t[1]) != null) t = t.slice(/^\d{4}$/.test(t[2] || '') ? 3 : 2);
       else if ((/^(\d{1,2})([a-z]{3,9})\.?(\d{4})?$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null) || (/^([a-z]{3,9})\.?(\d{1,2})$/i.test(t[0]) && monthOf(t[0].replace(/[\d.]/g, '')) != null)) t = t.slice(1);
@@ -195,7 +195,7 @@
   // Summary lines of a statement, not movements: "Opening balance", "Balance forward", "Saldo anterior", "Total deposits"…
   K.isBalanceLine = (text) => {
     const m = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
-    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)$|^(sub ?total|total) (deposits|withdrawals|debits|credits|payments|purchases|fees|interest|abonos|cargos|depositos|retiros|pagos|compras|a pagar|del mes|del periodo)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros)\b|^balance$|^saldo$/.test(m);
+    return /\b(opening|closing|previous|prior|beginning|starting|ending|statement|final|carried) balance\b|\bbalance (forward|brought forward|carried forward|b f|c f)\b|\b(brought|carried) forward\b|\bsaldo (anterior|inicial|final|actual|disponible|al corte|del periodo|previo)\b|^(sub ?total|total)$|^(sub ?total|total) (deposits|withdrawals|debits|credits|payments|purchases|fees|interest|abonos|cargos|depositos|retiros|pagos|compras|a pagar|del mes|del periodo)\b|\btotal (deposits|withdrawals|debits|credits|abonos|cargos|depositos|retiros|balance|payments|charges|for)\b|\b(amount due|total amount due|minimum payment|credit limit|available credit|cash advance limit|charges and interest|payments and credits|your new charges)\b|^balance$|^saldo$/.test(m);
   };
   // Words that say which way money went: withdrawal, purchase, fee → out; deposit, payroll, credit → in
   K.moneyDir = (text) => {
@@ -221,18 +221,40 @@
   };
   // A chequing PDF: Date | Description | Withdrawals | Deposits | Balance. Each amount goes to the column it sits under.
   const ONEAMT = /^(?:S\/\.?|US\$|CA\$|\$|€|£)?\s*-?\(?\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}\)?(?:\s*(?:CR|DR|-))?$/;
-  const NOT_TX = /\b(credit limit|l[ií]mite|minimum|m[ií]nimo|payment due|due date|fecha de pago|available|disponible|points|puntos|rewards|annual interest|interest rate|tasa|apr|account number|n[uú]mero de cuenta|page|p[aá]gina|statement date|fecha de corte)\b/i;
+  const BANK_CATS = [
+    [/\bretail and grocery\b/i, 'groceries'], [/\brestaurants\b/i, 'dining'], [/\btransportation\b/i, 'transport'], [/\bhome and office improvement\b/i, 'shopping'],
+    [/\bhealth and education\b/i, 'health'], [/\bhotel,? entertainment and recreation\b/i, 'entertainment'], [/\bpersonal and household expenses\b/i, 'shopping'],
+    [/\bprofessional and financial services\b/i, 'bills'], [/\bforeign currency transactions\b/i, null], [/\bother transactions\b/i, null],
+  ];
+  const NOT_TX = /\b(credit limit|l[ií]mite|minimum|m[ií]nimo|payment due|due date|fecha de pago|available|disponible|points|puntos|rewards|annual interest|interest rate|tasa|apr|account number|n[uú]mero de cuenta|page|p[aá]gina|statement date|fecha de corte|cash advance|annual|total balance|amount due|new charges|payments and credits|previous balance|credit available|spend categor)\b/i;
   K.parseStatementRows = (rows, opts) => {
     let cols = null;
     const out = [];
     let lastBal = null, lastDate = null, pending = null, justPushed = false;
     const lines = rows.map((items) => items.map((i) => i.s).join(' '));
     const dmy = K.dateOrder(lines.map((l) => firstTokens(l, 2)), opts && opts.dmy);
+    // Only the transactions table counts: it starts at its header (date + description, or money columns)
+    // and stops at its totals or the end of the page. Summaries, contact details and rates around it are skipped.
+    const MONEY_HEAD = (low) => /withdraw|debit|retiro|cargo|paid out|money out/.test(low) && /deposit|credit|abono|paid in|money in/.test(low);
+    // A header is a short line naming a date, a description and an amount column (legal text mentioning "transaction date" isn't one)
+    // (Amex prints "Transaction Posting Details Amount" with "Date Date" on the line below)
+    const TABLE_HEAD = (low) => low.length <= 140 && (MONEY_HEAD(low) || ((/\b(date|fecha)\b/.test(low) || /^(transaction|posting|trans\.?)\s/.test(low)) && /\b(description|descripci[oó]n|details|detalle|concepto|transaction)\b/.test(low) && /(amount|monto|importe|withdraw|deposit|debit|credit|balance|saldo|cargo|abono)/.test(low)));
+    const TABLE_END = /^(total\b|information about|important information|if you find an error|about your|membership rewards|summary of points|your offers|important notice|page \d+ (of|\/) ?\d+|p[aá]gina \d+ (de|\/) ?\d+)/i;
+    // A new section of the same table after a total ("New Transactions for <supplementary cardholder>", "Other Account Transactions")
+    const SECTION = /^(new (transactions|payments|charges|purchases)|other account transactions)\b/i;
+    const hasTable = lines.some((l) => TABLE_HEAD(l.toLowerCase()));
+    let inTable = !hasTable, seenHead = false;
+    // Page headers and footers print the same line on every page: never part of a description
+    const seenCount = {}; lines.forEach((l) => { const k = l.trim(); if (k && !/\d+\.\d{2}/.test(k)) seenCount[k] = (seenCount[k] || 0) + 1; });
+    const repeated = (l) => seenCount[l.trim()] >= 3;
     rows.forEach((items) => {
       const line = items.map((i) => i.s).join(' ');
       const low = line.toLowerCase();
+      if (TABLE_HEAD(low)) { inTable = true; seenHead = true; pending = null; }
+      else if (seenHead && SECTION.test(line.trim())) { inTable = true; pending = null; justPushed = false; return; }
+      else if (hasTable && TABLE_END.test(line.trim())) { inTable = false; pending = null; justPushed = false; lastDate = null; }
       // Header row: remember where each money column sits
-      if (/withdraw|debit|retiro|cargo|paid out|money out/.test(low) && /deposit|credit|abono|paid in|money in/.test(low)) {
+      if (MONEY_HEAD(low)) {
         cols = {};
         items.forEach((i) => { const t = i.s.toLowerCase(), c = i.x + i.w / 2; if (/withdraw|debit|retiro|cargo|paid out|money out/.test(t)) cols.out = c; else if (/deposit|credit|abono|paid in|money in/.test(t)) cols.in = c; else if (/balance|saldo/.test(t)) cols.bal = c; });
         return;
@@ -240,9 +262,11 @@
       const amts = items.filter((i) => ONEAMT.test(i.s));
       // "Opening balance 1,000.00": where the statement starts; it tells the direction of the first movement
       if (K.isBalanceLine(items.filter((i) => !ONEAMT.test(i.s) && !K.parseDateText(i.s)).map((i) => i.s).join(' '))) { if (amts.length) lastBal = num(amts[amts.length - 1].s); return; }
+      if (!inTable || TABLE_HEAD(low)) return;
       let d = K.parseDateText(firstTokens(line, 3), dmy);
       const text = stripDates(items.filter((i) => !ONEAMT.test(i.s)).map((i) => i.s).join(' ')).replace(/\s+/g, ' ').trim();
       if (!amts.length) {
+        if (repeated(line)) return;
         // A dated line without an amount: its amount comes on the next line. An undated one right after a movement continues its description.
         if (d && !isNaN(d)) pending = { d, text };
         else if (pending) pending.text = (pending.text + ' ' + text).trim();
@@ -253,13 +277,18 @@
       let desc = text;
       if (!d || isNaN(d)) {
         // Banks print the date once per day: later lines of that day have none. Summary figures (limit, minimum payment, points) are not movements.
-        if (NOT_TX.test(text)) { pending = null; return; }
+        if (NOT_TX.test(text) || /%/.test(line)) { pending = null; return; }
         if (pending) { d = pending.d; desc = (pending.text + ' ' + text).trim(); }
         else if (lastDate && text.length >= 2) d = lastDate;
         else return;
       } else if (pending && !text) desc = pending.text;
       pending = null;
       if (desc.length < 2 || (desc !== text && NOT_TX.test(desc))) return;
+      // A dated subtotal ("Feb 16 Total of Payment Activity") isn't a movement
+      if (/^(sub)?total\b/i.test(desc)) { justPushed = false; return; }
+      // CIBC prints a spend category next to each purchase: keep it as a hint, out of the description
+      let bankCat = null;
+      for (const [re, c] of BANK_CATS) if (re.test(desc)) { desc = desc.replace(re, ' ').replace(/\s+/g, ' ').trim(); bankCat = c; break; }
       let amt = null, dir = null, bal = null;
       if (cols && (cols.out != null || cols.in != null)) {
         amts.forEach((a) => {
@@ -267,6 +296,16 @@
           const near = ['out', 'in', 'bal'].filter((k) => cols[k] != null).sort((p, q) => Math.abs(cols[p] - c) - Math.abs(cols[q] - c))[0];
           if (near === 'bal') bal = num(a.s); else if (amt == null) { amt = near === 'out' ? -v : v; dir = near; }
         });
+      }
+      // A card statement has no running balance: the amount is the last figure on the line. A purchase in another
+      // currency ("12.34 USD @ 1.3700  16.91") also ends with the amount charged in the card's currency.
+      const foreignLine = /\b(USD|EUR|GBP|MXN|PEN|JPY|AUD|CHF|COP|CLP)\b|@\s*\d/.test(line);
+      if (amt == null && ((opts && opts.card) || foreignLine)) {
+        const raw = amts[amts.length - 1].s, v = Math.abs(num(raw));
+        const credit = /(CR|\))\s*$|^\(|^-|-\s*$/.test(raw.replace(/\s+/g, '')) || /\bCR\s*$/.test(line);
+        amt = credit ? -v : v;
+        // On a card, what the bank prints as positive is a charge and negative (or CR) is a credit
+        if (opts && opts.card) dir = credit ? 'in' : 'out';
       }
       if (amt == null) {
         // No usable header: with a running balance, the change in balance tells the direction
@@ -278,7 +317,7 @@
       }
       if (bal != null) lastBal = bal;
       justPushed = false;
-      if (amt) { out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 80), amt, dir }); lastDate = d; justPushed = true; }
+      if (amt) { out.push({ date: K.iso(d), noYear: !!d.noYear, desc: desc.slice(0, 80), amt, dir, bankCat }); lastDate = d; justPushed = true; }
     });
     return K.settleYears(out, statementEnd(lines));
   };
@@ -310,11 +349,26 @@
     return K.settleYears(out, statementEnd(lines));
   };
   // opts.dmy: day before month when a date could be read both ways (most countries; Canada and the US write month first)
+  // What the file looks like: a credit card statement, and the card's last four digits if printed
+  K.statementKind = (text) => {
+    const t = String(text || '');
+    const hits = [/credit limit|l[ií]mite de cr[eé]dito/i, /minimum payment|pago m[ií]nimo/i, /payment thank you|paiement merci/i, /card number|n[uú]mero de tarjeta|tarjeta de cr[eé]dito/i, /cash advance/i, /\b(visa|mastercard|amex|american express)\b/i, /new balance|total balance|amount due/i].filter((re) => re.test(t)).length;
+    // Masked numbers: 4505 XXXX XXXX 4011 (Visa, Mastercard), XXXX XXXXXX X1004 or "ending 1-23456" (Amex); the last four digits identify the card
+    const m = t.match(/(?:[X*•x]{4,})(?:[\s-]*[X*•x]{2,})*[\s-]*[X*•x]?(\d{4,5})\b/) || t.match(/\b(?:card )?ending(?: in)?\s*(?:\d-)?(\d{4,5})\b/i);
+    return { card: hits >= 2, last4: m ? m[1].slice(-4) : null };
+  };
   K.readStatement = async (file, opts) => {
     const name = (file.name || '').toLowerCase();
-    const tidy = (rows) => rows.map((r) => (K.tidyDesc ? Object.assign({}, r, { desc: K.tidyDesc(r.desc) }) : r));
-    if (name.endsWith('.pdf') || file.type === 'application/pdf') { const rows = K.parseStatementRows(await K.readPDFRows(file), opts); return tidy(rows.length ? rows : K.parseStatementLines(await K.readPDFText(file), opts)); }
-    return tidy(K.parseCSV(await file.text(), opts));
+    let rows, text;
+    if (name.endsWith('.pdf') || file.type === 'application/pdf') {
+      const pr = await K.readPDFRows(file);
+      text = pr.map((r) => r.map((i) => i.s).join(' ')).join('\n');
+      rows = K.parseStatementRows(pr, opts);
+      if (!rows.length) rows = K.parseStatementLines(await K.readPDFText(file), opts);
+    } else { text = await file.text(); rows = K.parseCSV(text, opts); }
+    if (K.tidyDesc) rows = rows.map((r) => Object.assign({}, r, { desc: K.tidyDesc(r.desc) }));
+    rows.kind = K.statementKind(text);
+    return rows;
   };
   // Existing transactions that look like the same purchase (same amount within 3 days)
   // Same account or card, same amount, within 3 days and the same shop (one typed by hand counts the same day)
@@ -323,13 +377,17 @@
     const w1 = (x) => (K.merchantKey(x) || String(x || '').toLowerCase()).split(' ')[0];
     const key = w1(row.desc);
     const gapOf = (t) => Math.abs(K.days(K.parse(t.date), K.parse(row.date)));
+    // "PAYMENT RECEIVED - THANK YOU" on a card statement is the payment already brought in from the bank statement
+    // ("AMERICAN EXPRESS" out of chequing): the card gets it a few days later, and the wording never matches
+    const payIn = where && where.startsWith('card:') && K.looksLikePayment(row.desc);
     return data.txns.filter((t) => {
       if (used && used.has(t.id)) return false;
       if (Math.abs(Math.abs(t.amt) - Math.abs(row.amt)) >= 0.01) return false;
       if (where && t.from !== where && t.to !== where) return false;
       const gap = gapOf(t);
+      if (payIn && t.type === 'transfer' && t.to === where && (t.from || '').startsWith('acct:') && gap <= 7) return true;
       if (gap > 3) return false;
-      return (key && w1(t.merchant) === key) || (t.source !== 'statement' && gap <= 1);
+      return (key && (w1(t.merchant) === key || (t.raw && w1(t.raw) === key))) || (t.source !== 'statement' && gap <= 1);
     }).sort((a, b) => gapOf(a) - gapOf(b))[0];
   };
   // Every line of a file against what's already in Kipu, one match each; exact dates are matched first
