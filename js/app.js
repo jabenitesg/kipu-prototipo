@@ -341,7 +341,7 @@
 
     const Screen = SCREENS()[route.r] || K.Home;
     const content = html`<${Screen} key=${JSON.stringify(route)} route=${route} />`;
-    const sheetEl = sheet && (() => { const close = () => setSheet(null); if (sheet.k === 'budgetEdit') return html`<${K.BudgetEditSheet} cat=${sheet.cat} onClose=${close} />`; const C = K.SHEETS[sheet.k]; return C ? html`<${C} onClose=${close} show=${sheet.show || ['scope', 'currency']} preset=${sheet.preset || sheet} item=${sheet.item} id=${sheet.id} where=${sheet.where} />` : null; })();
+    const sheetEl = sheet && (() => { const close = () => setSheet(null); if (sheet.k === 'budgetEdit') return html`<${K.BudgetEditSheet} cat=${sheet.cat} onClose=${close} />`; if (sheet.k === 'suggestBudget') return html`<${K.SuggestBudgetSheet} onClose=${close} />`; const C = K.SHEETS[sheet.k]; return C ? html`<${C} onClose=${close} show=${sheet.show || ['scope', 'currency']} preset=${sheet.preset || sheet} item=${sheet.item} id=${sheet.id} where=${sheet.where} />` : null; })();
     const toastEl = toastMsg && html`<div class="toast" role="status"><${Icon} n="check" s=${15} w=${2.6} />${toastMsg}</div>`;
     const rootOf = stack[0].r;
 

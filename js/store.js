@@ -1261,6 +1261,11 @@
     const s = String(text || '').toLowerCase();
     const num = /(\d{1,3}(?:[,.]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/.exec(s);
     const inst = /(\d{1,2})\s*(cuotas|installments|meses sin|payments|pagos)/.exec(s);
+    // "¿Dónde puedo recortar?", "quiero ahorrar 500 al mes", "how can I spend less"
+    if (/recort|ahorr|cut (back|down)|save (more|\d)|saving \d|spend less|gastar menos|gasto menos|reduc|where can i save|presupuesto|budget/.test(s) && !/compr|buy|afford/.test(s)) {
+      const v = num ? Number(num[1].replace(/[.,](?=\d{3}\b)/g, '').replace(',', '.')) : null;
+      return { kind: 'cut', amount: v > 0 ? v : null };
+    }
     if (/fin de mes|end of (the )?month|llego|make it|alcanza el mes|me quedo sin|run out/.test(s) && !(num && !inst && /compr|buy|afford|gast|pag/.test(s))) return { kind: 'month' };
     if (num) {
       let raw = num[1]; raw = /^\d{1,3}([,.]\d{3})+/.test(raw) && !/[.,]\d{1,2}$/.test(raw.replace(/^\d{1,3}([,.]\d{3})+/, '')) ? raw.replace(/[.,](?=\d{3}\b)/g, '') : raw.replace(',', '.');
@@ -1268,6 +1273,167 @@
       return { kind: 'afford', amount: Number(raw.replace(/,/g, '')), installments: inst ? Number(inst[1]) : 1 };
     }
     return { kind: /compr|buy|afford|gast/.test(s) ? 'afford' : 'unknown', amount: null };
+  };
+
+  // ---------------------------------------------------------------- budget advice (rule-based, on this device)
+  // Ideas from well-known personal finance authors, applied to your own numbers:
+  // · Warren's 50/30/20 and Sethi's conscious spending ranges as references, never as rules
+  // · keep needs as they are, save first, and trim wants you don't care about (Sethi: spend on what you love, cut the rest)
+  // · irregular and yearly costs are spread across the months (YNAB's true expenses)
+  // · the biggest levers first: housing, transport and food (Pant, Housel), then leaks: subscriptions, fees, interest
+  K.NEED_CATS = ['housing', 'bills', 'groceries', 'transport', 'health', 'education', 'family'];
+  K.catGroup = (d, c) => ((d.spend && d.spend.groups && d.spend.groups[c]) || (K.NEED_CATS.includes(c) ? 'need' : 'want'));
+  K.SAVE_REFS = { warren: { need: 50, want: 30, save: 20 }, sethi: { need: [50, 60], want: [20, 35], save: [10, 20] } };
+  const nice = (x, how) => { if (!(x > 0)) return 0; const s = x < 100 ? 5 : x < 1000 ? 10 : 50; const v = (how === 'round' ? Math.round : how ? Math.floor : Math.ceil)(x / s) * s; return v || s; };
+  const SUB_KINDS = [
+    [/netflix|disney|prime ?video|amazon ?prime|hbo|\bmax\b|crave|paramount|apple ?tv|star ?\+|mubi|vix|peacock|hulu/i, 'streaming'],
+    [/spotify|apple ?music|youtube ?(premium|music)|deezer|tidal|amazon ?music/i, 'music'],
+    [/icloud|google ?(one|storage)|dropbox|one ?drive|box\.com/i, 'storage'],
+  ];
+  // Your usual month by category, from the last few finished months
+  K.spendingBase = (data, D) => {
+    const scope = (D.ctx && D.ctx.scope) || 'personal';
+    const share = (t) => (scope === 'household' ? 1 : K.myShare(t));
+    const T = D.T || today(), cm = monthKey(T);
+    const annualIds = new Set((D.bills || []).filter((b) => b.kind === 'Annual').map((b) => b.id));
+    const exp = (D.txAll || []).filter((t) => t.type === 'expense' && t.date && !annualIds.has(t.recurring));
+    const keys = [];
+    for (let k = 1; k <= 3; k++) { const mk = monthKey(new Date(T.getFullYear(), T.getMonth() - k, 1)); if (exp.some((t) => t.date.startsWith(mk))) keys.unshift(mk); }
+    let partial = false, scale = 1;
+    if (!keys.length) {
+      const now = exp.filter((t) => t.date.startsWith(cm));
+      if (now.length < 5 || T.getDate() < 10) return null;
+      keys.push(cm); partial = true; scale = new Date(T.getFullYear(), T.getMonth() + 1, 0).getDate() / T.getDate();
+    }
+    const n = keys.length;
+    const cats = {}, last = {}, prior = {};
+    const lastKey = keys[n - 1];
+    exp.filter((t) => keys.includes(t.date.slice(0, 7))).forEach((t) => {
+      const c = K.CATS[t.cat] ? t.cat : 'other', v = (t.base || 0) * share(t);
+      cats[c] = (cats[c] || 0) + v;
+      if (t.date.startsWith(lastKey)) last[c] = (last[c] || 0) + v; else prior[c] = (prior[c] || 0) + v;
+    });
+    Object.keys(cats).forEach((c) => { cats[c] = r2((cats[c] / n) * scale); last[c] = r2((last[c] || 0) * scale); prior[c] = n > 1 ? r2((prior[c] || 0) / (n - 1)) : null; });
+    // Yearly bills count a twelfth every month; monthly bills set the floor for their category
+    const floor = {};
+    (D.bills || []).forEach((b) => { const v = K.toBase(data, b.amt, b.cur || data.base) || 0; const c = K.CATS[b.cat] ? b.cat : 'bills'; if (b.kind === 'Annual') { cats[c] = r2((cats[c] || 0) + v / 12); floor[c] = (floor[c] || 0) + v / 12; } else floor[c] = (floor[c] || 0) + v; });
+    Object.keys(floor).forEach((c) => (cats[c] = r2(Math.max(cats[c] || 0, floor[c]))));
+    const incomeTx = r2(sum((D.txAll || []).filter((t) => t.type === 'income' && t.date && keys.includes(t.date.slice(0, 7))), (t) => t.base || 0) / n * scale);
+    const incomePlan = r2(sum(D.incomeSrc || [], (s) => (K.toBase(data, s.amt, s.cur || data.base) || 0) * K.perYear(s.freq) / 12));
+    const income = incomePlan > 0 ? incomePlan : incomeTx;
+    const debt = r2(sum((D.loans || []).filter((l) => l.bal > 0 && l.pay), (l) => (l.pay || 0) * K.perYear(l.freq) / 12));
+    return { keys, n, partial, cats, last, prior, floor, income, incomeFrom: incomePlan > 0 ? 'plan' : 'history', debt, scope, exp: exp.filter((t) => keys.includes(t.date.slice(0, 7))), share, scale };
+  };
+
+  // A suggested budget: needs as they are, savings first, wants trimmed to make room (at most 30% each), what you love untouched
+  K.suggestBudget = (data, D, opts) => {
+    const o = opts || {};
+    const S = K.spendingBase(data, D);
+    if (!S) return { ready: false };
+    const sp = data.spend || {};
+    const rate = o.rate != null ? o.rate : sp.rate != null ? sp.rate : 20;
+    const loves = o.loves || sp.loves || [];
+    const group = (c) => (o.groups && o.groups[c]) || K.catGroup(data, c);
+    const cats = K.CAT_ORDER.filter((c) => (S.cats[c] || 0) >= 1);
+    const need = r2(sum(cats.filter((c) => group(c) === 'need'), (c) => S.cats[c]) + S.debt);
+    const want = r2(sum(cats.filter((c) => group(c) === 'want'), (c) => S.cats[c]));
+    const inc = S.income;
+    const left = r2(inc - need - want);
+    const planned = (D.plan && D.plan.savingsPlanned) || 0;
+    const target = r2(Math.max(planned, (inc * rate) / 100));
+    const trimmable = r2(sum(cats.filter((c) => group(c) === 'want' && !loves.includes(c)), (c) => Math.max(0, S.cats[c] - (S.floor[c] || 0))));
+    const gap = r2(Math.max(0, target - left));
+    const cut = inc > 0 && trimmable > 0 ? Math.min(0.3, gap / trimmable) : 0;
+    const rows = cats.map((c) => {
+      const avg = S.cats[c], g = group(c), love = loves.includes(c), fl = S.floor[c] || 0;
+      const sug = g === 'want' && !love && cut > 0 ? nice(fl + (avg - fl) * (1 - cut), 'round') : nice(avg);
+      return { cat: c, group: g, love, avg, last: S.last[c] || 0, floor: r2(fl), suggested: Math.max(sug, nice(fl)) };
+    });
+    const planNeed = r2(sum(rows.filter((r) => r.group === 'need'), (r) => r.suggested) + S.debt);
+    const planWant = r2(sum(rows.filter((r) => r.group === 'want'), (r) => r.suggested));
+    const planSave = r2(inc - planNeed - planWant);
+    const pct = (x) => (inc > 0 ? Math.round((x / inc) * 100) : null);
+    const savingsCash = r2(sum((D.accts || []).filter((a) => a.kind === 'Savings'), (a) => a.baseBal || 0));
+    const needMonth = need || 1;
+    return {
+      ready: true, months: S.n, partial: S.partial, income: inc, incomeFrom: S.incomeFrom, debt: S.debt, rate, loves,
+      need, want, left, pct: { need: pct(need), want: pct(want), left: pct(left), planNeed: pct(planNeed), planWant: pct(planWant), planSave: pct(planSave) },
+      target, gap, cutPct: Math.round(cut * 100), rows, planNeed, planWant, planSave, short: r2(Math.max(0, target - planSave)),
+      freed: r2(Math.max(0, want - planWant)), cushion: { cash: savingsCash, months: r2(savingsCash / needMonth) },
+    };
+  };
+  // Saving more each month: how much sooner a goal is done
+  K.goalSooner = (D, extra) => {
+    const g = (D.goals || []).find((x) => x.left > 0 && x.monthly > 0) || (D.goals || []).find((x) => x.left > 0);
+    if (!g || !(extra > 0)) return null;
+    const now = g.monthly > 0 ? Math.ceil(g.left / g.monthly) : null;
+    const then = Math.ceil(g.left / ((g.monthly || 0) + extra));
+    return { name: g.name, now, then, sooner: now != null ? now - then : null };
+  };
+  // Budgets use the suggestion; categories not in it keep their plan
+  K.applyBudget = (d, s, prefs) => {
+    const budget = Object.assign({}, d.budget);
+    s.rows.forEach((r) => { if (r.suggested > 0) budget[r.cat] = r.suggested; });
+    return Object.assign({}, d, { budget, spend: Object.assign({}, d.spend, prefs || {}) });
+  };
+
+  // Where the money could go further, biggest first. `save` is a monthly amount; `later` ones are bigger decisions.
+  K.cutIdeas = (data, D) => {
+    const S = K.spendingBase(data, D);
+    if (!S) return [];
+    const f = (n) => K.sym(data.base) + Math.round(n).toLocaleString('en-US');
+    const out = [], inc = S.income, name = (c) => (K.CATS[c] || K.CATS.other).name;
+    const want = (c) => K.catGroup(data, c) === 'want';
+    const loves = (data.spend && data.spend.loves) || [];
+    const lastLabel = MONTH_LONG[+S.keys[S.keys.length - 1].slice(5) - 1];
+    // The big three
+    if (inc > 0) {
+      const h = S.cats.housing || 0;
+      if (h > inc * 0.35) out.push({ id: 'cut-housing', icon: 'home', later: true, save: r2(h - inc * 0.3), title: 'Housing takes ' + Math.round((h / inc) * 100) + '% of your income.', why: 'Around 30% is the usual reference. It’s the biggest lever: worth a look at your next renewal or move.' });
+      const tr = S.cats.transport || 0;
+      if (tr > inc * 0.15) out.push({ id: 'cut-transport', icon: 'car', later: true, save: r2(tr - inc * 0.12), title: 'Transportation takes ' + Math.round((tr / inc) * 100) + '% of your income.', why: 'Between 10% and 15% is the usual reference. Car costs, parking and rides add up.' });
+    }
+    const din = S.cats.dining || 0, gro = S.cats.groceries || 0;
+    const covered = new Set();
+    if (din > 0 && din > gro && want('dining') && !loves.includes('dining') && covered.add('dining')) out.push({ id: 'cut-dining', icon: 'cup', save: nice(din * 0.25, true), title: 'You spend more eating out (' + f(din) + ') than on groceries (' + f(gro) + ').', why: 'Cooking a few more meals at home saves about ' + f(nice(din * 0.25, true)) + ' a month.' });
+    // Wants that grew
+    if (S.n > 1) K.CAT_ORDER.filter((c) => want(c) && !loves.includes(c) && c !== 'dining').forEach((c) => {
+      const l = S.last[c] || 0, p = S.prior[c] || 0, d = l - p;
+      if (p > 0 && l > p * 1.2 && d > Math.max(20, inc * 0.01) && covered.add(c)) out.push({ id: 'cut-grow-' + c, icon: 'trend', save: r2(d), title: name(c) + ' went up ' + Math.round((d / p) * 100) + '% in ' + lastLabel + '.', why: 'Back to your usual ' + f(p) + ' saves ' + f(d) + ' a month.' });
+    });
+    // Subscriptions: the same kind twice, and the yearly total
+    const subs = (D.bills || []).filter((b) => b.kind === 'Subscription' && K.billActive(b));
+    const mo = (b) => K.toBase(data, b.amt, b.cur || data.base) || 0;
+    const byKind = {};
+    subs.forEach((b) => { const k = SUB_KINDS.find(([re]) => re.test(b.name + ' ' + (b.match || ''))); if (k) (byKind[k[1]] = byKind[k[1]] || []).push(b); });
+    const kindName = { streaming: 'streaming services', music: 'music services', storage: 'cloud storage plans' };
+    Object.keys(byKind).forEach((k) => { const l = byKind[k]; if (l.length > 1) { const cheap = l.slice().sort((a, b) => mo(a) - mo(b))[0]; out.push({ id: 'cut-dup-' + k, icon: 'repeat', save: r2(mo(cheap)), title: 'You pay ' + l.length + ' ' + kindName[k] + ': ' + l.map((b) => b.name).join(', ') + '.', why: 'Keeping one and rotating the others saves at least ' + f(mo(cheap)) + ' a month.', route: { r: 'plan', tab: 'bills' } }); } });
+    if (subs.length >= 2) out.push({ id: 'cut-subs', icon: 'repeat', save: 0, title: subs.length + ' subscriptions cost ' + f(sum(subs, mo) * 12) + ' a year.', why: 'Cancel the ones you didn’t use last month; you can always come back.', route: { r: 'plan', tab: 'bills' } });
+    // Frequent small purchases in wants (not in a category that already has its own idea, so nothing counts twice)
+    const shops = {};
+    S.exp.filter((t) => want(t.cat) && !t.recurring && !loves.includes(t.cat) && !covered.has(t.cat)).forEach((t) => { const k = K.merchantKey(t.merchant) || t.merchant; const x = (shops[k] = shops[k] || { name: K.txnName(data, t), n: 0, total: 0 }); x.n++; x.total += (t.base || 0) * S.share(t); });
+    Object.values(shops).map((x) => Object.assign(x, { per: (x.n / S.n) * S.scale, month: (x.total / S.n) * S.scale })).filter((x) => x.per >= 5 && x.month >= Math.max(30, inc * 0.01)).sort((a, b) => b.month - a.month).slice(0, 2)
+      .forEach((x) => out.push({ id: 'cut-shop-' + K.merchantKey(x.name), icon: 'bag', save: nice(x.month / 2, true), title: 'About ' + Math.round(x.per) + ' purchases a month at ' + x.name + ' add up to ' + f(x.month) + '.', why: 'Half as often saves about ' + f(nice(x.month / 2, true)) + ' a month.' }));
+    // Bills that went up
+    (D.bills || []).filter((b) => b.lastChange && b.lastChange.to > b.lastChange.from && b.lastChange.date >= iso(addMonths(today(), -6))).forEach((b) => { const k = K.rate(data, b.cur || data.base, data.base) || 1; const d = (b.lastChange.to - b.lastChange.from) * k / (b.kind === 'Annual' ? 12 : 1); out.push({ id: 'cut-price-' + b.id, icon: 'up', save: r2(d), title: b.name + ' went up from ' + f(b.lastChange.from * k) + ' to ' + f(b.lastChange.to * k) + '.', why: 'Call to ask for the old price or compare plans; providers often match to keep you.', route: { r: 'plan', tab: 'bills' } }); });
+    // Interest and fees
+    const intRe = /\b(interest|inter[eé]s(es)?|finance charge|cargo financiero|late fee|cargo por mora|penalidad|overdraft|sobregiro|annual fee|membres[ií]a anual|cuota de manejo)\b/i;
+    const fees = S.exp.filter((t) => intRe.test(t.merchant || ''));
+    if (fees.length) { const m = (sum(fees, (t) => t.base || 0) / S.n) * S.scale; if (m >= 1) out.push({ id: 'cut-interest', icon: 'card', save: r2(m), title: 'You pay about ' + f(m) + ' a month in interest and fees.', why: 'Paying card statements in full and on time brings most of it to zero.', route: { r: 'money', tab: 'cards' } }); }
+    const fx = {};
+    S.exp.filter((t) => t.charged && t.charged.market > 0 && t.charged.amt > t.charged.market && t.from).forEach((t) => { const e = K.toBase(data, t.charged.amt - t.charged.market, t.charged.cur) || 0; const x = (fx[t.from] = fx[t.from] || { extra: 0, paid: 0, market: 0 }); x.extra += e; x.paid += t.charged.amt; x.market += t.charged.market; });
+    Object.keys(fx).forEach((w) => { const x = fx[w], m = (x.extra / S.n) * S.scale, p = (x.paid / x.market - 1) * 100; if (m >= 3 && p >= 1.5) out.push({ id: 'cut-fx-' + w, icon: 'globe', save: r2(m), title: K.whereName(data, w) + ' charges about ' + p.toFixed(1) + '% extra on purchases in other currencies.', why: 'That was about ' + f(m) + ' a month. A card without foreign transaction fees saves it.', route: w.startsWith('card:') ? { r: 'card', id: w.slice(5) } : { r: 'money', tab: 'accounts' } }); });
+    return out.sort((a, b) => (!!a.later - !!b.later) || b.save - a.save);
+  };
+  // "I want to save 500 a month": the ideas that get there, then trimmed wants for the rest
+  K.savePlan = (data, D, amount) => {
+    const ideas = K.cutIdeas(data, D).filter((x) => !x.later && x.save > 0);
+    const s = K.suggestBudget(data, D, { rate: 0 });
+    const picked = []; let total = 0;
+    for (const i of ideas) { if (total >= amount) break; picked.push(i); total = r2(total + i.save); }
+    let trim = 0;
+    if (total < amount && s.ready) { const room = r2(sum(s.rows.filter((r) => r.group === 'want' && !r.love), (r) => Math.max(0, r.avg - r.floor)) * 0.3); trim = r2(Math.min(room, amount - total)); }
+    return { amount, picked, fromIdeas: total, trim, reached: r2(total + trim), short: r2(Math.max(0, amount - total - trim)), goal: K.goalSooner(D, Math.min(amount, total + trim)) };
   };
 
   // ---------------------------------------------------------------- insights (rule-based, only with enough data)
@@ -1337,6 +1503,9 @@
     const otherN = (data.txns || []).filter((t) => t.type === 'expense' && (!t.cat || t.cat === 'other')).length;
     if (otherN >= 3) out.push({ id: 'other', kind: 'Spending', icon: 'tag', title: otherN + ' expenses are in Other.', why: 'Sorting them shop by shop makes every chart more accurate.', cta: 'Review categories', sheet: { k: 'reviewCats' } });
     (data.bills || []).filter((b) => b.lastChange && !b.lastChange.seen).forEach((b) => out.push({ id: 'price-' + b.id, kind: 'Recurring', icon: b.lastChange.to < b.lastChange.from ? 'down' : 'up', title: b.name + (b.lastChange.to < b.lastChange.from ? ' went down' : ' went up') + ': ' + f(b.lastChange.from) + ' → ' + f(b.lastChange.to) + '.', why: 'The bill follows your latest payment.', cta: 'Open bills', route: { r: 'plan', tab: 'bills' } }));
+    // Where the money could go further, the biggest idea first
+    const cuts = K.cutIdeas(data, D).filter((x) => !x.later && x.save > 0);
+    if (cuts.length) out.push({ id: 'cut', kind: 'Savings', icon: 'spark', title: cuts[0].title, why: cuts.length > 1 ? cuts.length + ' ideas could free up to ' + f(sum(cuts, (x) => x.save)) + ' a month.' : cuts[0].why, cta: 'Where can I cut back?', sheet: { k: 'ask', preset: { kind: 'cut' } } });
     const order = { Priority: 0, Credit: 1, Debt: 2, Spending: 3, Savings: 4, Goals: 5, Recurring: 6 };
     return out.sort((a, b) => order[a.kind] - order[b.kind]);
   };

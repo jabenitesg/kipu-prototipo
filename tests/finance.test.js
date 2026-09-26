@@ -198,7 +198,7 @@ test('the forecast assumes the everyday spending you really do, not zero', () =>
   const d = K.factory();
   const T = K.today(), last = new Date(T.getFullYear(), T.getMonth() - 1, 1), iso = (n) => K.iso(K.addDays(last, n));
   d.accounts = [account('cad', 'CAD', 3000)];
-  d.income = [{ id: 'pay', name: 'Salary', amt: 4000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 10)), to: 'acct:cad' }];
+  d.income = [{ id: 'pay', name: 'Salary', amt: 3000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(T, 10)), to: 'acct:cad' }];
   d.bills = [{ id: 'rent', name: 'Rent', kind: 'Bill', amt: 1500, cur: 'CAD', day: 1, cat: 'housing', pay: 'acct:cad' }, { id: 'gym', name: 'Gym', kind: 'Subscription', amt: 50, cur: 'CAD', day: 2, cat: 'subs', pay: 'acct:cad' }];
   const tx = (id, amt, day, extra) => Object.assign({ id, type: 'expense', merchant: id, amt, cur: 'CAD', base: amt, date: iso(day), cat: 'groceries', from: 'acct:cad' }, extra);
   // Only rent was paid last month (the gym bill was added later): the gap must not eat groceries
@@ -922,4 +922,80 @@ test('a card payment seen on both statements (bank and card) counts once', () =>
   assert.equal(e.cards[0].bal, 100);
   assert.equal(e.accounts[0].bal, 4300);
   assert.equal(e.txns.length, 1);
+});
+
+// A household with salary, rent, groceries and a lot of eating out over the last three full months
+const adviceData = () => {
+  let d = K.factory();
+  d.onboarded = true;
+  d.accounts = [account('chq', 'CAD', 3000), Object.assign(account('sav', 'CAD', 2000), { kind: 'Savings' })];
+  d.income = [{ id: 'sal', name: 'Salary', amt: 3000, cur: 'CAD', freq: 'Monthly', next: K.iso(K.addDays(K.today(), 10)), to: 'acct:chq' }];
+  d.bills = [{ id: 'nf', name: 'Netflix', kind: 'Subscription', amt: 20, day: 5, cat: 'subs' }, { id: 'dp', name: 'Disney+', kind: 'Subscription', amt: 12, day: 7, cat: 'subs' }];
+  const T = K.today();
+  for (let k = 3; k >= 1; k--) {
+    const day = (n) => K.iso(new Date(T.getFullYear(), T.getMonth() - k, n));
+    const add = (merchant, cat, amt, n) => (d = K.addTxn(d, { type: 'expense', merchant, cat, amt, cur: 'CAD', from: 'acct:chq', date: day(n) }));
+    add('Rent', 'housing', 1800, 1); add('Loblaws', 'groceries', 200, 4);
+    for (let i = 0; i < 6; i++) add('Cineplex', 'entertainment', 15, 3 + i * 4);
+    for (let i = 0; i < 8; i++) add('DoorDash', 'dining', 30 + (k === 1 ? 10 : 0), 2 + i * 3);
+    add('Amazon', 'shopping', k === 1 ? 400 : 200, 12);
+    add('Netflix', 'subs', 20, 5); add('Disney+', 'subs', 12, 7);
+  }
+  return d;
+};
+
+test('suggested budget: needs stay, savings come first, wants are trimmed at most 30% and loved ones are kept', () => {
+  const d = adviceData();
+  const D = K.derive(d, ctx);
+  const s = K.suggestBudget(d, D, { rate: 20 });
+  assert.ok(s.ready);
+  assert.equal(s.months, 3);
+  assert.equal(s.income, 3000);
+  const row = (c) => s.rows.find((r) => r.cat === c);
+  assert.equal(row('housing').group, 'need');
+  assert.equal(row('housing').suggested, 1800);
+  assert.equal(row('dining').group, 'want');
+  assert.ok(row('dining').suggested < row('dining').avg);
+  assert.ok(row('dining').suggested >= row('dining').avg * 0.7 - 5);
+  assert.ok(row('subs').suggested >= 32); // subscriptions can't go below what's billed
+  // Keeping dining moves the cut to the rest
+  const kept = K.suggestBudget(d, D, { rate: 20, loves: ['dining'] });
+  assert.ok(kept.rows.find((r) => r.cat === 'dining').suggested >= kept.rows.find((r) => r.cat === 'dining').avg);
+  assert.ok(kept.rows.find((r) => r.cat === 'shopping').suggested < s.rows.find((r) => r.cat === 'shopping').suggested + 1);
+  // Moving a category to needs keeps it whole
+  assert.ok(K.suggestBudget(d, D, { rate: 20, groups: { dining: 'need' } }).rows.find((r) => r.cat === 'dining').suggested >= row('dining').avg);
+  // Applying it writes the budget and remembers the choices
+  const a = K.applyBudget(d, s, { rate: 20, loves: ['dining'] });
+  assert.equal(a.budget.housing, 1800);
+  assert.deepEqual(a.spend.loves, ['dining']);
+  // Nothing to go on yet
+  assert.equal(K.suggestBudget(K.factory(), K.derive(K.factory(), ctx)).ready, false);
+});
+
+test('cut ideas: eating out over groceries, repeated streaming, frequent purchases, growth, and a savings target', () => {
+  const d = adviceData();
+  const D = K.derive(d, ctx);
+  const ideas = K.cutIdeas(d, D);
+  const ids = ideas.map((i) => i.id);
+  assert.ok(ids.includes('cut-dining'));
+  assert.ok(ids.includes('cut-dup-streaming'));
+  assert.equal(ideas.find((i) => i.id === 'cut-dup-streaming').save, 12);
+  assert.ok(ids.includes('cut-housing')); // 60% of income on rent: a bigger decision, listed last
+  assert.ok(ideas.find((i) => i.id === 'cut-housing').later);
+  assert.ok(ids.includes('cut-grow-shopping'));
+  assert.ok(ids.some((x) => x.startsWith('cut-shop-')));
+  const quick = ideas.filter((i) => !i.later);
+  for (let i = 1; i < quick.length; i++) assert.ok(quick[i - 1].save >= quick[i].save);
+  // A loved category gets no advice
+  const loved = Object.assign({}, d, { spend: { loves: ['dining'] } });
+  assert.ok(!K.cutIdeas(loved, K.derive(loved, ctx)).some((i) => i.id === 'cut-dining' || i.id === 'cut-shop-doordash'));
+  // "I want to save 100 a month"
+  const p = K.savePlan(d, D, 100);
+  assert.ok(p.reached >= 100);
+  assert.equal(p.short, 0);
+  assert.equal(K.parseQuestion('quiero ahorrar 500 al mes').kind, 'cut');
+  assert.equal(K.parseQuestion('quiero ahorrar 500 al mes').amount, 500);
+  assert.equal(K.parseQuestion('¿Dónde puedo recortar gastos?').kind, 'cut');
+  assert.equal(K.parseQuestion('¿puedo comprar una laptop de 3000?').kind, 'afford');
+  assert.ok(K.insights(d, D).some((i) => i.id === 'cut'));
 });
