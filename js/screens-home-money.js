@@ -307,7 +307,7 @@
       </div>
       <section id="money-cards" class="stack-s" style=${{ gap: '12px' }}><${Head} title="Credit cards" total=${D.cards.length ? fmt(D.cardBal) : null} sub=${D.cards.length ? D.util.toFixed(1) + '% of your limit used' : null} add="Add" sheet="addCard" />
         ${D.cards.length ? html`<div class="mw-cards">${D.cards.map((c) => html`<div key=${c.id} class="stack-s" style=${{ gap: '6px' }}><${CardPreview} c=${c} onClick=${() => go({ r: 'card', id: c.id })} /><span class="tiny muted" style=${{ padding: '0 4px' }}>${[c.closeDay && 'Closes the ' + K.ord(c.closeDay), c.dueDay && 'due the ' + K.ord(c.dueDay)].filter(Boolean).join(' · ')}</span></div>`)}</div>` : html`<div class="card flat small muted" style=${{ padding: '18px', textAlign: 'center' }}>No cards yet.</div>`}</section>
-      <section id="money-activity" style=${{ paddingTop: '4px' }}><${Activity} /></section>
+      <section id="money-activity" class="stack" style=${{ paddingTop: '4px' }}><div class="mw-head"><div class="stack-s" style=${{ gap: '2px' }}><h2>Transactions</h2><span class="tiny muted mw-sub">Pick a day in the calendar, or see them all</span></div></div><${Activity} /></section>
     </div>`;
   }
 
@@ -359,33 +359,51 @@
   }
 
   function Activity() {
-    const { D, openSheet, fmt, data } = useApp();
+    const { D, openSheet, fmt, data, wide } = useApp();
     const [f, setF] = useState('All');
     const [q, setQ] = useState('');
     const [selectedDate, setSelectedDate] = useState(() => D.tx[0] ? D.tx[0].date : null);
-    const [weekOffset, setWeekOffset] = useState(0);
+    const [cursor, setCursor] = useState(() => (D.tx[0] ? D.tx[0].date : K.iso(D.T)));
+    const [view, setView] = useState('week');
     const match = (t) => (f === 'All' || (f === 'Spending' && t.type === 'expense') || (f === 'Income' && t.type === 'income') || (f === 'Transfers' && ['transfer', 'saving', 'debt'].includes(t.type)) || (f === 'Trips' && t.trip)) && (!q || (t.merchant || '').toLowerCase().includes(q.toLowerCase()) || (t.note || '').toLowerCase().includes(q.toLowerCase()));
     const allMatching = D.tx.filter(match);
     const list = allMatching.filter((t) => !selectedDate || t.date === selectedDate).slice(0, 300);
     const byDay = {}; list.forEach((t) => (byDay[t.date] = byDay[t.date] || []).push(t));
     if (!D.tx.length) return html`<div class="card"><${EmptyState} icon="history" title="No transactions yet" text="Add them one by one, scan a receipt, or import a bank or card statement." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} /></div>`;
-    const anchor = K.parse(D.tx[0].date), monday = K.addDays(anchor, -((anchor.getDay() + 6) % 7) + weekOffset * 7);
+    // The calendar shows the week (or the month) around the chosen day
+    const cur = K.parse(cursor), todayIso = K.iso(D.T);
+    const monday = K.addDays(cur, -((cur.getDay() + 6) % 7));
     const week = Array.from({ length: 7 }, (_, i) => K.iso(K.addDays(monday, i)));
+    const first = new Date(cur.getFullYear(), cur.getMonth(), 1), gridStart = K.addDays(first, -((first.getDay() + 6) % 7));
+    const monthDays = Array.from({ length: 42 }, (_, i) => K.iso(K.addDays(gridStart, i)));
+    const shown = view === 'month' ? (monthDays[35].slice(0, 7) === K.iso(first).slice(0, 7) ? monthDays : monthDays.slice(0, 35)) : week;
     const datesWithTx = new Set(allMatching.map((t) => t.date));
-    const changeWeek = (delta) => { const next = weekOffset + delta; const start = K.addDays(monday, delta * 7); const days = Array.from({ length: 7 }, (_, i) => K.iso(K.addDays(start, i))); setWeekOffset(next); setSelectedDate(days.find((d) => datesWithTx.has(d)) || days[0]); };
+    const move = (delta) => {
+      const c = view === 'month' ? new Date(cur.getFullYear(), cur.getMonth() + delta, 1) : K.addDays(monday, delta * 7);
+      const span = view === 'month' ? Array.from({ length: new Date(c.getFullYear(), c.getMonth() + 1, 0).getDate() }, (_, i) => K.iso(new Date(c.getFullYear(), c.getMonth(), i + 1))) : Array.from({ length: 7 }, (_, i) => K.iso(K.addDays(c, i)));
+      const pick = (delta < 0 ? span.slice().reverse() : span).find((d) => datesWithTx.has(d)) || span.find((d) => d <= todayIso) || span[0];
+      setCursor(pick); setSelectedDate(pick);
+    };
+    const atEnd = view === 'month' ? K.monthKey(cur) >= K.monthKey(D.T) : week[6] >= todayIso;
+    const choose = (d) => { setSelectedDate(d); setCursor(d); };
     const dayTx = selectedDate ? allMatching.filter((t) => t.date === selectedDate) : [];
     const spent = K.sum(dayTx.filter((t) => t.type === 'expense'), (t) => t.base || 0);
     const income = K.sum(dayTx.filter((t) => t.type === 'income'), (t) => t.base || 0);
-    return html`<div class="stack">
-      <div class="activity-calendar stack-s"><div class="between"><div class="stack-s" style=${{ gap: '2px' }}><span class="eyebrow">Your activity</span><h2 style=${{ fontSize: '20px' }}>Transactions</h2></div><button class="circle-btn" aria-label="Add transaction" onClick=${() => openSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${18} /></button></div>
-        <div class="between"><button class="circle-btn" aria-label="Earlier week" onClick=${() => changeWeek(-1)}><${Icon} n="back" s=${16} /></button><span class="small muted">${K.fmtDate(week[0], true)} – ${K.fmtDate(week[6], true)}</span><button class="circle-btn" aria-label="Later week" disabled=${weekOffset >= 0} onClick=${() => changeWeek(1)}><${Icon} n="next" s=${16} /></button></div>
-        <div class="activity-days" role="group" aria-label="Choose transaction date">${week.map((d) => { const date = K.parse(d); return html`<button key=${d} class=${'activity-day' + (selectedDate === d ? ' on' : '')} aria-label=${date.toLocaleDateString(K.loc(), { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed=${selectedDate === d} onClick=${() => setSelectedDate(d)}><span>${date.toLocaleDateString(K.loc(), { weekday: 'short' })}</span><strong>${date.getDate()}</strong><i class=${datesWithTx.has(d) ? 'has-tx' : ''}></i></button>`; })}</div>
-        <button class="link" style=${{ alignSelf: 'flex-end' }} onClick=${() => setSelectedDate(null)}>Show all dates</button></div>
-      <div class="row" style=${{ gap: '8px', padding: '0 12px', height: '44px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="search" s=${17} c="var(--muted)" /><input id="tx-search" class="grow" placeholder="Search" value=${q} onInput=${(e) => setQ(e.target.value)} style=${{ border: 0, background: 'transparent', outline: 'none', fontSize: '15px', minWidth: 0 }} /></div>
+    const sel = selectedDate && K.parse(selectedDate);
+    const cap1 = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const monthLabel = cap1(cur.toLocaleDateString(K.loc(), { month: 'long', year: 'numeric' }));
+    const weekdays = week.map((d) => cap1(K.parse(d).toLocaleDateString(K.loc(), { weekday: 'short' }).replace('.', '')));
+    const cal = html`<div class="kcal">
+        <div class="kcal-head"><div class="stack-s" style=${{ gap: '2px', minWidth: 0 }}><span class="kcal-wd">${sel ? cap1(sel.toLocaleDateString(K.loc(), { weekday: 'long' })) : 'All dates'}</span><strong class="kcal-date">${sel ? sel.toLocaleDateString(K.loc(), { month: 'long', day: 'numeric', year: 'numeric' }) : allMatching.length + (allMatching.length === 1 ? ' transaction' : ' transactions')}</strong>${sel && dayTx.length > 0 && html`<span class="kcal-sum num">${spent > 0 ? 'Spent ' + fmt(spent) : ''}${spent > 0 && income > 0 ? ' · ' : ''}${income > 0 ? 'Income ' + fmt(income) : ''}${!spent && !income ? dayTx.length + (dayTx.length === 1 ? ' movement' : ' movements') : ''}</span>`}</div><button class="kcal-add" aria-label="Add transaction" onClick=${() => openSheet({ k: 'quickAdd' })}><${Icon} n="plus" s=${18} /></button></div>
+        <div class="kcal-body">
+          <div class="between"><button class="kcal-month" aria-expanded=${view === 'month'} onClick=${() => setView(view === 'month' ? 'week' : 'month')}>${monthLabel}<span style=${{ display: 'inline-flex', transform: view === 'month' ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><${Icon} n="down" s=${14} w=${2.2} /></span></button><span class="row" style=${{ gap: '6px' }}><button class="kcal-nav" aria-label=${view === 'month' ? 'Earlier month' : 'Earlier week'} onClick=${() => move(-1)}><${Icon} n="back" s=${16} /></button><button class="kcal-nav" aria-label=${view === 'month' ? 'Later month' : 'Later week'} disabled=${atEnd} onClick=${() => move(1)}><${Icon} n="next" s=${16} /></button></span></div>
+          <div class="kcal-grid">${weekdays.map((w, i) => html`<span key=${'w' + i} class="kcal-wk">${w}</span>`)}${shown.map((d) => { const date = K.parse(d); const out = view === 'month' && date.getMonth() !== cur.getMonth(); return html`<button key=${d} class=${'kcal-day' + (selectedDate === d ? ' on' : '') + (d === todayIso ? ' today' : '') + (out ? ' out' : '')} aria-label=${date.toLocaleDateString(K.loc(), { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed=${selectedDate === d} onClick=${() => choose(d)}>${date.getDate()}<i class=${datesWithTx.has(d) ? 'has-tx' : ''}></i></button>`; })}</div>
+          <div class="between"><button class="link" onClick=${() => choose(todayIso)}>Today</button><button class="link" onClick=${() => setSelectedDate(null)}>Show all dates</button></div></div></div>`;
+    const body = html`<div class="row" style=${{ gap: '8px', padding: '0 12px', height: '44px', borderRadius: '14px', background: 'var(--surface2)' }}><${Icon} n="search" s=${17} c="var(--muted)" /><input id="tx-search" class="grow" placeholder="Search" value=${q} onInput=${(e) => setQ(e.target.value)} style=${{ border: 0, background: 'transparent', outline: 'none', fontSize: '15px', minWidth: 0 }} /></div>
       <${Chips} options=${['All', 'Spending', 'Income', 'Transfers', 'Trips']} value=${f} onChange=${setF} scroll=${true} />
-      ${selectedDate && html`<div class="card stack-s"><strong>${K.parse(selectedDate).toLocaleDateString(K.loc(), { weekday: 'long', month: 'long', day: 'numeric' })}</strong><div class="between small"><span>Spent ${fmt(spent)}</span><span>Income ${fmt(income)}</span></div><span class="tiny muted">Daily totals in ${data.base} use each transaction’s recorded conversion.</span></div>`}
       ${Object.keys(byDay).map((d) => html`<div key=${d} class="stack-s"><span class="eyebrow">${K.fmtDate(d, K.parse(d).getFullYear() !== D.T.getFullYear())}</span><div class="card tight list">${byDay[d].map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div></div>`)}
-      ${!list.length && html`<${EmptyState} icon="search" title="No transactions here" text="Choose another day, filter, or Show all dates." />`}</div>`;
+      ${!list.length && html`<${EmptyState} icon="search" title="No transactions here" text="Choose another day, filter, or Show all dates." />`}`;
+    return wide ? html`<div class="act-wide"><div class="stack" style=${{ minWidth: 0 }}>${body}</div><div class="act-side">${cal}</div></div>` : html`<div class="stack">${cal}${body}</div>`;
   }
 
   // ---------------------------------------------------------------- detail views
