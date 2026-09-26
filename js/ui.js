@@ -391,38 +391,36 @@
   K.fitSize = (text, max) => { const n = String(text || '').length; const cap = n > 12 ? max * 0.7 : n > 10 ? max * 0.8 : n > 8 ? max * 0.9 : max; return 'clamp(26px, ' + (cap / 3.9).toFixed(1) + 'vw, ' + Math.round(cap) + 'px)'; };
   // ---------------------------------------------------------------- a month of spending, day by day, and the full list of charges
   // `spend(t)` is what a movement cost in the card's or account's currency (0 when it isn't spending)
-  K.SpendCalendar = function SpendCalendar({ txns, spend, money }) {
+  // A month on one card or account: a calendar of what was spent each day, and that month's movements below.
+  // The calendar picks the month; tapping a day narrows the list to it.
+  K.MonthActivity = function MonthActivity({ txns, spend, money, empty, wide }) {
     const T = K.today();
     const latest = txns.filter((t) => spend(t) > 0).reduce((m, t) => (t.date > m ? t.date : m), '');
-    const start = latest && latest.slice(0, 7) < K.monthKey(T) && !txns.some((t) => t.date && t.date.slice(0, 7) === K.monthKey(T) && spend(t) > 0) ? K.parse(latest.slice(0, 7) + '-01') : new Date(T.getFullYear(), T.getMonth(), 1);
+    const start = latest && latest.slice(0, 7) < K.monthKey(T) && !txns.some((t) => t.date && t.date.slice(0, 7) === K.monthKey(T)) ? K.parse(latest.slice(0, 7) + '-01') : new Date(T.getFullYear(), T.getMonth(), 1);
     const [month, setMonth] = useState(start);
     const [day, setDay] = useState(null);
+    if (!txns.length) return empty;
     const key = K.monthKey(month);
+    const inMonth = txns.filter((t) => t.date && t.date.startsWith(key));
     const byDay = {};
-    txns.forEach((t) => { if (t.date && t.date.startsWith(key)) { const d = +t.date.slice(8, 10); const v = spend(t); if (v > 0) byDay[d] = (byDay[d] || 0) + v; } });
+    inMonth.forEach((t) => { const d = +t.date.slice(8, 10); const v = spend(t); if (v > 0) byDay[d] = (byDay[d] || 0) + v; });
     const total = Object.values(byDay).reduce((a, b) => a + b, 0);
-    const max = Math.max(1, ...Object.values(byDay));
     const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     const lead = (new Date(month.getFullYear(), month.getMonth(), 1).getDay() + 6) % 7; // weeks start on Monday
     const cells = Array.from({ length: lead }, () => null).concat(Array.from({ length: days }, (_, i) => i + 1));
     const move = (n) => { setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1)); setDay(null); };
-    const dayTx = day ? txns.filter((t) => t.date === key + '-' + String(day).padStart(2, '0')) : [];
     const isNow = key === K.monthKey(T);
-    const k = (v) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k' : Math.round(v));
-    return html`<div class="card stack" style=${{ gap: '12px' }}>
-      <div class="between"><button class="ic n" aria-label="Previous month" onClick=${() => move(-1)}><${Icon} n="back" s=${18} w=${2.2} /></button><span class="stack-s" style=${{ alignItems: 'center', gap: '1px' }}><b>${K.MONTH_LONG[month.getMonth()] + ' ' + month.getFullYear()}</b><span class="tiny muted num">${money(total)}</span></span><button class="ic n" aria-label="Next month" disabled=${isNow} onClick=${() => move(1)}><${Icon} n="next" s=${18} w=${2.2} /></button></div>
-      <div class="mcal">${['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((w) => html`<span key=${w} class="mcal-wd">${w}</span>`)}${cells.map((d, i) => d == null ? html`<span key=${'e' + i}></span>` : html`<button key=${d} type="button" class=${'mcal-day' + (day === d ? ' on' : '') + (byDay[d] ? ' has' : '') + (isNow && d === T.getDate() ? ' today' : '')} style=${byDay[d] ? { '--heat': (0.18 + 0.6 * (byDay[d] / max)).toFixed(2) } : null} aria-label=${d + (byDay[d] ? ': ' + money(byDay[d]) : '')} onClick=${() => setDay(day === d ? null : d)}><span class="d">${d}</span>${byDay[d] ? html`<span class="v num">${k(byDay[d])}</span>` : ''}</button>`)}</div>
-      ${day && html`<div class="stack-s" style=${{ gap: '0' }}><div class="between small" style=${{ padding: '4px 2px 8px' }}><b>${K.fmtDate(key + '-' + String(day).padStart(2, '0'), true)}</b><span class="num muted">${money(byDay[day] || 0)}</span></div>${dayTx.length ? html`<div class="card tight list">${dayTx.map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<span class="small muted" style=${{ padding: '0 2px' }}>Nothing that day.</span>`}</div>`}</div>`;
-  };
-  K.ChargeList = function ChargeList({ txns, spend, money, empty }) {
-    const [n, setN] = useState(40);
-    if (!txns.length) return empty;
-    const shown = txns.slice(0, n);
-    const groups = [];
-    shown.forEach((t) => { const m = (t.date || '').slice(0, 7); let g = groups[groups.length - 1]; if (!g || g.m !== m) groups.push((g = { m, list: [] })); g.list.push(t); });
-    const monthTotal = (m) => txns.filter((t) => (t.date || '').startsWith(m)).reduce((a, t) => a + spend(t), 0);
-    return html`<div class="stack-s" style=${{ gap: '14px' }}>${groups.map((g) => html`<div key=${g.m} class="stack-s" style=${{ gap: '6px' }}><div class="between" style=${{ padding: '0 4px' }}><span class="eyebrow">${g.m ? K.MONTH_LONG[+g.m.slice(5) - 1] + ' ' + g.m.slice(0, 4) : ''}</span><span class="tiny muted num">${money(monthTotal(g.m))}</span></div><div class="card tight list">${g.list.map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div></div>`)}
-      ${txns.length > n && html`<button class="btn sec block" onClick=${() => setN(n + 60)}>${'Show more (' + (txns.length - n) + ')'}</button>`}</div>`;
+    const first = txns.reduce((m, t) => (t.date && t.date < m ? t.date : m), '9999');
+    const dayKey = day ? key + '-' + String(day).padStart(2, '0') : null;
+    const list = day ? inMonth.filter((t) => t.date === dayKey) : inMonth;
+    const title = K.MONTH_LONG[month.getMonth()] + ' ' + month.getFullYear();
+    const calendar = html`<div class="card stack" style=${{ gap: '12px' }}>
+      <div class="between"><button class="ic n" aria-label="Previous month" disabled=${key <= first.slice(0, 7)} onClick=${() => move(-1)}><${Icon} n="back" s=${18} w=${2.2} /></button><span class="stack-s" style=${{ alignItems: 'center', gap: '1px' }}><b>${title}</b><span class="tiny muted num">${money(total)}</span></span><button class="ic n" aria-label="Next month" disabled=${isNow} onClick=${() => move(1)}><${Icon} n="next" s=${18} w=${2.2} /></button></div>
+      <div class="mcal">${['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((w) => html`<span key=${w} class="mcal-wd">${w}</span>`)}${cells.map((d, i) => d == null ? html`<span key=${'e' + i}></span>` : html`<button key=${d} type="button" class=${'mcal-day' + (day === d ? ' on' : '') + (byDay[d] ? ' has' : '') + (isNow && d === T.getDate() ? ' today' : '')} aria-label=${d + (byDay[d] ? ': ' + money(byDay[d]) : '')} aria-pressed=${day === d} onClick=${() => setDay(day === d ? null : d)}><span class="d">${d}</span><i class="dot"></i></button>`)}</div></div>`;
+    const movements = html`<div class="stack-s" style=${{ gap: '8px' }}>
+      <div class="between" style=${{ padding: '0 4px', gap: '8px' }}><span class="eyebrow">${day ? K.fmtDate(dayKey, true) : title}</span>${day ? html`<button class="link" onClick=${() => setDay(null)}>See the whole month</button>` : html`<span class="tiny muted num">${money(total)}</span>`}</div>
+      ${list.length ? html`<div class="card tight list">${list.map((t) => html`<${TxnRow} key=${t.id} t=${t} />`)}</div>` : html`<div class="card flat small muted" style=${{ textAlign: 'center', padding: '18px' }}>${day ? 'Nothing that day.' : 'Nothing this month.'}</div>`}</div>`;
+    return html`<div class="stack" style=${{ gap: '16px' }}>${calendar}${movements}</div>`;
   };
   K.RateNote = function RateNote({ cur, blocked, list }) {
     const { updateRates } = useApp();
