@@ -20,13 +20,27 @@
   // ---------------------------------------------------------------- Statistics
   const SECTIONS = [['overview', 'Overview'], ['spending', 'Spending'], ['income', 'Income'], ['cashflow', 'Cash flow'], ['networth', 'Net worth'], ['debt', 'Debt'], ['credit', 'Credit']];
   function Statistics({ route }) {
-    const { D, openSheet } = useApp();
+    const { D, openSheet, wide } = useApp();
     const [sec, setSec] = useState(route.tab === 'spending' || route.tab === 'income' ? route.tab : route.sub || 'overview');
     if (!D.txAll.length) return html`<div class="card"><${EmptyState} icon="chart" title="No numbers yet" text="Statistics fill in as you add transactions. Importing a statement is the fastest way to bring in history." action="Import a statement" onAction=${() => openSheet({ k: 'statement' })} /></div>`;
     const Body = { overview: SOverview, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit }[sec];
-    return html`<div class="stack"><${Chips} options=${SECTIONS.map((s) => s[0])} labels=${SECTIONS.map((s) => s[1])} value=${sec} onChange=${setSec} scroll=${true} /><${Body} /></div>`;
+    // Computer and tablet: every section on one page. Phone: one section at a time.
+    const BODIES = { overview: SOverview, spending: SSpending, income: SIncome, cashflow: SCash, networth: SNW, debt: SDebt, credit: SCredit };
+    if (wide) return html`<div class="stack" style=${{ gap: '28px' }}><${MonthNav} />${SECTIONS.map(([k, label]) => { const B = BODIES[k]; return html`<section key=${k} class="stack" style=${{ gap: '14px' }}>${k !== 'overview' && html`<h2 class="stats-h">${label}</h2>`}<${B} /></section>`; })}</div>`;
+    return html`<div class="stack"><${Chips} options=${SECTIONS.map((s) => s[0])} labels=${SECTIONS.map((s) => s[1])} value=${sec} onChange=${setSec} scroll=${true} />${['overview', 'spending', 'income'].includes(sec) && html`<${MonthNav} />`}<${Body} /></div>`;
   }
-  const pick = (D, ctx) => (ctx.period === 'ytd' ? null : D.series[ctx.period == null ? 11 : ctx.period]);
+  // ‹ August 2026 ›: step through months; the current month is marked when it has nothing yet
+  function MonthNav() {
+    const { D, ctx, setCtx } = useApp();
+    const i = K.statIdx(D, ctx);
+    if (i == null) return html`<div class="between"><span class="small muted">Last 12 months</span><button class="link" onClick=${() => setCtx({ period: K.statIdx(D, {}), periodSet: false })}>By month</button></div>`;
+    const x = D.series[i];
+    const empty = D.series[11] && !D.series[11].count && i !== 11 && !ctx.periodSet;
+    const go = (j) => setCtx({ period: Math.max(0, Math.min(11, j)), periodSet: true });
+    return html`<div class="stack-s" style=${{ gap: '4px' }}><div class="month-nav"><button class="ic n" aria-label="Previous month" disabled=${i <= 0} onClick=${() => go(i - 1)}><${Icon} n="back" s=${18} w=${2.2} /></button><span class="grow" style=${{ textAlign: 'center', fontWeight: 700 }}>${K.MONTH_LONG[x.mi] + ' ' + x.y}${x.current ? html`<span class="muted" style=${{ fontWeight: 400 }}> · so far</span>` : ''}</span><button class="ic n" aria-label="Next month" disabled=${i >= 11} onClick=${() => go(i + 1)}><${Icon} n="next" s=${18} w=${2.2} /></button></div>
+      ${empty && html`<span class="tiny muted" style=${{ textAlign: 'center' }}>${K.MONTH_LONG[D.series[11].mi] + ' has no movements yet, so this shows the latest month that does.'}</span>`}</div>`;
+  }
+  const pick = (D, ctx) => { const i = K.statIdx(D, ctx); return i == null ? null : D.series[i]; };
   const periodTotals = (D, ctx) => {
     const s = pick(D, ctx);
     if (s) return Object.assign({ label: K.MONTH_LONG[s.mi] + ' ' + s.y + (s.current ? ' so far' : '') }, s);
@@ -39,7 +53,7 @@
   function SOverview() {
     const { D, ctx, fmt, wide } = useApp();
     const p = periodTotals(D, ctx);
-    const idx = ctx.period === 'ytd' ? null : ctx.period == null ? 11 : ctx.period;
+    const idx = K.statIdx(D, ctx);
     const prev = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1] : null;
     const tr = (a, b, goodUp, isPts) => (b == null ? null : html`<${Trend} small=${true} d=${a - b} good=${a === b ? null : (a > b) === goodUp} text=${isPts ? (a - b > 0 ? '+' : '') + (a - b).toFixed(1) + ' pts' : (pctCh(a, b) > 0 ? '+' : '') + pctCh(a, b).toFixed(1) + '%'} />`);
     const S = D.activeSeries;
@@ -61,7 +75,7 @@
   function SSpending() {
     const { D, ctx, fmt, wide, data } = useApp();
     const p = periodTotals(D, ctx);
-    const idx = ctx.period === 'ytd' ? null : ctx.period == null ? 11 : ctx.period;
+    const idx = K.statIdx(D, ctx);
     const prevCats = idx != null && idx > 0 && D.series[idx - 1].count ? D.series[idx - 1].cats : null;
     const order = K.CAT_ORDER.filter((c) => (p.cats[c] || 0) > 0).sort((a, b) => p.cats[b] - p.cats[a]);
     const max = p.cats[order[0]] || 1;

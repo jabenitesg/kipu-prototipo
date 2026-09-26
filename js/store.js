@@ -444,6 +444,16 @@
     const b = d.bills[d.bills.length - 1];
     return Object.assign({}, d, { txns: d.txns.map((x) => (x.id === id && !x.recurring ? Object.assign({}, x, { recurring: b.id, billMatch: 'manual' }) : x)) });
   };
+  // Which month Statistics shows. Until the person picks one, the current month, or the latest with movements
+  // when this one has none yet (statements usually arrive after the month ends).
+  K.statIdx = (D, ctx) => {
+    if (ctx.period === 'ytd') return null;
+    if (ctx.periodSet && ctx.period != null) return ctx.period;
+    const S = D.series || [];
+    if (!S.length || (S[11] && S[11].count > 0)) return 11;
+    for (let i = S.length - 1; i >= 0; i--) if (S[i].count > 0) return i;
+    return 11;
+  };
   // What a movement is called on screen: the bill or loan it pays (renaming them renames every payment); otherwise the bank's text
   K.txnName = (d, t) => {
     if (t.recurring) { const b = (d.bills || []).find((x) => x.id === t.recurring); if (b && b.name) return b.name; }

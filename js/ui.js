@@ -295,7 +295,7 @@
     const cc = ctx.country && ctx.country !== 'All' ? ctx.country : null;
     if (cc) parts.push(K.countryName(cc));
     else if (show.includes('currency')) parts.push(ctx.currency === 'Combined' ? 'All · ' + K.sym(data.base) : ctx.currency);
-    if (show.includes('period')) { const S = D.series; parts.push(ctx.period === 'ytd' ? 'Last 12 months' : S[ctx.period].m + ' ' + S[ctx.period].y); }
+    if (show.includes('period')) { const S = D.series; const i = K.statIdx(D, ctx); parts.push(i == null ? 'Last 12 months' : S[i].m + ' ' + S[i].y); }
     return html`<button class="chip" style=${{ background: 'var(--surface)', border: '1px solid var(--line)' }} onClick=${() => openSheet({ k: 'context', show })} aria-label="Change country, scope, currency or period">${cc && html`<${K.CountryFlag} cc=${cc} s=${16} />`}<${Icon} n=${ctx.scope === 'household' ? 'people' : 'user'} s=${14} />${show.includes('currency') && ctx.currency !== 'Combined' && html`<${K.Flag} cur=${ctx.currency} s=${16} />`}${parts.join(' · ')}<${Icon} n="down" s=${14} w=${2.2} /></button>`;
   };
   K.ContextFilter = ContextFilter;
