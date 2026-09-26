@@ -282,6 +282,8 @@ button.lrow:hover, a.lrow:hover { background: color-mix(in srgb, var(--surface2)
 .field > span { font-size: 12px; font-weight: 600; color: var(--muted); }
 .input { height: 48px; padding: 0 14px; border: 1px solid transparent; border-radius: 14px; background: var(--surface2); font-size: 15px; outline: none; width: 100%; }
 .input:focus { border-color: var(--acc); background: var(--surface); }
+/* Phones zoom into fields under 16px; keep typing steady */
+@media (max-width: 767px) { .input, select.input, textarea.input { font-size: 16px; } .quick-in { height: 52px; font-size: 18px; } }
 .amount-in { font-family: var(--display); font-size: 40px; font-weight: 700; text-align: center; border: 0; background: transparent; outline: none; width: 100%; letter-spacing: -0.02em; }
 .switch { width: 46px; height: 28px; flex-shrink: 0; border-radius: 999px; padding: 3px; display: flex; background: var(--neutral); transition: background 0.2s; }
 .switch i { width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }

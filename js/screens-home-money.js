@@ -129,31 +129,43 @@
   };
 
   // Type an expense in one line: "45 Wong", "S/ 12 taxi ayer"
-  const QuickEntry = () => {
+  const QuickEntry = ({ compact, onDone }) => {
     const { data, commit, toast, fmt, openSheet } = useApp();
     const [text, setText] = useState('');
     const [last, setLast] = useState(null);
+    const inputRef = React.useRef(null);
     const q = K.parseQuick(text, data);
     const from = K.lastPaidFrom(data);
+    // Your most frequent places lately: tap one, type the amount, done
+    const recent = React.useMemo(() => {
+      const since = K.iso(K.addDays(K.today(), -60)), n = {};
+      data.txns.forEach((t) => { if (t.type === 'expense' && !t.recurring && t.merchant && t.date >= since && t.merchant.length <= 18) n[t.merchant] = (n[t.merchant] || 0) + 1; });
+      return Object.keys(n).sort((a, b) => n[b] - n[a]).slice(0, 4);
+    }, [data.txns]);
     if (!from) return null;
     const save = (e) => {
       e.preventDefault();
       if (!q) { openSheet({ k: 'expense', preset: { merchant: text.trim() } }); setText(''); return; }
       const cur = q.cur && K.hasRateFor(data, q.cur) ? q.cur : data.base;
-      const t = { type: 'expense', merchant: q.merchant || 'Expense', cat: K.guessCat(data, q.merchant) || 'other', amt: q.amt, cur, from, date: q.date, source: 'manual', shared: K.hhMode(data) === 'together' };
+      const t = { type: 'expense', merchant: q.merchant || 'Expense', cat: K.guessCat(data, q.merchant) || 'other', amt: q.amt, cur, from, date: q.date, source: 'manual', shared: K.isShared(data) };
       const est = K.chargeEstimate(data, t.amt, t.cur, from);
       if (est) t.charged = { amt: est.amt, cur: est.cur, market: est.market, exact: false };
       if (K.canPost(data, t)) { openSheet({ k: 'expense', preset: t }); setText(''); return; }
       const next = K.addTxn(data, t);
       commit(next); setLast(next.txns[next.txns.length - 1]); setText('');
       toast('Expense added');
+      if (onDone) onDone();
     };
     const hint = q ? fmt.native(q.amt, q.cur || data.base, { dec: 2 }) + (q.merchant ? ' · ' + q.merchant : '') + ' · ' + K.CATS[K.guessCat(data, q.merchant) || 'other'].name + ' · ' + K.whereName(data, from) : 'Amount and where, e.g. 45 Wong or 12 taxi yesterday';
-    return html`<form class="card stack-s" style=${{ gap: '8px', padding: '12px 14px' }} onSubmit=${save}>
-      <div class="row" style=${{ gap: '8px' }}><input class="input grow" aria-label="Quick expense" enterkeyhint="done" autocomplete="off" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="45 Wong" /><button class="btn pri sm" disabled=${!text.trim()}>Add</button></div>
+    const pick = (m) => { setText(m + ' '); if (inputRef.current) inputRef.current.focus(); };
+    return html`<form class=${compact ? 'stack-s' : 'card stack-s'} style=${{ gap: '8px', padding: compact ? '4px 12px 8px' : '12px 14px' }} onSubmit=${save}>
+      <div class="row" style=${{ gap: '8px' }}><input ref=${inputRef} class="input grow quick-in" aria-label="Quick expense" enterkeyhint="done" autocomplete="off" autocorrect="off" spellcheck="false" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="45 Wong" /><button class="btn pri sm" disabled=${!text.trim()} aria-label="Add">${html`<${Icon} n="check" s=${18} w=${2.6} />`}</button></div>
+      ${recent.length > 0 && !text && html`<div class="chips" style=${{ gap: '6px' }}>${recent.map((m) => html`<button key=${m} type="button" class="chip" onClick=${() => pick(m)}>${m}</button>`)}</div>`}
       <span class="tiny muted">${hint}</span>
       ${last && !text && html`<span class="tiny"><button type="button" class="link" onClick=${() => { const d = K.removeTxn(data, last.id); commit(d); setLast(null); toast('Removed'); }}>Undo</button> · <button type="button" class="link" onClick=${() => { openSheet({ k: 'expense', item: data.txns.find((x) => x.id === last.id) }); setLast(null); }}>Edit</button></span>`}</form>`;
   };
+  K.QuickEntry = QuickEntry;
+
 
   // What's due in the next three days, before it's late
   const DueSoon = () => {
@@ -223,7 +235,7 @@
       const upcomingW = html`<div class="card" style=${{ gridArea: 'up', padding: '6px 0 4px' }}><div class="between" style=${{ padding: '12px 16px 8px' }}><h3 style=${{ fontSize: '16px' }}>Coming up</h3><button class="pill-link" onClick=${() => go({ r: 'plan', tab: 'bills' })}>Bills<${Icon} n="next" s=${13} w=${2.2} /></button></div>${D.upcoming.length ? html`<div class="list" style=${{ borderTop: '1px solid var(--line)' }}>${D.upcoming.slice(0, 5).map((u, i) => html`<${UpcomingItem} key=${i} u=${u} />`)}</div>` : html`<div style=${{ padding: '4px 16px 16px' }}><${Empty} text="Add bills, subscriptions, loans and income to see what’s coming." action="Add a bill" onAction=${() => openSheet({ k: 'addBill' })} /></div>`}</div>`;
       return html`<div class="stack" style=${{ gap: '26px' }}>
         <header class="between" style=${{ alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px 32px' }}><div class="stack-s" style=${{ gap: '8px' }}><span class="eyebrow">${K.MONTH_LONG[D.T.getMonth()]} so far</span><h1>${greeting()}${hello}</h1></div>${kpis}</header>
-        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} /><${QuickEntry} />
+        ${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />
         <div class="bento" style=${{ '--areas-lg': areasLg, '--areas-md': areasMd }}>
           <div class="stack" style=${{ gridArea: 'hero', gap: '14px' }}><${SafeHero} /><${AskRow} /><${CountrySafe} /></div>
           ${featured && html`<div style=${{ gridArea: 'goal' }}>${featured}</div>`}${credit && html`<div style=${{ gridArea: 'cred' }}>${credit}</div>`}
@@ -231,7 +243,7 @@
           <div class="stack" style=${{ gridArea: 'gls', gap: '16px' }}>${goalsW}${tripCard}</div>
         </div>${dock}</div>`;
     }
-    return html`<div class="stack">${head}${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${AskRow} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickEntry} /><${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
+    return html`<div class="stack">${head}<${QuickEntry} />${ctxChip}${D.noRate && D.noRate.length > 0 && html`<${K.RateNote} list=${D.noRate} />`}<${Setup} /><${DueSoon} /><${SafeHero} /><${AskRow} /><${CountrySafe} /><${ProtectDevice} /><${HouseholdClosed} /><${SplitCard} /><${InviteCard} />${month}<${QuickRow} />${goalCard}${upcoming}${tripCard}${credit}${insight}</div>`;
   };
 
   // ---------------------------------------------------------------- Money
